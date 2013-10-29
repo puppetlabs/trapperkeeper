@@ -2,6 +2,15 @@
 
 A Clojure library designed to ... well, that part is up to you.
 
+### Implementation Questions
+* Life cycle for startup? Or just expect services to start during graph compile?
+  - Use atoms for implementation?
+* How to handle command-line args?
+  - Force services to provide required/supported CLI args?
+  - Use protocols? Or require additional functions in graphs?
+  - How to resolve conflicts in service CLI args?
+* Use with-redefs for common functions?
+
 ### Prismatic Graph
 * http://github.com/Prismatic/plumbing/blob/master/test/plumbing/graph_examples_test.clj
 * http://blog.getprismatic.com/blog/2012/10/1/prismatics-graph-at-strange-loop.html

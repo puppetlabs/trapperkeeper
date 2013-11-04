@@ -1,8 +1,8 @@
-(ns puppetlabs.trapperkeeper.trapperkeeper-core
+(ns puppetlabs.trapperkeeper.core
   (:import )
   (:require [clojure.java.io :refer [IOFactory]]
             [plumbing.graph :as graph]
-            [puppetlabs.trapperkeeper.trapperkeeper-bootstrap :as bootstrap]))
+            [puppetlabs.trapperkeeper.bootstrap :as bootstrap]))
 
 ;  A type representing a trapperkeeper application.  This is intended to provide
 ;  an abstraction so that users don't need to worry about the implementation

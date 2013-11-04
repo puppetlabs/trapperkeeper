@@ -1,9 +1,9 @@
-(ns puppetlabs.trapperkeeper.trapperkeeper-core-test
+(ns puppetlabs.trapperkeeper.core_test
   (:import (java.io StringReader))
   (:require [clojure.test :refer :all]
             [clojure.tools.logging :as log]
             [clojure.java.io :refer [file]]
-            [puppetlabs.trapperkeeper.trapperkeeper-core :as trapperkeeper]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
 

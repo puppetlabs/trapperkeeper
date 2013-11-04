@@ -1,10 +1,10 @@
-(ns puppetlabs.trapperkeeper.trapperkeeper-bootstrap
+(ns puppetlabs.trapperkeeper.bootstrap
   (:import (java.io Reader FileNotFoundException))
   (:require [clojure.java.io :refer [IOFactory]]
             [clojure.string :refer [trim]]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
-            [puppetlabs.trapperkeeper.trapperkeeper-utils :refer [validate-service-graph! service-graph?]]))
+            [puppetlabs.trapperkeeper.utils :refer [validate-service-graph! service-graph?]]))
 
 (def bootstrap-config-file-name "bootstrap.cfg")
 

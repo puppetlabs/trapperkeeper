@@ -1,4 +1,4 @@
-(ns puppetlabs.trapperkeeper.trapperkeeper-utils)
+(ns puppetlabs.trapperkeeper.utils)
 
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper

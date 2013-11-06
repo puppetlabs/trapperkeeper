@@ -82,3 +82,60 @@
    :post [(ifn? %)]}
   (get-in (:graph-instance app) (cons service (cons k ks))))
 
+(defn- io->fnk-binding-form
+  "Converts a service's input-output map into a binding-form suitable for
+  passing to a fnk. The binding-form defines the fnk's expected input and
+  output values, and is required to satisfy graph compilation.
+
+  This function is necessary in order to allow for the defservice macro to
+  support arbitrary code in the body. A fnk will attempt to determine what
+  its output-schema is, but will only work if a map is immediately returned
+  from the body. When a map is not immediately returned (i.e. a `let` block
+  around the map), the output-schema must be explicitly provided in the fnk
+  metadata in order to satisfy graph compilation."
+  [io-map]
+  (let [to-output-schema  (fn [provides]
+                            (reduce (fn [m p] (assoc m (keyword p) true))
+                                    {}
+                                    provides))
+        output-schema     (to-output-schema (:provides io-map))]
+    ;; Add an output-schema entry to the depends vector's metadata map
+    (vary-meta (:depends io-map) assoc :output-schema output-schema)))
+
+(defmacro defservice
+  "Define a service that may depend on other services, and provides functions
+  for other services to depend on. Defining a service requires a:
+    * service name
+    * optional documentation string
+    * input-output map in the form: {:depends [...] :provides [...]}
+    * a body of code that returns a map of functions the service provides.
+      The keys of the map must match the values of the :provides vector.
+
+  Examples:
+
+    (defservice logging-service
+      {:depends  []
+       :provides [debug info warn]}
+      {:debug (partial println \"DEBUG:\")
+       :info  (partial println \"INFO:\")
+       :warn  (partial println \"WARN:\")})
+
+    (defservice datastore-service
+      \"Store key-value pairs.\"
+      {:depends  [[:logging-service debug]]
+       :provides [get put]}
+      (let [log       (partial debug \"[datastore]\")
+            datastore (atom {})]
+        {:get (fn [key]       (log \"Getting...\") (get @datastore key))
+         :put (fn [key value] (log \"Putting...\") (swap! datastore assoc key value))}))"
+  ([svc-name io-map body]
+    `(defservice ~svc-name "" ~io-map ~body))
+  ([svc-name svc-doc io-map body]
+    (let [binding-form (io->fnk-binding-form io-map)]
+      `(defn ~svc-name
+         ~svc-doc
+         []
+         {~(keyword svc-name)
+            (fnk
+              ~binding-form
+              ~body)}))))

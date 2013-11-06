@@ -1,7 +1,8 @@
 (ns puppetlabs.trapperkeeper.core
-  (:import )
   (:require [clojure.java.io :refer [IOFactory]]
             [plumbing.graph :as graph]
+            [plumbing.core :refer [fnk]]
+            [puppetlabs.utils :refer [cli!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]))
 
 ;  A type representing a trapperkeeper application.  This is intended to provide
@@ -11,16 +12,42 @@
 ;  namespace.
 (defrecord TrapperKeeperApp [graph-instance])
 
+(defn parse-cli-args!
+  "Parses the command-line arguments using `puppetlabs.utils/cli!`.
+  Hard-codes the command-line arguments expected by trapperkeeper to be:
+      --debug
+      --bootstrap-config <bootstrap file>
+      --config <.ini file or directory>"
+  [cli-args]
+  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
+                     ["-b" "--bootstrap-config" "Path to bootstrap config file (optional)"]
+                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services (optional)"]]
+        required    []]
+    (first (cli! cli-args specs required))))
+
+(defn- cli-service
+  "The 'service' that provides command-line argument access to other services.
+  It is really just a `fnk` that always ends up in the service graph so that
+  services can access the command-line arguments"
+  [cli-data]
+  {:cli-service
+   (fnk []
+     {:cli-data (fn
+                  ([] cli-data)
+                  ([k] (cli-data k)))})})
+
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
-  [bootstrap-config]
-  {:pre [(satisfies? IOFactory bootstrap-config)]
+  ([bootstrap-config] (bootstrap* bootstrap-config {}))
+  ([bootstrap-config cli-data]
+  {:pre [(satisfies? IOFactory bootstrap-config)
+         (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [graph-map       (bootstrap/parse-bootstrap-config! bootstrap-config)
+  (let [graph-map       (merge (cli-service cli-data) (bootstrap/parse-bootstrap-config! bootstrap-config))
         graph-fn        (graph/eager-compile graph-map)
         graph-instance  (graph-fn {})
         app             (TrapperKeeperApp. graph-instance)]
-    app))
+    app)))
 
 (defn bootstrap
   "Bootstrap a trapperkeeper application.  This is accomplished by reading a
@@ -37,13 +64,13 @@
   * In the current working directory, in a file named `bootstrap.cfg`.
   * On the classpath, in a file named `bootstrap.cfg`."
   [cli-args]
-  ;; TODO: this is probably where our real CLI processing goes
-  (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-args)
+  (let [cli-data (parse-cli-args! cli-args)]
+    (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
                                 (bootstrap/config-from-cwd)
                                 (bootstrap/config-from-classpath))]
-    (bootstrap* bootstrap-config)
-    (throw (IllegalStateException.
-             "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"))))
+      (bootstrap* bootstrap-config cli-data)
+      (throw (IllegalStateException.
+               "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath")))))
 
 (defn get-service-fn
   "Given a trapperkeeper application, a service name, and a sequence of keys,

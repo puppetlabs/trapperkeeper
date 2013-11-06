@@ -56,30 +56,28 @@
   [config]
   {:pre [(satisfies? IOFactory config)]
    :post [(service-graph? %)]}
-  (apply merge
-         (for [line (line-seq (reader config))]
-           (let [line (trim line)]
+  (let [lines (line-seq (reader config))]
+    (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
+    (apply merge
+           (for [line (map trim lines)]
              (when-not (empty? line)
                (let [[service-fn-namespace service-fn-name] (parse-bootstrap-line! line)]
                  (call-service-fn!
                    service-fn-namespace
                    service-fn-name)))))))
 
+
 (defn config-from-cli!
-  "Given the command-line arguments, check to see if the caller explicitly
-  specified the location of the bootstrap config file.  If so, return it.  Throws
-  an IllegalArgumentException if a location was specified but the file doesn't
-  actually exist."
-  [cli-args]
-  {:pre [(every? string? cli-args)]
+  "Given the data from the command-line (parsed via `core/parse-cli-args!`),
+  check to see if the caller explicitly specified the location of the bootstrap
+  config file.  If so, return it.  Throws an IllegalArgumentException if a
+  location was specified but the file doesn't actually exist."
+  [cli-data]
+  {:pre [(map? cli-data)]
    :post [(or (nil? %)
               (satisfies? IOFactory %))]}
-  ;; TODO: the arg we're passed here should be a map, or probably
-  ;; whatever is returned by `cli!`.  This is just a temporary hack
-  ;; until we have our real CLI situation sorted out.
-  (when (and (= (count cli-args) 2)
-           (= (cli-args 0) "--bootstrap-config"))
-    (let [config-path (cli-args 1)]
+  (when (contains? cli-data :bootstrap-config)
+    (let [config-path (cli-data :bootstrap-config)]
       (if (.exists (file config-path))
         (do
           (log/debug (str "Loading bootstrap config from specified path: '" config-path "'"))

@@ -5,6 +5,7 @@
             [clojure.java.io :refer [file]]
             [plumbing.fnk.pfnk :as pfnk]
             [plumbing.graph :as graph]
+            [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
             [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice]]
             [puppetlabs.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
@@ -17,7 +18,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
 puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service
 
 "
-          app                 (trapperkeeper/bootstrap* (StringReader. bootstrap-config))]
+          app                 (trapperkeeper/bootstrap* (parse-bootstrap-config! (StringReader. bootstrap-config)))]
 
       (testing "Can load a service based on a valid bootstrap config string"
         (let [test-fn             (trapperkeeper/get-service-fn app :foo-test-service :test-fn)
@@ -32,7 +33,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "The CLI service has the CLI data."
         (let [config-file-path  "/path/to/config/files"
               cli-data          (trapperkeeper/parse-cli-args! ["--config" config-file-path "--debug"])
-              app-with-cli-args (trapperkeeper/bootstrap* (StringReader. bootstrap-config) cli-data)
+              app-with-cli-args (trapperkeeper/bootstrap* (parse-bootstrap-config! (StringReader. bootstrap-config)) cli-data)
               cli-data-fn       (trapperkeeper/get-service-fn app-with-cli-args :cli-service :cli-data)]
           (is (not (empty? (cli-data-fn))))
           (is (cli-data-fn :debug))
@@ -102,14 +103,14 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"(?is)Invalid line in bootstrap.*This is not a legit line"
-              (trapperkeeper/bootstrap* bootstrap-config)))))
+              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
 
     (testing "Bootstrap config file is empty."
       (let [bootstrap-config (StringReader. "")]
         (is (thrown-with-msg?
               Exception
               #"Empty bootstrap config file"
-        (trapperkeeper/bootstrap* bootstrap-config)))))
+        (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
 
     (testing "Service namespace doesn't exist"
       (let [bootstrap-config (StringReader.
@@ -117,7 +118,7 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Unable to load service: non-existent-service/test-service"
-              (trapperkeeper/bootstrap* bootstrap-config)))))
+              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
 
     (testing "Service function doesn't exist"
       (let [bootstrap-config (StringReader.
@@ -125,7 +126,7 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Unable to load service: puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service"
-              (trapperkeeper/bootstrap* bootstrap-config)))))
+              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
 
     (testing "Invalid service graph"
 
@@ -134,7 +135,7 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Invalid service graph;"
-              (trapperkeeper/bootstrap* bootstrap-config))))))
+              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config)))))))
 
   (testing "CLI arg parsing"
     (testing "CLI args are parsed to a map"
@@ -196,6 +197,6 @@ This is not a legit line.
         (is (= provides {:hello true})))))
 
   (testing "services compile correctly and can be called"
-    (let [app      ((graph/eager-compile (merge (logging-service) (simple-service))) {})
-          hello-fn (get-in app [:simple-service :hello])]
+    (let [app       (trapperkeeper/bootstrap* [(logging-service) (simple-service)])
+          hello-fn  (trapperkeeper/get-service-fn app :simple-service :hello)]
       (is (= (hello-fn) "world")))))

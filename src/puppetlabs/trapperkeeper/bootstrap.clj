@@ -55,17 +55,14 @@
   the configuration."
   [config]
   {:pre [(satisfies? IOFactory config)]
-   :post [(service-graph? %)]}
+   :post [(sequential? %)
+          (every? service-graph? %)]}
   (let [lines (line-seq (reader config))]
     (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
-    (apply merge
-           (for [line (map trim lines)]
-             (when-not (empty? line)
-               (let [[service-fn-namespace service-fn-name] (parse-bootstrap-line! line)]
-                 (call-service-fn!
-                   service-fn-namespace
-                   service-fn-name)))))))
-
+    (for [line (map trim lines)
+          :when (not (empty? line))]
+      (let [[service-fn-namespace service-fn-name] (parse-bootstrap-line! line)]
+        (call-service-fn! service-fn-namespace service-fn-name)))))
 
 (defn config-from-cli!
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),

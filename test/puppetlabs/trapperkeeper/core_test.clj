@@ -1,9 +1,11 @@
-(ns puppetlabs.trapperkeeper.core_test
+(ns puppetlabs.trapperkeeper.core-test
   (:import (java.io StringReader))
   (:require [clojure.test :refer :all]
             [clojure.tools.logging :as log]
             [clojure.java.io :refer [file]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper]
+            [plumbing.fnk.pfnk :as pfnk]
+            [plumbing.graph :as graph]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice]]
             [puppetlabs.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
 
@@ -18,7 +20,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
           app                 (trapperkeeper/bootstrap* (StringReader. bootstrap-config))]
 
       (testing "Can load a service based on a valid bootstrap config string"
-        (let [test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+        (let [test-fn             (trapperkeeper/get-service-fn app :foo-test-service :test-fn)
               hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
           (is (= (test-fn) :foo))
           (is (= (hello-world-fn) "hello world"))))
@@ -40,7 +42,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "Looks for bootstrap config on classpath (test-resources)"
         (with-test-logging
           (let [app                 (trapperkeeper/bootstrap [])
-                test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+                test-fn             (trapperkeeper/get-service-fn app :classpath-test-service :test-fn)
                 hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
             (is (logged?
                   #"Loading bootstrap config from classpath: 'file:/.*test-resources/bootstrapping/classpath/bootstrap.cfg'"
@@ -56,7 +58,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
               (.getAbsolutePath (file "./test-resources/bootstrapping/cwd")))
             (with-test-logging
               (let [app                 (trapperkeeper/bootstrap [])
-                    test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+                    test-fn             (trapperkeeper/get-service-fn app :cwd-test-service :test-fn)
                     hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
                 (is (logged?
                       #"Loading bootstrap config from current working directory: '.*/test-resources/bootstrapping/cwd/bootstrap.cfg'"
@@ -68,7 +70,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "Gives precedence to bootstrap config specified as CLI arg"
         (with-test-logging
             (let [app                 (trapperkeeper/bootstrap ["--bootstrap-config" "./test-resources/bootstrapping/cli/bootstrap.cfg"])
-                  test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+                  test-fn             (trapperkeeper/get-service-fn app :cli-test-service :test-fn)
                   hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
               (is (logged?
                     #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/bootstrap.cfg'"
@@ -156,3 +158,42 @@ This is not a legit line.
             Exception
             #"not a valid argument"
             (trapperkeeper/parse-cli-args! ["--invalid-argument"])))))
+
+(deftest defservice-macro
+
+  (defservice logging-service
+    {:depends  []
+     :provides [log]}
+    {:log (fn [msg] "do nothing")})
+
+  (defservice simple-service
+    "My simple service"
+    {:depends  [[:logging-service log]]
+     :provides [hello]}
+    (let [state "world"]
+      {:hello (fn [] state)}))
+
+  (testing "metadata"
+    (let [metadata (meta #'simple-service)]
+      (is (= (:arglists metadata) '([])))
+      (is (= (:doc metadata) "My simple service"))))
+
+  (testing "service has the correct form"
+    (let [service-graph (simple-service)]
+      (is (map? service-graph))
+
+      (let [graph-keys (keys service-graph)]
+        (is (= (count graph-keys) 1))
+        (is (= (first graph-keys) :simple-service)))
+
+      (let [service-fnk  (:simple-service service-graph)
+            depends      (pfnk/input-schema service-fnk)
+            provides     (pfnk/output-schema service-fnk)]
+        (is (ifn? service-fnk))
+        (is (= depends  {:logging-service {:log true}}))
+        (is (= provides {:hello true})))))
+
+  (testing "services compile correctly and can be called"
+    (let [app      ((graph/eager-compile (merge (logging-service) (simple-service))) {})
+          hello-fn (get-in app [:simple-service :hello])]
+      (is (= (hello-fn) "world")))))

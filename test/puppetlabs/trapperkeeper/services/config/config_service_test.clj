@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.services.config.config-service-test
-  (:import (java.io StringReader))
+  (:import (java.io StringReader FileNotFoundException))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.services.config.config-service :refer [config-service]]
             [puppetlabs.trapperkeeper.core :refer [defservice parse-cli-args! bootstrap* get-service-fn]]))
@@ -26,7 +26,7 @@
 
   (testing "Fails if config path doesn't exist"
     (is (thrown-with-msg?
-          IllegalArgumentException
+          FileNotFoundException
           #"Configuration path './foo/bar/baz' must exist and must be readable."
           (bootstrap-with-cli-args ["--config" "./foo/bar/baz"]))))
 

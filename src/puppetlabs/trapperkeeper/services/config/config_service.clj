@@ -1,4 +1,5 @@
 (ns puppetlabs.trapperkeeper.services.config.config-service
+  (:import (java.io FileNotFoundException))
   (:require [clojure.java.io :refer [file]]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.utils :refer [inis-to-map]]))
@@ -25,7 +26,7 @@
               "Command line argument --config (or -c) is required by the config service")))
    (let [config-path (cli-data :config)]
      (when-not (.canRead (file config-path))
-       (throw (IllegalArgumentException.
+       (throw (FileNotFoundException.
                 (format
                   "Configuration path '%s' must exist and must be readable."
                   config-path))))

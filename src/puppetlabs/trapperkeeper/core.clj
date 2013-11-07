@@ -128,9 +128,10 @@
             datastore (atom {})]
         {:get (fn [key]       (log \"Getting...\") (get @datastore key))
          :put (fn [key value] (log \"Putting...\") (swap! datastore assoc key value))}))"
-  ([svc-name io-map body]
-    `(defservice ~svc-name "" ~io-map ~body))
-  ([svc-name svc-doc io-map body]
+  [svc-name & forms]
+  (let [[svc-doc io-map body] (if (string? (first forms))
+                                  [(first forms) (second forms) (nthrest forms 2)]
+                                  ["" (first forms) (rest forms)])]
     (let [binding-form (io->fnk-binding-form io-map)]
       `(defn ~svc-name
          ~svc-doc
@@ -138,4 +139,4 @@
          {~(keyword svc-name)
             (fnk
               ~binding-form
-              ~body)}))))
+              ~@body)}))))

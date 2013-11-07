@@ -1,37 +1,32 @@
 (ns puppetlabs.trapperkeeper.examples.bootstrapping.test-services
-  (:require [plumbing.core :refer [fnk]]))
-
+  (:require [plumbing.core :refer [fnk]]
+            [puppetlabs.trapperkeeper.core :refer [defservice]]))
 
 (defn invalid-service-graph-service
   []
   {:test-service "hi"})
 
-(defn hello-world-service
-  []
-  {:hello-world-service
-    (fnk []
-         {:hello-world (fn [] "hello world")})})
+(defservice hello-world-service
+  {:depends  []
+   :provides [hello-world]}
+  {:hello-world (fn [] "hello world")})
 
-(defn foo-test-service
-  []
-  {:test-service
-    (fnk []
-         {:test-fn (fn [] :foo)})})
+(defservice foo-test-service
+  {:depends  []
+   :provides [test-fn]}
+  {:test-fn (fn [] :foo)})
 
-(defn classpath-test-service
-  []
-  {:test-service
-    (fnk []
-         {:test-fn (fn [] :classpath)})})
+(defservice classpath-test-service
+  {:depends  []
+   :provides [test-fn]}
+  {:test-fn (fn [] :classpath)})
 
-(defn cwd-test-service
-  []
-  {:test-service
-    (fnk []
-         {:test-fn (fn [] :cwd)})})
+(defservice cwd-test-service
+  {:depends  []
+   :provides [test-fn]}
+  {:test-fn (fn [] :cwd)})
 
-(defn cli-test-service
-  []
-  {:test-service
-    (fnk []
-         {:test-fn (fn [] :cli)})})
+(defservice cli-test-service
+  {:depends  []
+   :provides [test-fn]}
+  {:test-fn (fn [] :cli)})

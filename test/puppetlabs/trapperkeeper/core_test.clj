@@ -20,7 +20,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
           app                 (trapperkeeper/bootstrap* (StringReader. bootstrap-config))]
 
       (testing "Can load a service based on a valid bootstrap config string"
-        (let [test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+        (let [test-fn             (trapperkeeper/get-service-fn app :foo-test-service :test-fn)
               hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
           (is (= (test-fn) :foo))
           (is (= (hello-world-fn) "hello world"))))
@@ -42,7 +42,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "Looks for bootstrap config on classpath (test-resources)"
         (with-test-logging
           (let [app                 (trapperkeeper/bootstrap [])
-                test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+                test-fn             (trapperkeeper/get-service-fn app :classpath-test-service :test-fn)
                 hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
             (is (logged?
                   #"Loading bootstrap config from classpath: 'file:/.*test-resources/bootstrapping/classpath/bootstrap.cfg'"
@@ -58,7 +58,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
               (.getAbsolutePath (file "./test-resources/bootstrapping/cwd")))
             (with-test-logging
               (let [app                 (trapperkeeper/bootstrap [])
-                    test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+                    test-fn             (trapperkeeper/get-service-fn app :cwd-test-service :test-fn)
                     hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
                 (is (logged?
                       #"Loading bootstrap config from current working directory: '.*/test-resources/bootstrapping/cwd/bootstrap.cfg'"
@@ -70,7 +70,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "Gives precedence to bootstrap config specified as CLI arg"
         (with-test-logging
             (let [app                 (trapperkeeper/bootstrap ["--bootstrap-config" "./test-resources/bootstrapping/cli/bootstrap.cfg"])
-                  test-fn             (trapperkeeper/get-service-fn app :test-service :test-fn)
+                  test-fn             (trapperkeeper/get-service-fn app :cli-test-service :test-fn)
                   hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
               (is (logged?
                     #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/bootstrap.cfg'"

@@ -160,7 +160,6 @@ This is not a legit line.
             (trapperkeeper/parse-cli-args! ["--invalid-argument"])))))
 
 (deftest defservice-macro
-
   (defservice logging-service
     {:depends  []
      :provides [log]}
@@ -170,6 +169,9 @@ This is not a legit line.
     "My simple service"
     {:depends  [[:logging-service log]]
      :provides [hello]}
+    ;; this line is really just here to test support for multi-form service
+    ;; bodies
+    (log "Calling our test log function!")
     (let [state "world"]
       {:hello (fn [] state)}))
 

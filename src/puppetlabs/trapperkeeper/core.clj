@@ -3,7 +3,8 @@
             [plumbing.graph :as graph]
             [plumbing.core :refer [fnk]]
             [puppetlabs.utils :refer [cli!]]
-            [puppetlabs.trapperkeeper.bootstrap :as bootstrap]))
+            [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
+            [puppetlabs.trapperkeeper.utils :refer [service-graph?]]))
 
 ;  A type representing a trapperkeeper application.  This is intended to provide
 ;  an abstraction so that users don't need to worry about the implementation
@@ -38,12 +39,13 @@
 
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
-  ([bootstrap-config] (bootstrap* bootstrap-config {}))
-  ([bootstrap-config cli-data]
-  {:pre [(satisfies? IOFactory bootstrap-config)
+  ([services] (bootstrap* services {}))
+  ([services cli-data]
+  {:pre [(sequential? services)
+         (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [graph-map       (merge (cli-service cli-data) (bootstrap/parse-bootstrap-config! bootstrap-config))
+  (let [graph-map       (apply merge (cli-service cli-data) services)
         graph-fn        (graph/eager-compile graph-map)
         graph-instance  (graph-fn {})
         app             (TrapperKeeperApp. graph-instance)]
@@ -66,9 +68,11 @@
   [cli-args]
   (let [cli-data (parse-cli-args! cli-args)]
     (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
-                                (bootstrap/config-from-cwd)
-                                (bootstrap/config-from-classpath))]
-      (bootstrap* bootstrap-config cli-data)
+                                  (bootstrap/config-from-cwd)
+                                  (bootstrap/config-from-classpath))]
+      (-> bootstrap-config
+          (bootstrap/parse-bootstrap-config!)
+          (bootstrap* cli-data))
       (throw (IllegalStateException.
                "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath")))))
 

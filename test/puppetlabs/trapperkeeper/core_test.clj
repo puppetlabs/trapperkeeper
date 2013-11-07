@@ -10,6 +10,14 @@
             [puppetlabs.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
 
+(defn parse-and-bootstrap
+  ([bootstrap-config]
+   (parse-and-bootstrap bootstrap-config {}))
+  ([bootstrap-config cli-data]
+   (-> bootstrap-config
+       parse-bootstrap-config!
+       (trapperkeeper/bootstrap* cli-data))))
+
 (deftest test-bootstrapping
   (testing "Valid bootstrap configurations"
     (let [bootstrap-config    "
@@ -18,7 +26,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
 puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service
 
 "
-          app                 (trapperkeeper/bootstrap* (parse-bootstrap-config! (StringReader. bootstrap-config)))]
+          app                 (parse-and-bootstrap (StringReader. bootstrap-config))]
 
       (testing "Can load a service based on a valid bootstrap config string"
         (let [test-fn             (trapperkeeper/get-service-fn app :foo-test-service :test-fn)
@@ -33,7 +41,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "The CLI service has the CLI data."
         (let [config-file-path  "/path/to/config/files"
               cli-data          (trapperkeeper/parse-cli-args! ["--config" config-file-path "--debug"])
-              app-with-cli-args (trapperkeeper/bootstrap* (parse-bootstrap-config! (StringReader. bootstrap-config)) cli-data)
+              app-with-cli-args (parse-and-bootstrap (StringReader. bootstrap-config) cli-data)
               cli-data-fn       (trapperkeeper/get-service-fn app-with-cli-args :cli-service :cli-data)]
           (is (not (empty? (cli-data-fn))))
           (is (cli-data-fn :debug))
@@ -103,14 +111,14 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"(?is)Invalid line in bootstrap.*This is not a legit line"
-              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
+              (parse-and-bootstrap bootstrap-config)))))
 
     (testing "Bootstrap config file is empty."
       (let [bootstrap-config (StringReader. "")]
         (is (thrown-with-msg?
               Exception
               #"Empty bootstrap config file"
-        (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
+        (parse-and-bootstrap bootstrap-config)))))
 
     (testing "Service namespace doesn't exist"
       (let [bootstrap-config (StringReader.
@@ -118,7 +126,7 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Unable to load service: non-existent-service/test-service"
-              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
+              (parse-and-bootstrap bootstrap-config)))))
 
     (testing "Service function doesn't exist"
       (let [bootstrap-config (StringReader.
@@ -126,7 +134,7 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Unable to load service: puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service"
-              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config))))))
+              (parse-and-bootstrap bootstrap-config)))))
 
     (testing "Invalid service graph"
 
@@ -135,7 +143,7 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Invalid service graph;"
-              (trapperkeeper/bootstrap* (parse-bootstrap-config! bootstrap-config)))))))
+              (parse-and-bootstrap bootstrap-config))))))
 
   (testing "CLI arg parsing"
     (testing "CLI args are parsed to a map"

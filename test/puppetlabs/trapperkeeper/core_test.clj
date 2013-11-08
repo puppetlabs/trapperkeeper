@@ -6,8 +6,8 @@
             [plumbing.fnk.pfnk :as pfnk]
             [plumbing.graph :as graph]
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [service defservice]]
-            [puppetlabs.testutils.logging :refer [with-test-logging with-test-logging-debug]]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service]]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
 
 (defn- parse-and-bootstrap

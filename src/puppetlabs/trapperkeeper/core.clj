@@ -103,6 +103,17 @@
         required    []]
     (first (cli! cli-args specs required))))
 
+(defn- cli-service
+  "Provides access to the command-line arguments for other services."
+  [cli-data]
+  ((service
+    cli-service
+    {:depends  []
+     :provides [cli-data]}
+    {:cli-data (fn
+                 ([] cli-data)
+                 ([k] (cli-data k)))})))
+
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
   ([services] (bootstrap* services {}))
@@ -111,13 +122,7 @@
          (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [cli-service     (service cli-service
-                                 {:depends  []
-                                  :provides [cli-data]}
-                                 {:cli-data (fn
-                                              ([] cli-data)
-                                              ([k] (cli-data k)))})
-        graph-map       (apply merge (cli-service) services)
+  (let [graph-map       (apply merge (cli-service cli-data) services)
         graph-fn        (graph/eager-compile graph-map)
         graph-instance  (graph-fn {})
         app             (TrapperKeeperApp. graph-instance)]

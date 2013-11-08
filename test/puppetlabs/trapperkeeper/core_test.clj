@@ -169,7 +169,6 @@ This is not a legit line.
             (trapperkeeper/parse-cli-args! ["--invalid-argument"])))))
 
 (deftest defservice-macro
-
   (def logging-service
     (service logging-service
       {:depends  []

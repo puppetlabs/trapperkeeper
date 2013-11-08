@@ -13,6 +13,83 @@
 ;  namespace.
 (defrecord TrapperKeeperApp [graph-instance])
 
+(defn- io->fnk-binding-form
+  "Converts a service's input-output map into a binding-form suitable for
+  passing to a fnk. The binding-form defines the fnk's expected input and
+  output values, and is required to satisfy graph compilation.
+
+  This function is necessary in order to allow for the defservice macro to
+  support arbitrary code in the body. A fnk will attempt to determine what
+  its output-schema is, but will only work if a map is immediately returned
+  from the body. When a map is not immediately returned (i.e. a `let` block
+  around the map), the output-schema must be explicitly provided in the fnk
+  metadata."
+  [io-map]
+  (let [to-output-schema  (fn [provides]
+                            (reduce (fn [m p] (assoc m (keyword p) true))
+                                    {}
+                                    provides))
+        output-schema     (to-output-schema (:provides io-map))]
+    ;; Add an output-schema entry to the depends vector's metadata map
+    (vary-meta (:depends io-map) assoc :output-schema output-schema)))
+
+(defmacro service
+  "Define a service that may depend on other services, and provides functions
+  for other services to depend on. This macro is intended to be used inline
+  rather than at the top-level (see `defservice` for that).
+
+  Defining a service requires a:
+    * service name
+    * input-output map in the form: {:depends [...] :provides [...]}
+    * a body of code that returns a map of functions the service provides.
+      The keys of the map must match the values of the :provides vector.
+
+  Example:
+    (service logging-service
+      {:depends  []
+       :provides [log]}
+      {:log (fn [msg] (println msg))})"
+  [svc-name io-map & body]
+  (let [binding-form (io->fnk-binding-form io-map)]
+    `(fn []
+       {~(keyword svc-name)
+        (fnk
+          ~binding-form
+          ~@body)})))
+
+(defmacro defservice
+  "Define a service that may depend on other services, and provides functions
+  for other services to depend on. Defining a service requires a:
+    * service name
+    * optional documentation string
+    * input-output map in the form: {:depends [...] :provides [...]}
+    * a body of code that returns a map of functions the service provides.
+      The keys of the map must match the values of the :provides vector.
+
+  Examples:
+    (defservice logging-service
+      {:depends  []
+       :provides [debug info warn]}
+      {:debug (partial println \"DEBUG:\")
+       :info  (partial println \"INFO:\")
+       :warn  (partial println \"WARN:\")})
+
+    (defservice datastore-service
+      \"Store key-value pairs.\"
+      {:depends  [[:logging-service debug]]
+       :provides [get put]}
+      (let [log       (partial debug \"[datastore]\")
+            datastore (atom {})]
+        {:get (fn [key]       (log \"Getting...\") (get @datastore key))
+         :put (fn [key value] (log \"Putting...\") (swap! datastore assoc key value))}))"
+  [svc-name & forms]
+  (let [[svc-doc io-map body] (if (string? (first forms))
+                                [(first forms) (second forms) (nthrest forms 2)]
+                                ["" (first forms) (rest forms)])]
+    `(def ~svc-name
+       ~svc-doc
+       (service ~svc-name ~io-map ~@body))))
+
 (defn parse-cli-args!
   "Parses the command-line arguments using `puppetlabs.utils/cli!`.
   Hard-codes the command-line arguments expected by trapperkeeper to be:
@@ -26,17 +103,6 @@
         required    []]
     (first (cli! cli-args specs required))))
 
-(defn- cli-service
-  "The 'service' that provides command-line argument access to other services.
-  It is really just a `fnk` that always ends up in the service graph so that
-  services can access the command-line arguments"
-  [cli-data]
-  {:cli-service
-   (fnk []
-     {:cli-data (fn
-                  ([] cli-data)
-                  ([k] (cli-data k)))})})
-
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
   ([services] (bootstrap* services {}))
@@ -45,7 +111,13 @@
          (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [graph-map       (apply merge (cli-service cli-data) services)
+  (let [cli-service     (service cli-service
+                                 {:depends  []
+                                  :provides [cli-data]}
+                                 {:cli-data (fn
+                                              ([] cli-data)
+                                              ([k] (cli-data k)))})
+        graph-map       (apply merge (cli-service) services)
         graph-fn        (graph/eager-compile graph-map)
         graph-instance  (graph-fn {})
         app             (TrapperKeeperApp. graph-instance)]
@@ -85,82 +157,3 @@
          (every? keyword? ks)]
    :post [(ifn? %)]}
   (get-in (:graph-instance app) (cons service (cons k ks))))
-
-(defn- io->fnk-binding-form
-  "Converts a service's input-output map into a binding-form suitable for
-  passing to a fnk. The binding-form defines the fnk's expected input and
-  output values, and is required to satisfy graph compilation.
-
-  This function is necessary in order to allow for the defservice macro to
-  support arbitrary code in the body. A fnk will attempt to determine what
-  its output-schema is, but will only work if a map is immediately returned
-  from the body. When a map is not immediately returned (i.e. a `let` block
-  around the map), the output-schema must be explicitly provided in the fnk
-  metadata."
-  [io-map]
-  (let [to-output-schema  (fn [provides]
-                            (reduce (fn [m p] (assoc m (keyword p) true))
-                                    {}
-                                    provides))
-        output-schema     (to-output-schema (:provides io-map))]
-    ;; Add an output-schema entry to the depends vector's metadata map
-    (vary-meta (:depends io-map) assoc :output-schema output-schema)))
-
-(defmacro service
-  "Define a service that may depend on other services, and provides functions
-  for other services to depend on. This macro is intended to be used inline
-  rather than at the top-level (see `defservice` for that).
-
-  Defining a service requires a:
-    * service name
-    * input-output map in the form: {:depends [...] :provides [...]}
-    * a body of code that returns a map of functions the service provides.
-      The keys of the map must match the values of the :provides vector.
-
-  Example:
-
-    (service logging-service
-      {:depends  []
-       :provides [log]}
-      {:log (fn [msg] (println msg))})"
-  [svc-name io-map & body]
-  (let [binding-form (io->fnk-binding-form io-map)]
-    `(fn []
-       {~(keyword svc-name)
-        (fnk
-          ~binding-form
-          ~@body)})))
-
-(defmacro defservice
-  "Define a service that may depend on other services, and provides functions
-  for other services to depend on. Defining a service requires a:
-    * service name
-    * optional documentation string
-    * input-output map in the form: {:depends [...] :provides [...]}
-    * a body of code that returns a map of functions the service provides.
-      The keys of the map must match the values of the :provides vector.
-
-  Examples:
-
-    (defservice logging-service
-      {:depends  []
-       :provides [debug info warn]}
-      {:debug (partial println \"DEBUG:\")
-       :info  (partial println \"INFO:\")
-       :warn  (partial println \"WARN:\")})
-
-    (defservice datastore-service
-      \"Store key-value pairs.\"
-      {:depends  [[:logging-service debug]]
-       :provides [get put]}
-      (let [log       (partial debug \"[datastore]\")
-            datastore (atom {})]
-        {:get (fn [key]       (log \"Getting...\") (get @datastore key))
-         :put (fn [key value] (log \"Putting...\") (swap! datastore assoc key value))}))"
-  [svc-name & forms]
-  (let [[svc-doc io-map body] (if (string? (first forms))
-                                [(first forms) (second forms) (nthrest forms 2)]
-                                ["" (first forms) (rest forms)])]
-    `(def ~svc-name
-       ~svc-doc
-       (service ~svc-name ~io-map ~@body))))

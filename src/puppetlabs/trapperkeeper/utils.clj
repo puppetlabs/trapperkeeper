@@ -1,5 +1,11 @@
 (ns puppetlabs.trapperkeeper.utils)
 
+(def ^{:doc "Alias for plumbing.map/map-leaves-and-path, which is named inconsistently
+            with Clojure conventions as it doesn't behave like other `map` functions.
+            Map functions typically return a `seq`, never a map, and walk functions
+            are used to modify a collection in-place without altering the structure."}
+  walk-leaves-and-path plumbing.map/map-leaves-and-path)
+
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
   service graph."

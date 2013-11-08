@@ -6,7 +6,7 @@
             [plumbing.fnk.pfnk :as pfnk]
             [plumbing.graph :as graph]
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice]]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [service defservice]]
             [puppetlabs.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
 
@@ -169,27 +169,24 @@ This is not a legit line.
             (trapperkeeper/parse-cli-args! ["--invalid-argument"])))))
 
 (deftest defservice-macro
-  (defservice logging-service
-    {:depends  []
-     :provides [log]}
-    {:log (fn [msg] "do nothing")})
+  (def logging-service
+    (service logging-service
+      {:depends  []
+       :provides [log]}
+      {:log (fn [msg] "do nothing")}))
 
   (defservice simple-service
     "My simple service"
     {:depends  [[:logging-service log]]
      :provides [hello]}
-    ;; this line is really just here to test support for multi-form service
-    ;; bodies
+    ;; this line is just here to test support for multi-form service bodies
     (log "Calling our test log function!")
     (let [state "world"]
       {:hello (fn [] state)}))
 
-  (testing "metadata"
-    (let [metadata (meta #'simple-service)]
-      (is (= (:arglists metadata) '([])))
-      (is (= (:doc metadata) "My simple service"))))
-
   (testing "service has the correct form"
+    (is (= (:doc (meta #'simple-service)) "My simple service"))
+
     (let [service-graph (simple-service)]
       (is (map? service-graph))
 

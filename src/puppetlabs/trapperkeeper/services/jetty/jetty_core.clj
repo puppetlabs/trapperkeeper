@@ -1,22 +1,23 @@
 ;; NOTE: this code is an adaptation of ring-jetty-handler.
-;;  It uses Jetty 9, adds some SSL utility functions, and
+;;  It adds some SSL utility functions, and
 ;;  provides the ability to dynamically register ring handlers.
 
-(ns trapperkeeper.jetty9.jetty9-core
+(ns puppetlabs.trapperkeeper.services.jetty.jetty-core
   "Adapter for the Jetty webserver."
-  (:import (org.eclipse.jetty.server Handler Server Request HttpConnectionFactory HttpConfiguration)
+  (:import (org.eclipse.jetty.server Handler Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler ContextHandler
                                                              HandlerCollection ContextHandlerCollection)
-           (org.eclipse.jetty.server ServerConnector ConnectionFactory)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory)
+           (org.eclipse.jetty.server.ssl SslSelectChannelConnector)
+           (org.eclipse.jetty.server.nio SelectChannelConnector)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           [java.util.concurrent Executors])
+           (java.util.concurrent Executors))
   (:require [ring.util.servlet :as servlet]
             [clojure.tools.logging :as log]
-            [trapperkeeper.jetty9.jetty9-config :as jetty-config])
+            [puppetlabs.trapperkeeper.services.jetty.jetty-config :as jetty-config])
   (:use     [clojure.string :only (split trim)]
-            [com.puppetlabs.utils :only (compare-jvm-versions)]
+            [puppetlabs.kitchensink.core :only (compare-jvm-versions)]
             [clojure.pprint :only (pprint)]))
 
 ;; Work around an issue with OpenJDK's PKCS11 implementation preventing TLSv1
@@ -90,47 +91,41 @@
       nil)
     context))
 
-(defn- connection-factory
-  []
-  (let [http-config (doto (HttpConfiguration.)
-                      (.setSendDateHeader true))]
-    (into-array ConnectionFactory
-      [(HttpConnectionFactory. http-config)])))
-
 (defn- ssl-connector
   "Creates a SslSelectChannelConnector instance."
-  [server ssl-ctxt-factory options]
-  (doto (ServerConnector. server ssl-ctxt-factory (connection-factory))
+  [options]
+  (doto (SslSelectChannelConnector. (ssl-context-factory options))
     (.setPort (options :ssl-port 443))
     (.setHost (options :host))))
 
-(defn- plaintext-connector
-  [server options]
-  (doto (ServerConnector. server (connection-factory))
+(defn plaintext-connector
+  [options]
+  (doto (SelectChannelConnector.)
     (.setPort (options :port 80))
     (.setHost (options :host "localhost"))))
 
 (defn- create-server
   "Construct a Jetty Server instance."
   [options]
-  (let [server (Server. (QueuedThreadPool. (options :max-threads 50)))]
+  (let [server (doto (Server.)
+                 (.setSendDateHeader true))]
     (when (options :port)
-      (let [connector (plaintext-connector server options)]
-        (.addConnector server connector)))
+      (.addConnector server (plaintext-connector options)))
+
     (when (or (options :ssl?) (options :ssl-port))
-      (let [ssl-host          (options :ssl-host (options :host "localhost"))
-            options           (assoc options :host ssl-host)
-            ssl-ctxt-factory  (ssl-context-factory options)
-            connector         (ssl-connector server ssl-ctxt-factory options)
-            ciphers           (if-let [txt (options :cipher-suites)]
-                                (map trim (split txt #","))
-                                (acceptable-ciphers))
-            protocols         (if-let [txt (options :ssl-protocols)]
-                                (map trim (split txt #",")))]
+      (let [ssl-host  (options :ssl-host (options :host "localhost"))
+            options   (assoc options :host ssl-host)
+            connector (ssl-connector options)
+            ciphers   (if-let [txt (options :cipher-suites)]
+                        (map trim (split txt #","))
+                        (acceptable-ciphers))
+            protocols (if-let [txt (options :ssl-protocols)]
+                        (map trim (split txt #",")))]
         (when ciphers
-          (.setIncludeCipherSuites ssl-ctxt-factory (into-array ciphers))
-          (when protocols
-            (.setIncludeProtocols ssl-ctxt-factory (into-array protocols))))
+          (let [fac (.getSslContextFactory connector)]
+            (.setIncludeCipherSuites fac (into-array ciphers))
+            (when protocols
+              (.setIncludeProtocols fac (into-array protocols)))))
         (.addConnector server connector)))
     server))
 
@@ -138,21 +133,21 @@
 ;; Functions for trapperkeeper 'webserver' interface
 
 (defn start-webserver
-  ;  "Start a Jetty webserver according to the supplied options:
-  ;
-  ;  :configurator - a function called with the Jetty Server instance
-  ;  :port         - the port to listen on (defaults to 80)
-  ;  :host         - the hostname to listen on
-  ;  :join?        - blocks the thread until server ends (defaults to true)
-  ;  :ssl?         - allow connections over HTTPS
-  ;  :ssl-port     - the SSL port to listen on (defaults to 443, implies :ssl?)
-  ;  :keystore     - the keystore to use for SSL connections
-  ;  :key-password - the password to the keystore
-  ;  :truststore   - a truststore to use for SSL connections
-  ;  :trust-password - the password to the truststore
-  ;  :max-threads  - the maximum number of threads to use (default 50)
-  ;  :client-auth  - SSL client certificate authenticate, may be set to :need,
-  ;                  :want or :none (defaults to :none)"
+    "Start a Jetty webserver according to the supplied options:
+
+    :configurator - a function called with the Jetty Server instance
+    :port         - the port to listen on (defaults to 80)
+    :host         - the hostname to listen on
+    :join?        - blocks the thread until server ends (defaults to true)
+    :ssl?         - allow connections over HTTPS
+    :ssl-port     - the SSL port to listen on (defaults to 443, implies :ssl?)
+    :keystore     - the keystore to use for SSL connections
+    :key-password - the password to the keystore
+    :truststore   - a truststore to use for SSL connections
+    :trust-password - the password to the truststore
+    :max-threads  - the maximum number of threads to use (default 50)
+    :client-auth  - SSL client certificate authenticate, may be set to :need,
+                    :want or :none (defaults to :none)"
   [options]
   {:pre [(map? options)]}
   (let [options                       (jetty-config/configure-web-server options)
@@ -173,7 +168,7 @@
         ctxt-handler (doto (ContextHandler. path)
                        (.setHandler (proxy-handler handler)))]
     (.addHandler handler-coll ctxt-handler)
-    ;(.start ctxt-handler)
+    (.start ctxt-handler)
     ctxt-handler))
 
 (defn join
@@ -183,15 +178,3 @@
 (defn shutdown
   [webserver]
   (.stop (:server webserver)))
-
-;; TODO: this function is just here to simplify the incremental
-;; swap-out of the existing puppetdb jetty code.  This should
-;; be removed once we've ported over to trapperkeeper
-(defn run-jetty
-  [app options]
-  (let [webserver (start-webserver options)
-        join?     (options :join?)]
-    (add-ring-handler webserver app "")
-    (when join?
-      (join webserver))
-    webserver))

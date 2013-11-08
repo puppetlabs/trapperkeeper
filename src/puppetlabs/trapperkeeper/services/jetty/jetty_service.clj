@@ -1,14 +1,15 @@
-(ns trapperkeeper.jetty9.jetty9-service
-  (:require [trapperkeeper.jetty9.jetty9-core :as core])
+(ns puppetlabs.trapperkeeper.services.jetty.jetty-service
+  (:require
+    [puppetlabs.trapperkeeper.services.jetty.jetty-core :as core]
+    [puppetlabs.trapperkeeper.core :refer [defservice]])
   (:use [plumbing.core :only [fnk]]))
 
-(defn jetty9-service
-  []
-  {:webserver-service
-   (fnk ^{:output-schema
-          {:add-ring-handler true
-           :join true}}
-     [[:config-service config]]
-     (let [webserver (core/start-webserver (config :jetty))]
-       {:add-ring-handler  (partial core/add-ring-handler webserver)
-        :join              (partial core/join webserver)}))})
+(defservice jetty-service
+  "Provides a Jetty web server as a service"
+  {:depends [[:config-service get-in-config]]
+   :provides [add-ring-handler join shutdown]}
+  (let [config    (or (get-in-config [:jetty]) {})
+        webserver (core/start-webserver config)]
+    {:add-ring-handler  (partial core/add-ring-handler webserver)
+     :join              (partial core/join webserver)
+     :shutdown          (partial core/shutdown webserver)}))

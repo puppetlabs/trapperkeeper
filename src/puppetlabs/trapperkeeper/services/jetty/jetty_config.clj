@@ -1,9 +1,9 @@
-(ns trapperkeeper.jetty9.jetty9-config
+(ns puppetlabs.trapperkeeper.services.jetty.jetty-config
   (:import [java.security KeyStore])
   (:require [clojure.tools.logging :as log]
-            [com.puppetlabs.ssl :as ssl]
-            [com.puppetlabs.utils :as pl-utils])
-  (:use [com.puppetlabs.utils :only (missing?)]))
+            [puppetlabs.kitchensink.ssl :as ssl]
+            [puppetlabs.kitchensink.core :as pl-utils])
+  (:use [puppetlabs.kitchensink.core :only (missing?)]))
 
 (defn configure-web-server-ssl-from-pems
   "Configures the web server's SSL settings based on Puppet PEM files, rather than

@@ -1,10 +1,10 @@
 (ns puppetlabs.trapperkeeper.core
-  (:require [clojure.java.io :refer [IOFactory]]
-            [plumbing.graph :as graph]
+  (:require [plumbing.graph :as graph]
             [plumbing.core :refer [fnk]]
-            [puppetlabs.utils :refer [cli!]]
+            [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
+            [puppetlabs.utils :refer [cli! add-shutdown-hook!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
-            [puppetlabs.trapperkeeper.utils :refer [service-graph?]]))
+            [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
 
 ;  A type representing a trapperkeeper application.  This is intended to provide
 ;  an abstraction so that users don't need to worry about the implementation
@@ -12,6 +12,16 @@
 ;  The internal properties are not intended to be used outside of this
 ;  namespace.
 (defrecord TrapperKeeperApp [graph-instance])
+
+(defn get-service-fn
+  "Given a trapperkeeper application, a service name, and a sequence of keys,
+  returns the function provided by the service at that path."
+  [^TrapperKeeperApp app service k & ks]
+  {:pre [(keyword? service)
+         (keyword? k)
+         (every? keyword? ks)]
+   :post [(ifn? %)]}
+  (get-in (:graph-instance app) (cons service (cons k ks))))
 
 (defn- io->fnk-binding-form
   "Converts a service's input-output map into a binding-form suitable for
@@ -114,6 +124,42 @@
                  ([] cli-data)
                  ([k] (cli-data k)))})))
 
+(defn- wrap-with-shutdown-registration
+  "Given an accumulating list of shutdown functions and a path to a service
+  in the graph, extract the shutdown function from the service and add it to
+  the list."
+  [shutdown-fns-atom path orig-fnk]
+  (let [in  (input-schema orig-fnk)
+        out (output-schema orig-fnk)
+        f   (fn [injected-vals]
+              (let [result (orig-fnk injected-vals)]
+                (when-let [shutdown-fn (result :shutdown)]
+                  (swap! shutdown-fns-atom conj shutdown-fn))
+                result))]
+    (fn->fnk f [in out])))
+
+(defn- register-shutdown-hooks!
+  "Walk the graph and register all shutdown functions. The functions
+  will be called when the JVM shuts down, or by calling `shutdown!`."
+  [graph]
+  (let [shutdown-fns      (atom ())
+        wrapped-graph     (walk-leaves-and-path
+                            (partial wrap-with-shutdown-registration shutdown-fns)
+                            graph)
+        do-shutdown-fn    #(doseq [f @shutdown-fns] (f))
+        shutdown-service  (service shutdown-service
+                                   {:depends  []
+                                    :provides [do-shutdown]}
+                                   {:do-shutdown do-shutdown-fn})]
+    (add-shutdown-hook! do-shutdown-fn)
+    (merge (shutdown-service) wrapped-graph)))
+
+(defn shutdown!
+  "Perform shutdown on the application by calling all service shutdown hooks.
+  Services will be shut down in reverse dependency order."
+  [^TrapperKeeperApp app]
+  ((get-service-fn app :shutdown-service :do-shutdown)))
+
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
   ([services] (bootstrap* services {}))
@@ -122,7 +168,8 @@
          (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [graph-map       (apply merge (cli-service cli-data) services)
+  (let [graph-map       (-> (apply merge (cli-service cli-data) services)
+                            (register-shutdown-hooks!))
         graph-fn        (graph/eager-compile graph-map)
         graph-instance  (graph-fn {})
         app             (TrapperKeeperApp. graph-instance)]
@@ -140,7 +187,7 @@
   The bootstrap config file will be searched for in this order:
 
   * At a path specified by the optional command-line argument `--bootstrap-config`
-  * In the current working directory, in a file named `bootstrap.cfg`.
+  * In the current working directory, in a file named `bootstrap.cfg`
   * On the classpath, in a file named `bootstrap.cfg`."
   [cli-args]
   (let [cli-data (parse-cli-args! cli-args)]
@@ -152,13 +199,3 @@
           (bootstrap* cli-data))
       (throw (IllegalStateException.
                "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath")))))
-
-(defn get-service-fn
-  "Given a trapperkeeper application, a service name, and a sequence of keys,
-  returns the function provided by the service at that path."
-  [^TrapperKeeperApp app service k & ks]
-  {:pre [(keyword? service)
-         (keyword? k)
-         (every? keyword? ks)]
-   :post [(ifn? %)]}
-  (get-in (:graph-instance app) (cons service (cons k ks))))

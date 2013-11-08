@@ -10,7 +10,7 @@
             [puppetlabs.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
 
-(defn parse-and-bootstrap
+(defn- parse-and-bootstrap
   ([bootstrap-config]
    (parse-and-bootstrap bootstrap-config {}))
   ([bootstrap-config cli-data]
@@ -205,3 +205,30 @@ This is not a legit line.
     (let [app       (trapperkeeper/bootstrap* [(logging-service) (simple-service)])
           hello-fn  (trapperkeeper/get-service-fn app :simple-service :hello)]
       (is (= (hello-fn) "world")))))
+
+(deftest shutdown
+  (testing "service with shutdown hook gets called during shutdown"
+    (let [flag          (atom false)
+          test-service  (service test-service
+                                 {:depends  []
+                                  :provides [shutdown]}
+                                 {:shutdown #(reset! flag true)})
+          app           (trapperkeeper/bootstrap* [(test-service)])]
+      (is (false? @flag))
+      (trapperkeeper/shutdown! app)
+      (is (true? @flag))))
+
+  (testing "services are shut down in reverse dependency order"
+    (let [order       (atom [])
+          service1    (service service1
+                               {:depends  []
+                                :provides [shutdown]}
+                               {:shutdown #(swap! order conj 1)})
+          service2    (service service2
+                               {:depends  [service1]
+                                :provides [shutdown]}
+                               {:shutdown #(swap! order conj 2)})
+          app         (trapperkeeper/bootstrap* [(service1) (service2)])]
+      (is (empty? @order))
+      (trapperkeeper/shutdown! app)
+      (is (= @order [2 1])))))

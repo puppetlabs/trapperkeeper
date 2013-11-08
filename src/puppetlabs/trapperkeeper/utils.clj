@@ -1,4 +1,7 @@
-(ns puppetlabs.trapperkeeper.utils)
+(ns puppetlabs.trapperkeeper.utils
+  (:require [plumbing.map :refer [map-leaves-and-path]]))
+
+(def walk-leaves-and-path map-leaves-and-path)
 
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper

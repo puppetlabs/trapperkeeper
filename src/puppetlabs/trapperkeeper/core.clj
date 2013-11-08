@@ -100,19 +100,6 @@
        ~svc-doc
        (service ~svc-name ~io-map ~@body))))
 
-(defn parse-cli-args!
-  "Parses the command-line arguments using `puppetlabs.utils/cli!`.
-  Hard-codes the command-line arguments expected by trapperkeeper to be:
-      --debug
-      --bootstrap-config <bootstrap file>
-      --config <.ini file or directory>"
-  [cli-args]
-  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
-                     ["-b" "--bootstrap-config" "Path to bootstrap config file (optional)"]
-                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services (optional)"]]
-        required    []]
-    (first (cli! cli-args specs required))))
-
 (defn- cli-service
   "Provides access to the command-line arguments for other services."
   [cli-data]
@@ -175,6 +162,19 @@
         app             (TrapperKeeperApp. graph-instance)]
     app)))
 
+(defn parse-cli-args!
+  "Parses the command-line arguments using `puppetlabs.utils/cli!`.
+  Hard-codes the command-line arguments expected by trapperkeeper to be:
+      --debug
+      --bootstrap-config <bootstrap file>
+      --config <.ini file or directory>"
+  [cli-args]
+  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
+                     ["-b" "--bootstrap-config" "Path to bootstrap config file (optional)"]
+                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services (optional)"]]
+        required    []]
+    (first (cli! cli-args specs required))))
+
 (defn bootstrap
   "Bootstrap a trapperkeeper application.  This is accomplished by reading a
   bootstrap configuration file containing a list of (namespace-qualified)
@@ -190,6 +190,7 @@
   * In the current working directory, in a file named `bootstrap.cfg`
   * On the classpath, in a file named `bootstrap.cfg`."
   [cli-args]
+  {:post [(instance? TrapperKeeperApp %)]}
   (let [cli-data (parse-cli-args! cli-args)]
     (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
                                   (bootstrap/config-from-cwd)

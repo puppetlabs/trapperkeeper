@@ -96,7 +96,7 @@
   its output-schema is, but will only work if a map is immediately returned
   from the body. When a map is not immediately returned (i.e. a `let` block
   around the map), the output-schema must be explicitly provided in the fnk
-  metadata in order to satisfy graph compilation."
+  metadata."
   [io-map]
   (let [to-output-schema  (fn [provides]
                             (reduce (fn [m p] (assoc m (keyword p) true))
@@ -105,6 +105,31 @@
         output-schema     (to-output-schema (:provides io-map))]
     ;; Add an output-schema entry to the depends vector's metadata map
     (vary-meta (:depends io-map) assoc :output-schema output-schema)))
+
+(defmacro service
+  "Define a service that may depend on other services, and provides functions
+  for other services to depend on. This macro is intended to be used inline
+  rather than at the top-level (see `defservice` for that).
+
+  Defining a service requires a:
+    * service name
+    * input-output map in the form: {:depends [...] :provides [...]}
+    * a body of code that returns a map of functions the service provides.
+      The keys of the map must match the values of the :provides vector.
+
+  Example:
+
+    (service logging-service
+      {:depends  []
+       :provides [log]}
+      {:log (fn [msg] (println msg))})"
+  [svc-name io-map & body]
+  (let [binding-form (io->fnk-binding-form io-map)]
+    `(fn []
+       {~(keyword svc-name)
+        (fnk
+          ~binding-form
+          ~@body)})))
 
 (defmacro defservice
   "Define a service that may depend on other services, and provides functions
@@ -134,13 +159,8 @@
          :put (fn [key value] (log \"Putting...\") (swap! datastore assoc key value))}))"
   [svc-name & forms]
   (let [[svc-doc io-map body] (if (string? (first forms))
-                                  [(first forms) (second forms) (nthrest forms 2)]
-                                  ["" (first forms) (rest forms)])]
-    (let [binding-form (io->fnk-binding-form io-map)]
-      `(defn ~svc-name
-         ~svc-doc
-         []
-         {~(keyword svc-name)
-            (fnk
-              ~binding-form
-              ~@body)}))))
+                                [(first forms) (second forms) (nthrest forms 2)]
+                                ["" (first forms) (rest forms)])]
+    `(def ~svc-name
+       ~svc-doc
+       (service ~svc-name ~io-map ~@body))))

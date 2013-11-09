@@ -170,7 +170,7 @@ This is not a legit line.
 
 (deftest defservice-macro
   (def logging-service
-    (service logging-service
+    (service :logging-service
       {:depends  []
        :provides [log]}
       {:log (fn [msg] "do nothing")}))
@@ -209,7 +209,7 @@ This is not a legit line.
 (deftest shutdown
   (testing "service with shutdown hook gets called during shutdown"
     (let [flag          (atom false)
-          test-service  (service test-service
+          test-service  (service :test-service
                                  {:depends  []
                                   :provides [shutdown]}
                                  {:shutdown #(reset! flag true)})
@@ -220,11 +220,11 @@ This is not a legit line.
 
   (testing "services are shut down in reverse dependency order"
     (let [order       (atom [])
-          service1    (service service1
+          service1    (service :service1
                                {:depends  []
                                 :provides [shutdown]}
                                {:shutdown #(swap! order conj 1)})
-          service2    (service service2
+          service2    (service :service2
                                {:depends  [service1]
                                 :provides [shutdown]}
                                {:shutdown #(swap! order conj 2)})

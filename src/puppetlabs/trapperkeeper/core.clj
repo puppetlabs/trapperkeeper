@@ -49,20 +49,21 @@
   rather than at the top-level (see `defservice` for that).
 
   Defining a service requires a:
-    * service name
+    * service name keyword
     * input-output map in the form: {:depends [...] :provides [...]}
     * a body of code that returns a map of functions the service provides.
       The keys of the map must match the values of the :provides vector.
 
   Example:
-    (service logging-service
+
+    (service :logging-service
       {:depends  []
        :provides [log]}
       {:log (fn [msg] (println msg))})"
   [svc-name io-map & body]
   (let [binding-form (io->fnk-binding-form io-map)]
     `(fn []
-       {~(keyword svc-name)
+       {~svc-name
         (fnk
           ~binding-form
           ~@body)})))
@@ -77,6 +78,7 @@
       The keys of the map must match the values of the :provides vector.
 
   Examples:
+
     (defservice logging-service
       {:depends  []
        :provides [debug info warn]}
@@ -98,13 +100,12 @@
                                 ["" (first forms) (rest forms)])]
     `(def ~svc-name
        ~svc-doc
-       (service ~svc-name ~io-map ~@body))))
+       (service ~(keyword svc-name) ~io-map ~@body))))
 
 (defn- cli-service
   "Provides access to the command-line arguments for other services."
   [cli-data]
-  ((service
-    cli-service
+  ((service :cli-service
     {:depends  []
      :provides [cli-data]}
     {:cli-data (fn
@@ -134,7 +135,7 @@
                             (partial wrap-with-shutdown-registration shutdown-fns)
                             graph)
         do-shutdown-fn    #(doseq [f @shutdown-fns] (f))
-        shutdown-service  (service shutdown-service
+        shutdown-service  (service :shutdown-service
                                    {:depends  []
                                     :provides [do-shutdown]}
                                    {:do-shutdown do-shutdown-fn})]

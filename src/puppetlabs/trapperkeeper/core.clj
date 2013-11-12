@@ -2,7 +2,7 @@
   (:require [plumbing.graph :as graph]
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
-            [puppetlabs.utils :refer [cli! add-shutdown-hook!]]
+            [puppetlabs.kitchensink.core :refer [cli! add-shutdown-hook!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
 

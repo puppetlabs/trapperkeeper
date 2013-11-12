@@ -2,7 +2,7 @@
   (:import (java.io FileNotFoundException))
   (:require [clojure.java.io :refer [file]]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
-            [puppetlabs.utils :refer [inis-to-map]]))
+            [puppetlabs.kitchensink.core :refer [inis-to-map]]))
 
 (defservice config-service
    "A simple configuration service based on .ini config files.  Expects

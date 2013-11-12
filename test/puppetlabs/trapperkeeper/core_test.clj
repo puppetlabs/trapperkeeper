@@ -8,7 +8,7 @@
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
             [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
-            [puppetlabs.utils.classpath :refer [with-additional-classpath-entries]]))
+            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
 
 (defn- parse-and-bootstrap
   ([bootstrap-config]

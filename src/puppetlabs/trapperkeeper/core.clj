@@ -2,7 +2,7 @@
   (:require [plumbing.graph :as graph]
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
-            [puppetlabs.utils :refer [cli! add-shutdown-hook!]]
+            [puppetlabs.kitchensink.core :refer [cli! add-shutdown-hook!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
 
@@ -164,7 +164,7 @@
     app)))
 
 (defn parse-cli-args!
-  "Parses the command-line arguments using `puppetlabs.utils/cli!`.
+  "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
   Hard-codes the command-line arguments expected by trapperkeeper to be:
       --debug
       --bootstrap-config <bootstrap file>

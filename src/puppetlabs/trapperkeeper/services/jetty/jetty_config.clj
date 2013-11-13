@@ -2,8 +2,8 @@
   (:import [java.security KeyStore])
   (:require [clojure.tools.logging :as log]
             [puppetlabs.kitchensink.ssl :as ssl]
-            [puppetlabs.kitchensink.core :as pl-utils])
-  (:use [puppetlabs.kitchensink.core :only (missing?)]))
+            [puppetlabs.kitchensink.core :as pl-utils]
+            [puppetlabs.kitchensink.core :refer [missing?]]))
 
 (defn configure-web-server-ssl-from-pems
   "Configures the web server's SSL settings based on Puppet PEM files, rather than

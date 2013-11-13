@@ -1,8 +1,7 @@
 (ns puppetlabs.trapperkeeper.services.jetty.jetty-service
   (:require
     [puppetlabs.trapperkeeper.services.jetty.jetty-core :as core]
-    [puppetlabs.trapperkeeper.core :refer [defservice]])
-  (:use [plumbing.core :only [fnk]]))
+    [puppetlabs.trapperkeeper.core :refer [defservice]]))
 
 (defservice jetty-service
   "Provides a Jetty web server as a service"

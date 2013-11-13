@@ -144,7 +144,7 @@
 
 (defn shutdown!
   "Perform shutdown on the application by calling all service shutdown hooks.
-  Services will be shut down in reverse dependency order."
+  Services will be shut down in dependency order."
   [^TrapperKeeperApp app]
   ((get-service-fn app :shutdown-service :do-shutdown)))
 

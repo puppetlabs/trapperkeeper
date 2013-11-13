@@ -9,8 +9,6 @@
 (defn -main
   [& args]
   (trapperkeeper/bootstrap ["--bootstrap-config" "test-resources/shutdown_app/bootstrap.cfg"])
-  (println "NOTE You must run with trampoline: `lein trampoline run -m shutdown-app.main`")
-  (newline)
   (println "Waiting 60 seconds for a shutdown signal - use Ctrl-C or kill.")
   (println "You should see a message printed out when services are being shutdown.")
   (Thread/sleep 60000))

@@ -6,4 +6,4 @@ called.
 You should see instructions upon starting the application.
 
 To run:
-  lein trampoline run -m shutdown-app.main
+  lein test-shutdown

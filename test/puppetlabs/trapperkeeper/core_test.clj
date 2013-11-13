@@ -218,7 +218,7 @@ This is not a legit line.
       (trapperkeeper/shutdown! app)
       (is (true? @flag))))
 
-  (testing "services are shut down in reverse dependency order"
+  (testing "services are shut down in dependency order"
     (let [order       (atom [])
           service1    (service :service1
                                {:depends  []

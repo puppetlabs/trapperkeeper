@@ -148,6 +148,34 @@
   [^TrapperKeeperApp app]
   ((get-service-fn app :shutdown-service :do-shutdown)))
 
+(defn- compile-graph
+  "Given the merged map of services, compile it into a function suitable for instantiation.
+  Throws an exception if there is a dependency on a service that is not found in the map."
+  [graph-map]
+  {:pre  [(service-graph? graph-map)]
+   :post [(ifn? %)]}
+  (try
+    (graph/eager-compile graph-map)
+    (catch IllegalArgumentException e
+      (let [match (re-matches #"(?s)^Failed on keyseq: \[:(.*)\]\. Value is missing\. .*$" (.getMessage e))]
+        (if match
+          (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
+          (throw e))))))
+
+(defn- instantiate
+  "Given the compiled graph function, instantiate the application. Throws an exception
+  if there is a dependency on a service function that is not found in the graph."
+  [graph-fn]
+  {:pre  [(ifn? graph-fn)]
+   :post [(service-graph? %)]}
+  (try
+    (graph-fn {})
+    (catch RuntimeException e
+      (let [match (re-matches #"^Key (:.*) not found in null$" (.getMessage e))]
+        (if match
+          (throw (RuntimeException. (format "Service '%s' not found" (second match))))
+          (throw e))))))
+
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
   ([services] (bootstrap* services {}))
@@ -158,10 +186,9 @@
    :post [(instance? TrapperKeeperApp %)]}
   (let [graph-map       (-> (apply merge (cli-service cli-data) services)
                             (register-shutdown-hooks!))
-        graph-fn        (graph/eager-compile graph-map)
-        graph-instance  (graph-fn {})
-        app             (TrapperKeeperApp. graph-instance)]
-    app)))
+        graph-fn        (compile-graph graph-map)
+        graph-instance  (instantiate graph-fn)]
+    (TrapperKeeperApp. graph-instance))))
 
 (defn parse-cli-args!
   "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.

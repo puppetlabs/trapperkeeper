@@ -2,25 +2,20 @@
 
 A Clojure library designed to ... well, that part is up to you.
 
-### Implementation Questions
-* Life cycle for startup? Or just expect services to start during graph compile?
-  - Use atoms for implementation?
-* How to handle command-line args?
-  - Force services to provide required/supported CLI args?
-  - Use protocols? Or require additional functions in graphs?
-  - How to resolve conflicts in service CLI args?
-* Use with-redefs for common functions?
-
-### Prismatic Graph
-* http://github.com/Prismatic/plumbing/blob/master/test/plumbing/graph_examples_test.clj
-* http://blog.getprismatic.com/blog/2012/10/1/prismatics-graph-at-strange-loop.html
-* http://blog.getprismatic.com/blog/2013/2/1/graph-abstractions-for-structured-computation
-* http://www.infoq.com/presentations/Graph-Clojure-Prismatic
-* http://highscalability.com/blog/2013/2/14/when-all-the-programs-a-graph-prismatics-plumbing-library.html
-
 ## Usage
 
 FIXME
+
+## Using Our Test Utils
+
+Trapperkeeper provides [utility code](./test/puppetlabs/trapperkeeper/testutils) for use in tests.
+The code is available in a separate "test" jar that you may depend on by using a classifier in your project dependencies.
+
+```clojure
+  (defproject yourproject "1.0.0"
+    ...
+    :profiles {:test {:dependencies [[puppetlabs/trapperkeeper "x.y.z" :classifier "test"]]}})
+```
 
 ## License
 

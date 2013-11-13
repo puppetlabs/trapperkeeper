@@ -232,3 +232,26 @@ This is not a legit line.
       (is (empty? @order))
       (trapperkeeper/shutdown! app)
       (is (= @order [2 1])))))
+
+(deftest dependency-error-handling
+  (testing "missing service dependency throws meaningful message"
+    (let [broken-service (service :broken-service
+                                  {:depends  [[:missing-service f]]
+                                   :provides [unused]}
+                                  {:unused #()})]
+      (is (thrown-with-msg?
+            RuntimeException #"Service ':missing-service' not found"
+            (trapperkeeper/bootstrap* [(broken-service)])))))
+
+  (testing "missing service function throws meaningful message"
+    (let [test-service    (service :test-service
+                                   {:depends  []
+                                    :provides [foo]}
+                                   {:foo #()})
+          broken-service  (service :broken-service
+                                   {:depends  [[:test-service bar]]
+                                    :provides [unused]}
+                                   {:unused #()})]
+      (is (thrown-with-msg?
+            RuntimeException #"Service function 'bar' not found"
+            (trapperkeeper/bootstrap* [(test-service) (broken-service)]))))))

@@ -2,8 +2,7 @@
   (:import [java.security KeyStore])
   (:require [clojure.tools.logging :as log]
             [puppetlabs.kitchensink.ssl :as ssl]
-            [puppetlabs.kitchensink.core :as pl-utils]
-            [puppetlabs.kitchensink.core :refer [missing?]]))
+            [puppetlabs.kitchensink.core :refer [missing? num-cpus uuid]]))
 
 (defn configure-web-server-ssl-from-pems
   "Configures the web server's SSL settings based on Puppet PEM files, rather than
@@ -29,7 +28,7 @@
                   (keys old-ssl-config)))))
   (let [truststore  (-> (ssl/keystore)
                       (ssl/assoc-cert-file! "PuppetDB CA" ssl-ca-cert))
-        keystore-pw (pl-utils/uuid)
+        keystore-pw (uuid)
         keystore    (-> (ssl/keystore)
                       (ssl/assoc-private-key-file! "PuppetDB Agent Private Key" ssl-key keystore-pw ssl-cert))]
     (-> options
@@ -52,7 +51,7 @@
   This bug is solved in Jetty 9, so this check can probably be removed if we
   upgrade."
   ([threads]
-    (jetty7-minimum-threads threads (inc (pl-utils/num-cpus))))
+    (jetty7-minimum-threads threads (inc (num-cpus))))
 
   ([threads min-threads]
     {:pre [(pos? threads)

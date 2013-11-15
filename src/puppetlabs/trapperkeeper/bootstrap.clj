@@ -74,7 +74,7 @@
    :post [(or (nil? %)
               (satisfies? IOFactory %))]}
   (when (contains? cli-data :bootstrap-config)
-    (let [config-path (cli-data :bootstrap-config)]
+    (when-let [config-path (cli-data :bootstrap-config)]
       (if (.exists (file config-path))
         (do
           (log/debug (str "Loading bootstrap config from specified path: '" config-path "'"))

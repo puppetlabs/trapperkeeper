@@ -100,7 +100,11 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (is (thrown-with-msg?
             IllegalStateException
             #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
-            (trapperkeeper/bootstrap []))))
+            (trapperkeeper/bootstrap [])))
+      (is (thrown-with-msg?
+            IllegalStateException
+            #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
+            (trapperkeeper/bootstrap ["--bootstrap-config" nil]))))
 
     (testing "Bad line in bootstrap config file"
       (let [bootstrap-config (StringReader. "

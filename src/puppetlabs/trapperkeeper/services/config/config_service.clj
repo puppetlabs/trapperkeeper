@@ -32,6 +32,3 @@
                   config-path))))
      (let [config (inis-to-map config-path)]
        {:get-in-config (fn [ks] (get-in config ks))})))
-;       {:get-in-config (fn
-;                  ([] config)
-;                  ([ks] (get-in config ks)))})))

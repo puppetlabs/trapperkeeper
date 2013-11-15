@@ -23,7 +23,8 @@
   {:pre [(keyword? service)
          (keyword? k)
          (every? keyword? ks)]
-   :post [(not (nil? %)) (ifn? %)]}
+   :post [(not (nil? %))
+          (ifn? %)]}
   (get-in (:graph-instance app) (cons service (cons k ks))))
 
 (defn contains-service?

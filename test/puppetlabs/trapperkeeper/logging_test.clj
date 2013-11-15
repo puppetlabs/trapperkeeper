@@ -18,6 +18,8 @@
     (configure-logging! {:global {:logging-config "./test-resources/log4j.properties"}})
     (is (= (Level/DEBUG) (.getLevel (Logger/getRootLogger)))))
 
-  (testing "Calling `configure-logging!` with another log4j.properties file"
+  (testing
+      "Calling `configure-logging!` with another log4j.properties file
+      in case the default logging level is DEBUG"
     (configure-logging! {:global {:logging-config "./test-resources/another-log4j.properties"}})
     (is (= (Level/WARN) (.getLevel (Logger/getRootLogger))))))

@@ -5,8 +5,7 @@
 (ns puppetlabs.trapperkeeper.services.jetty.jetty-core
   "Adapter for the Jetty webserver."
   (:import (org.eclipse.jetty.server Handler Server Request)
-           (org.eclipse.jetty.server.handler AbstractHandler ContextHandler
-                                                             HandlerCollection ContextHandlerCollection)
+           (org.eclipse.jetty.server.handler AbstractHandler ContextHandler HandlerCollection ContextHandlerCollection GzipHandler)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory)
            (org.eclipse.jetty.server.ssl SslSelectChannelConnector)
@@ -16,7 +15,6 @@
   (:require [ring.util.servlet :as servlet]
             [clojure.string :refer [split trim]]
             [clojure.tools.logging :as log]
-            [clojure.pprint :refer [pprint]]
             [puppetlabs.trapperkeeper.services.jetty.jetty-config :as jetty-config]
             [puppetlabs.kitchensink.core :refer [compare-jvm-versions]]))
 
@@ -129,7 +127,6 @@
         (.addConnector server connector)))
     server))
 
-
 ;; Functions for trapperkeeper 'webserver' interface
 
 (defn start-webserver
@@ -155,7 +152,9 @@
         ^ContextHandlerCollection chc (ContextHandlerCollection.)
         ^HandlerCollection hc         (HandlerCollection.)]
     (.setHandlers hc (into-array Handler [chc]))
-    (.setHandler s hc)
+    (->> (doto (GzipHandler.)
+           (.setHandler hc))
+         (.setHandler s))
     (when-let [configurator (:configurator options)]
       (configurator s))
     (.start s)

@@ -2,8 +2,9 @@
   (:require [plumbing.graph :as graph]
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
-            [puppetlabs.kitchensink.core :refer [cli! add-shutdown-hook!]]
+            [puppetlabs.kitchensink.core :refer [cli! add-shutdown-hook! boolean?]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
+            [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
             [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
 
 ;  A type representing a trapperkeeper application.  This is intended to provide
@@ -15,13 +16,23 @@
 
 (defn get-service-fn
   "Given a trapperkeeper application, a service name, and a sequence of keys,
-  returns the function provided by the service at that path."
+  returns the function provided by the service at that path.
+
+  Example usage: (get-service-fn app :my-service :do-something-awesome)"
   [^TrapperKeeperApp app service k & ks]
   {:pre [(keyword? service)
          (keyword? k)
          (every? keyword? ks)]
-   :post [(ifn? %)]}
+   :post [(not (nil? %)) (ifn? %)]}
   (get-in (:graph-instance app) (cons service (cons k ks))))
+
+(defn contains-service?
+  "Given a trapperkeeper application and service name,
+  answers whether or not the application contains a service with the given name."
+  [^TrapperKeeperApp app service]
+  {:pre [(keyword? service)]
+   :post [(boolean? %)]}
+  (not (nil? (get-in (:graph-instance app) [service]))))
 
 (defn- io->fnk-binding-form
   "Converts a service's input-output map into a binding-form suitable for
@@ -223,8 +234,12 @@
     (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
                                   (bootstrap/config-from-cwd)
                                   (bootstrap/config-from-classpath))]
-      (-> bootstrap-config
-          (bootstrap/parse-bootstrap-config!)
-          (bootstrap* cli-data))
+      (let [services  (bootstrap/parse-bootstrap-config! bootstrap-config)
+            app       (bootstrap* services cli-data)
+            config    (if (contains-service? app :config-service)
+                          ((get-service-fn app :config-service :get-in-config))
+                          {})]
+        (configure-logging! (merge (cli-data :debug) config))
+        app)
       (throw (IllegalStateException.
                "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath")))))

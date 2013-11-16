@@ -171,9 +171,10 @@
   (try
     (graph-fn {})
     (catch RuntimeException e
-      (let [match (re-matches #"^Key (:.*) not found in null$" (.getMessage e))]
-        (if match
-          (throw (RuntimeException. (format "Service '%s' not found" (second match))))
+      (if-let [match (re-matches #"^Key (:.*) not found in null$" (.getMessage e))]
+        (throw (RuntimeException. (format "Service '%s' not found" (second match))))
+        (if-let [match (re-matches #"^Key :(.*) not found in .*$" (.getMessage e))]
+          (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
           (throw e))))))
 
 (defn bootstrap*

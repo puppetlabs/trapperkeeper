@@ -258,4 +258,25 @@ This is not a legit line.
                                    {:unused #()})]
       (is (thrown-with-msg?
             RuntimeException #"Service function 'bar' not found"
-            (trapperkeeper/bootstrap* [(test-service) (broken-service)]))))))
+            (trapperkeeper/bootstrap* [(test-service) (broken-service)]))))
+
+    (let [test-service    (service :test-service
+                                   {:depends  []
+                                    :provides [foo bar]}
+                                   {:foo #()})
+          broken-service  (service :broken-service
+                                   {:depends  [[:test-service foo bar]]
+                                    :provides [unused]}
+                                   {:unused #()})]
+      (is (thrown-with-msg?
+            RuntimeException #"Service function 'bar' not found"
+            (trapperkeeper/bootstrap* [(test-service) (broken-service)]))))
+
+    (let [broken-service  (service :broken-service
+                                   {:depends  []
+                                    :provides [unused]}
+                                   (throw (RuntimeException. "This shouldn't match the regexs"))
+                                   {:unused #()})]
+      (is (thrown-with-msg?
+            RuntimeException #"This shouldn't match the regexs"
+            (trapperkeeper/bootstrap* [(broken-service)]))))))

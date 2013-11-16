@@ -20,7 +20,7 @@
 
    The value of `(get-in-config [:foo :bar])` would be `\"baz\"`."
    {:depends [[:cli-service cli-data]]
-    :provides [get-in-config]}
+    :provides [get-in-config get-config]}
    (when-not (cli-data :config)
      (throw (IllegalStateException.
               "Command line argument --config (or -c) is required by the config service")))
@@ -31,4 +31,5 @@
                   "Configuration path '%s' must exist and must be readable."
                   config-path))))
      (let [config (inis-to-map config-path)]
-       {:get-in-config (fn [ks] (get-in config ks))})))
+       {:get-in-config (fn [ks] (get-in config ks))
+        :get-config (fn [] config)})))

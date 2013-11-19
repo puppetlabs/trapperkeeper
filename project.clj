@@ -1,5 +1,9 @@
 (defproject puppetlabs/trapperkeeper "0.1.0-SNAPSHOT"
   :description "We are trapperkeeper.  We are one."
+  ;; Abort when version ranges or version conflicts are detected in
+  ;; dependencies. Also supports :warn to simply emit warnings.
+  ;; requires lein 2.2.0+.
+  :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [puppetlabs/kitchensink "0.1.0"]
                  [clj-http "0.5.3" :scope "test"]

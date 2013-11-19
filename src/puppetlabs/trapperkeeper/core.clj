@@ -1,8 +1,10 @@
 (ns puppetlabs.trapperkeeper.core
+  (:import (java.io FileNotFoundException))
   (:require [plumbing.graph :as graph]
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
-            [puppetlabs.kitchensink.core :refer [cli! add-shutdown-hook! boolean?]]
+            [clojure.java.io :refer [file]]
+            [puppetlabs.kitchensink.core :refer [cli! add-shutdown-hook! boolean? inis-to-map]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
             [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
@@ -124,6 +126,41 @@
                  ([] cli-data)
                  ([k] (cli-data k)))})))
 
+(defn config-service
+  "A simple configuration service based on .ini config files.  Expects
+   to find a command-line argument value for `:config` (which it will
+   retrieve from the `:cli-service`'s `cli-data` fn); the value of this
+   parameter should be the path to an .ini file or a directory of .ini
+   files.
+
+   Provides a function, `get-in-config`, which can be used to
+   retrieve the config data read from the ini files.  For example,
+   given an ini file with the following contents:
+
+       [foo]
+       bar = baz
+
+   The value of `(get-in-config [:foo :bar])` would be `\"baz\"`.
+
+   Also provides a second function, `get-config`, which simply returns
+   the entire configuration map."
+  [config]
+  ((service :config-service
+            {:depends []
+             :provides [get-in-config get-config]}
+            {:get-in-config (fn [ks] (get-in config ks))
+             :get-config (fn [] config)})))
+
+(defn- parse-config-file
+  [config-file-path]
+  {:pre [(not (nil? config-file-path))]}
+  (when-not (.canRead (file config-file-path))
+    (throw (FileNotFoundException.
+             (format
+               "Configuration path '%s' must exist and must be readable."
+               config-file-path))))
+  (inis-to-map config-file-path))
+
 (defn- wrap-with-shutdown-registration
   "Given an accumulating list of shutdown functions and a path to a service
   in the graph, extract the shutdown function from the service and add it to
@@ -191,13 +228,19 @@
 
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
-  ([services] (bootstrap* services {}))
   ([services cli-data]
   {:pre [(sequential? services)
          (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [graph-map       (-> (apply merge (cli-service cli-data) services)
+  (let [cli-service     (cli-service cli-data)
+        config-data     (parse-config-file (cli-data :config))
+        config-service  (config-service config-data)
+
+                        ;; TODO :global is what puppetdb uses; not sure if it's correct for TK
+        _               (configure-logging! (config-data :global) (cli-data :debug))
+
+        graph-map       (-> (apply merge cli-service config-service services)
                             (register-shutdown-hooks!))
         graph-fn        (compile-graph graph-map)
         graph-instance  (instantiate graph-fn)]
@@ -211,9 +254,9 @@
       --config <.ini file or directory>"
   [cli-args]
   (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
-                     ["-b" "--bootstrap-config" "Path to bootstrap config file (optional)"]
-                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services (optional)"]]
-        required    []]
+                     ["-b" "--bootstrap-config" "Path to bootstrap config file"]
+                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]]
+        required    [:config]]
     (first (cli! cli-args specs required))))
 
 (defn bootstrap
@@ -236,12 +279,8 @@
     (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
                                   (bootstrap/config-from-cwd)
                                   (bootstrap/config-from-classpath))]
-      (let [services  (bootstrap/parse-bootstrap-config! bootstrap-config)
-            app       (bootstrap* services cli-data)
-            config    (if (contains-service? app :config-service)
-                          ((get-service-fn app :config-service :get-in-config))
-                          {})]
-        (configure-logging! (merge (cli-data :debug) config))
-        app)
+      (-> bootstrap-config
+          (bootstrap/parse-bootstrap-config!)
+          (bootstrap* cli-data))
       (throw (IllegalStateException.
                "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath")))))

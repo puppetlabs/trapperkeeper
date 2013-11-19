@@ -1,8 +1,8 @@
 (ns puppetlabs.trapperkeeper.services.config.config-service-test
   (:import (java.io StringReader FileNotFoundException))
   (:require [clojure.test :refer :all]
-            [puppetlabs.trapperkeeper.services.config.config-service :refer [config-service]]
-            [puppetlabs.trapperkeeper.core :refer [defservice parse-cli-args! bootstrap* get-service-fn]]))
+            [slingshot.slingshot :refer [try+]]
+            [puppetlabs.trapperkeeper.core :refer [defservice parse-cli-args! bootstrap* get-service-fn config-service]]))
 
 (defservice test-service
    {:depends [[:config-service get-in-config get-config]]
@@ -15,14 +15,15 @@
   bootstrapped TrapperKeeperApp."
   [args]
   (let [cli-data  (parse-cli-args! args)]
-    (bootstrap* [(test-service) (config-service)] cli-data)))
+    (bootstrap* [(test-service)] cli-data)))
 
 (deftest test-config-service
   (testing "Fails if config CLI arg is not specified"
-    (is (thrown-with-msg?
-          IllegalStateException
-          #"Command line argument --config \(or -c\) is required by the config service"
-          (bootstrap-with-cli-args []))))
+    (try+
+      (bootstrap-with-cli-args [])
+      (catch map? m
+        (is (contains? m :error-message))
+        (is (re-matches #"(?s)^.*Missing required argument '--config'.*$" (m :error-message))))))
 
   (testing "Fails if config path doesn't exist"
     (is (thrown-with-msg?

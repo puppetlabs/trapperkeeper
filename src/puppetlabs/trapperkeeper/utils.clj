@@ -1,4 +1,5 @@
-(ns puppetlabs.trapperkeeper.utils)
+(ns puppetlabs.trapperkeeper.utils
+  (:require [plumbing.map]))
 
 (def ^{:doc "Alias for plumbing.map/map-leaves-and-path, which is named inconsistently
             with Clojure conventions as it doesn't behave like other `map` functions.

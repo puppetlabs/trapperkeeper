@@ -8,9 +8,11 @@
 (deftest test-catch-all-logger
   (testing "catch-all-logger ensures that message from an exception is logged"
     (with-test-logging
-      (catch-all-logger
-        (Exception. "This exception is expected; testing error logging")
-        "this is my error message")
+      ;; Prevent the stacktrace from being printed out
+      (with-redefs [clojure.stacktrace/print-cause-trace (fn [e] nil)]
+        (catch-all-logger
+          (Exception. "This exception is expected; testing error logging")
+          "this is my error message"))
       (is (logged? #"this is my error message" :error)))))
 
 (deftest test-logging-configuration

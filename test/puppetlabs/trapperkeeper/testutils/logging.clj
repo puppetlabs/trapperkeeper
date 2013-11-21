@@ -41,7 +41,7 @@
 
 (defn atom-logger
   "A logger factory that logs output to the supplied atom"
-  ([output-atom] (atom-logger false))
+  ([output-atom] (atom-logger output-atom false))
   ([output-atom debug]
    (reify impl/LoggerFactory
      (name [_] "test factory")
@@ -55,7 +55,7 @@
 
 (defn atom-appender
   "Creates a log4j appender that writes log messages to the supplied atom"
-  ([output-atom] (atom-appender false))
+  ([output-atom] (atom-appender output-atom false))
   ([output-atom debug]
    (proxy [AppenderSkeleton] []
      (append [logging-event]

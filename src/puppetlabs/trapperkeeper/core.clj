@@ -229,7 +229,8 @@
   (let [cli-service     (cli-service cli-data)
         config-data     (parse-config-file (cli-data :config))
         config-service  (config-service config-data)
-        _               (configure-logging! ((config-data :global) :logging-config) (cli-data :debug))
+        _               (if-let [global-config (config-data :global)]
+                          (configure-logging! (global-config :logging-config) (cli-data :debug)))
         graph-map       (-> (apply merge cli-service config-service services)
                             (register-shutdown-hooks!))
         graph-fn        (compile-graph graph-map)

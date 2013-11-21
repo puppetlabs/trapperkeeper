@@ -29,14 +29,6 @@
           (ifn? %)]}
   (get-in (:graph-instance app) (cons service (cons k ks))))
 
-(defn contains-service?
-  "Given a trapperkeeper application and service name,
-  answers whether or not the application contains a service with the given name."
-  [^TrapperKeeperApp app service]
-  {:pre [(keyword? service)]
-   :post [(boolean? %)]}
-  (not (nil? (get-in (:graph-instance app) [service]))))
-
 (defn- io->fnk-binding-form
   "Converts a service's input-output map into a binding-form suitable for
   passing to a fnk. The binding-form defines the fnk's expected input and

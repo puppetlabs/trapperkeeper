@@ -6,7 +6,7 @@
             [plumbing.fnk.pfnk :as pfnk]
             [plumbing.graph :as graph]
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service contains-service?]]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
@@ -38,11 +38,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
               cli-data-fn       (trapperkeeper/get-service-fn app-with-cli-args :cli-service :cli-data)]
           (is (not (empty? (cli-data-fn))))
           (is (cli-data-fn :debug))
-          (is (= config-file-path (cli-data-fn :config)))))
-
-      (testing "`contains-service` function"
-        (is (contains-service? app :foo-test-service))
-        (is (not (contains-service? app :this-service-does-not-exist)))))
+          (is (= config-file-path (cli-data-fn :config))))))
 
     (with-additional-classpath-entries ["./test-resources/bootstrapping/classpath"]
       (testing "Looks for bootstrap config on classpath (test-resources)"

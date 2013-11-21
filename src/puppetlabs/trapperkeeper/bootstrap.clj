@@ -103,6 +103,5 @@
   {:post [(or (nil? %)
               (satisfies? IOFactory %))]}
   (when-let [classpath-config (resource bootstrap-config-file-name)]
-    (log/debug (str "Loading bootstrap config from classpath: '"
-                    (.. classpath-config toURI toString) "'"))
+    (log/debug (str "Loading bootstrap config from classpath: '" classpath-config "'"))
     classpath-config))

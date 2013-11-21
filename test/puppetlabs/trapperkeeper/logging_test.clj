@@ -17,11 +17,11 @@
 
 (deftest test-logging-configuration
   (testing "Calling `configure-logging!` with a log4j.properties file"
-    (configure-logging! {:logging-config "./test-resources/log4j.properties"})
+    (configure-logging! "./test-resources/log4j.properties")
     (is (= (Level/DEBUG) (.getLevel (Logger/getRootLogger)))))
 
   (testing
       "Calling `configure-logging!` with another log4j.properties file
       in case the default logging level is DEBUG"
-    (configure-logging! {:logging-config "./test-resources/another-log4j.properties"})
+    (configure-logging! "./test-resources/another-log4j.properties")
     (is (= (Level/WARN) (.getLevel (Logger/getRootLogger))))))

@@ -237,10 +237,7 @@
   (let [cli-service     (cli-service cli-data)
         config-data     (parse-config-file (cli-data :config))
         config-service  (config-service config-data)
-
-                        ;; TODO :global is what puppetdb uses; not sure if it's correct for TK
-        _               (configure-logging! (config-data :global) (cli-data :debug))
-
+        _               (configure-logging! ((config-data :global) :logging-config) (cli-data :debug))
         graph-map       (-> (apply merge cli-service config-service services)
                             (register-shutdown-hooks!))
         graph-fn        (compile-graph graph-map)

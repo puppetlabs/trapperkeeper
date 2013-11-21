@@ -69,15 +69,13 @@
    (PropertyConfigurator/configureAndWatch logging-conf-file reload-interval)))
 
 (defn configure-logging!
-  "Takes a `config` map and looks for a `:logging-config` key inside of it,
-  which can define how to configure the logging system.
-
+  "Takes a file path which can define how to configure the logging system.
   Also takes an optional `debug` flag which turns on debug logging."
-  ([config]
-   (configure-logging! config false))
-  ([config debug]
-   (when-let [logging-conf (:logging-config config)]
-     (configure-logger-via-file! logging-conf))
+  ([logging-conf-file]
+   (configure-logging! logging-conf-file false))
+  ([logging-conf-file debug]
+   (when [logging-conf-file]
+     (configure-logger-via-file! logging-conf-file))
    (when debug
      (add-console-logger! Level/DEBUG)
      (log/debug "Debug logging enabled"))))

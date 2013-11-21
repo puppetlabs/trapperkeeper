@@ -89,7 +89,18 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
                     #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/bootstrap.cfg'"
                     :debug))
               (is (= (test-fn) :cli))
-              (is (= (hello-world-fn) "hello world")))))))
+              (is (= (hello-world-fn) "hello world")))))
+
+      (testing "Ensure that a bootstrap config can be loaded with a path that contains spaces"
+        (with-test-logging
+          (let [app                 (trapperkeeper/bootstrap ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
+                test-fn             (trapperkeeper/get-service-fn app :cli-test-service :test-fn)
+                hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
+            (is (logged?
+                  #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
+                  :debug))
+            (is (= (test-fn) :cli))
+            (is (= (hello-world-fn) "hello world")))))))
 
   (testing "Invalid bootstrap configurations"
     (testing "Bootstrap config path specified on CLI does not exist"

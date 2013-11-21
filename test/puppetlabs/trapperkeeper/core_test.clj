@@ -6,17 +6,10 @@
             [plumbing.fnk.pfnk :as pfnk]
             [plumbing.graph :as graph]
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service contains-service?]]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
-
-(defn- parse-and-bootstrap
-  ([bootstrap-config]
-   (parse-and-bootstrap bootstrap-config {}))
-  ([bootstrap-config cli-data]
-   (-> bootstrap-config
-       parse-bootstrap-config!
-       (trapperkeeper/bootstrap* cli-data))))
 
 (deftest test-bootstrapping
   (testing "Valid bootstrap configurations"
@@ -36,25 +29,21 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
 
       (testing "The CLI service is included in the service graph."
         (let [cli-data-fn (trapperkeeper/get-service-fn app :cli-service :cli-data)]
-          (is (= (cli-data-fn) {}))))
+          (is (not (nil? (cli-data-fn))))))
 
       (testing "The CLI service has the CLI data."
-        (let [config-file-path  "/path/to/config/files"
+        (let [config-file-path  "./test-resources/config/empty.ini"
               cli-data          (trapperkeeper/parse-cli-args! ["--config" config-file-path "--debug"])
               app-with-cli-args (parse-and-bootstrap (StringReader. bootstrap-config) cli-data)
               cli-data-fn       (trapperkeeper/get-service-fn app-with-cli-args :cli-service :cli-data)]
           (is (not (empty? (cli-data-fn))))
           (is (cli-data-fn :debug))
-          (is (= config-file-path (cli-data-fn :config)))))
-
-      (testing "`contains-service` function"
-        (is (contains-service? app :foo-test-service))
-        (is (not (contains-service? app :this-service-does-not-exist)))))
+          (is (= config-file-path (cli-data-fn :config))))))
 
     (with-additional-classpath-entries ["./test-resources/bootstrapping/classpath"]
       (testing "Looks for bootstrap config on classpath (test-resources)"
         (with-test-logging
-          (let [app                 (trapperkeeper/bootstrap [])
+          (let [app                 (bootstrap-with-empty-config)
                 test-fn             (trapperkeeper/get-service-fn app :classpath-test-service :test-fn)
                 hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
             (is (logged?
@@ -70,7 +59,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
               "user.dir"
               (.getAbsolutePath (file "./test-resources/bootstrapping/cwd")))
             (with-test-logging
-              (let [app                 (trapperkeeper/bootstrap [])
+              (let [app                 (bootstrap-with-empty-config)
                     test-fn             (trapperkeeper/get-service-fn app :cwd-test-service :test-fn)
                     hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
                 (is (logged?
@@ -82,7 +71,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
 
       (testing "Gives precedence to bootstrap config specified as CLI arg"
         (with-test-logging
-            (let [app                 (trapperkeeper/bootstrap ["--bootstrap-config" "./test-resources/bootstrapping/cli/bootstrap.cfg"])
+            (let [app                 (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/bootstrap.cfg"])
                   test-fn             (trapperkeeper/get-service-fn app :cli-test-service :test-fn)
                   hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
               (is (logged?
@@ -108,18 +97,17 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Specified bootstrap config file does not exist: '.*non-existent-bootstrap.cfg'"
-              (trapperkeeper/bootstrap
-                ["--bootstrap-config" cfg-path])))))
+              (bootstrap-with-empty-config ["--bootstrap-config" cfg-path])))))
 
     (testing "No bootstrap config found"
       (is (thrown-with-msg?
             IllegalStateException
             #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
-            (trapperkeeper/bootstrap [])))
+            (bootstrap-with-empty-config)))
       (is (thrown-with-msg?
             IllegalStateException
             #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
-            (trapperkeeper/bootstrap ["--bootstrap-config" nil]))))
+            (bootstrap-with-empty-config ["--bootstrap-config" nil]))))
 
     (testing "Bad line in bootstrap config file"
       (let [bootstrap-config (StringReader. "
@@ -165,12 +153,7 @@ This is not a legit line.
               (parse-and-bootstrap bootstrap-config))))))
 
   (testing "CLI arg parsing"
-    (testing "CLI args are parsed to a map"
-      (is (map? (trapperkeeper/parse-cli-args! [])))
-      (is (map? (trapperkeeper/parse-cli-args! ["--debug"]))))
-
     (testing "Parsed CLI data"
-      (is (contains? (trapperkeeper/parse-cli-args! ["--debug"]) :debug))
       (let [bootstrap-file "/fake/path/bootstrap.cfg"
             config-dir     "/fake/config/dir"
             cli-data         (trapperkeeper/parse-cli-args!
@@ -221,7 +204,7 @@ This is not a legit line.
         (is (= provides {:hello true})))))
 
   (testing "services compile correctly and can be called"
-    (let [app       (trapperkeeper/bootstrap* [(logging-service) (simple-service)])
+    (let [app       (bootstrap-services-with-empty-config [(logging-service) (simple-service)])
           hello-fn  (trapperkeeper/get-service-fn app :simple-service :hello)]
       (is (= (hello-fn) "world")))))
 
@@ -232,7 +215,7 @@ This is not a legit line.
                                  {:depends  []
                                   :provides [shutdown]}
                                  {:shutdown #(reset! flag true)})
-          app           (trapperkeeper/bootstrap* [(test-service)])]
+          app           (bootstrap-services-with-empty-config [(test-service)])]
       (is (false? @flag))
       (trapperkeeper/shutdown! app)
       (is (true? @flag))))
@@ -247,7 +230,7 @@ This is not a legit line.
                                {:depends  [service1]
                                 :provides [shutdown]}
                                {:shutdown #(swap! order conj 2)})
-          app         (trapperkeeper/bootstrap* [(service1) (service2)])]
+          app         (bootstrap-services-with-empty-config [(service1) (service2)])]
       (is (empty? @order))
       (trapperkeeper/shutdown! app)
       (is (= @order [2 1])))))
@@ -260,7 +243,7 @@ This is not a legit line.
                                   {:unused #()})]
       (is (thrown-with-msg?
             RuntimeException #"Service ':missing-service' not found"
-            (trapperkeeper/bootstrap* [(broken-service)])))))
+            (bootstrap-services-with-empty-config [(broken-service)])))))
 
   (testing "missing service function throws meaningful message"
     (let [test-service    (service :test-service
@@ -273,7 +256,7 @@ This is not a legit line.
                                    {:unused #()})]
       (is (thrown-with-msg?
             RuntimeException #"Service function 'bar' not found"
-            (trapperkeeper/bootstrap* [(test-service) (broken-service)]))))
+            (bootstrap-services-with-empty-config [(test-service) (broken-service)]))))
 
     (let [test-service    (service :test-service
                                    {:depends  []
@@ -285,7 +268,7 @@ This is not a legit line.
                                    {:unused #()})]
       (is (thrown-with-msg?
             RuntimeException #"Service function 'bar' not found"
-            (trapperkeeper/bootstrap* [(test-service) (broken-service)]))))
+            (bootstrap-services-with-empty-config [(test-service) (broken-service)]))))
 
     (let [broken-service  (service :broken-service
                                    {:depends  []
@@ -294,4 +277,4 @@ This is not a legit line.
                                    {:unused #()})]
       (is (thrown-with-msg?
             RuntimeException #"This shouldn't match the regexs"
-            (trapperkeeper/bootstrap* [(broken-service)]))))))
+            (bootstrap-services-with-empty-config [(broken-service)]))))))

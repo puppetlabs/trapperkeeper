@@ -6,6 +6,16 @@ A Clojure library designed to ... well, that part is up to you.
 
 FIXME
 
+### Configuration
+Trapperkeeper accepts a ```--config``` command-line argument.  This argument is used to specify the configuration file for the application.  The format is a ```.ini``` file.  Alternatively, the ```--config``` argument can be used to specify a directory of .ini files.
+
+Trapperkeeper looks for specific things in this configuration.  Logging is configured like this:
+```INI
+[global]
+logging-config = /path/to/log4j.properties
+```
+
+
 ## Using Our Test Utils
 
 Trapperkeeper provides [utility code](./test/puppetlabs/trapperkeeper/testutils) for use in tests.

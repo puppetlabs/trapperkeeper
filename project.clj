@@ -5,7 +5,7 @@
   ;; requires lein 2.2.0+.
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [puppetlabs/kitchensink "0.1.0"]
+                 [puppetlabs/kitchensink "0.2.0-SNAPSHOT"]
                  [clj-http "0.5.3" :scope "test"]
                  [org.eclipse.jetty/jetty-server "7.6.1.v20120215"]
                  [ring/ring-servlet "1.1.8"]

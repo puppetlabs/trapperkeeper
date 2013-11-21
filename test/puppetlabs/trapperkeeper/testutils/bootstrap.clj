@@ -1,6 +1,6 @@
 (ns puppetlabs.trapperkeeper.testutils.bootstrap
-  (:require [puppetlabs.trapperkeeper.core :as trapperkeeper])
-  (:require [puppetlabs.trapperkeeper.bootstrap :as bootstrap]))
+  (:require [puppetlabs.trapperkeeper.core :as trapperkeeper]
+            [puppetlabs.trapperkeeper.bootstrap :as bootstrap]))
 
 (def empty-config "./test-resources/config/empty.ini")
 

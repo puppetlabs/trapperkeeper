@@ -1,4 +1,4 @@
-(ns shutdown-app.main
+(ns shutdown-app.test-shutdown
   (:require [puppetlabs.trapperkeeper.core :as trapperkeeper]))
 
 (trapperkeeper/defservice test-service

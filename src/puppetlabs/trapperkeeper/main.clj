@@ -1,6 +1,7 @@
 (ns puppetlabs.trapperkeeper.main
   (:require [puppetlabs.kitchensink.core :as kitchensink]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper]))
+            [puppetlabs.trapperkeeper.core :as trapperkeeper]
+            [slingshot.slingshot :refer [try+]]))
 
 (defn parse-cli-args!
   "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
@@ -17,6 +18,9 @@
 
 (defn main
   [& args]
-  (-> args
-      (parse-cli-args!)
-      (trapperkeeper/bootstrap)))
+  (try+
+    (-> args
+        (parse-cli-args!)
+        (trapperkeeper/bootstrap))
+    (catch map? {:keys [error-message]}
+      (println error-message))))

@@ -31,15 +31,6 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
         (let [cli-data-fn (trapperkeeper/get-service-fn app :cli-service :cli-data)]
           (is (not (nil? (cli-data-fn))))))
 
-      (testing "The CLI service has the CLI data."
-        (let [config-file-path  "./test-resources/config/empty.ini"
-              cli-data          (trapperkeeper/parse-cli-args! ["--config" config-file-path "--debug"])
-              app-with-cli-args (parse-and-bootstrap (StringReader. bootstrap-config) cli-data)
-              cli-data-fn       (trapperkeeper/get-service-fn app-with-cli-args :cli-service :cli-data)]
-          (is (not (empty? (cli-data-fn))))
-          (is (cli-data-fn :debug))
-          (is (= config-file-path (cli-data-fn :config))))))
-
     (with-additional-classpath-entries ["./test-resources/bootstrapping/classpath"]
       (testing "Looks for bootstrap config on classpath (test-resources)"
         (with-test-logging
@@ -150,25 +141,7 @@ This is not a legit line.
         (is (thrown-with-msg?
               IllegalArgumentException
               #"Invalid service graph;"
-              (parse-and-bootstrap bootstrap-config))))))
-
-  (testing "CLI arg parsing"
-    (testing "Parsed CLI data"
-      (let [bootstrap-file "/fake/path/bootstrap.cfg"
-            config-dir     "/fake/config/dir"
-            cli-data         (trapperkeeper/parse-cli-args!
-                               ["--debug"
-                                "--bootstrap-config" bootstrap-file
-                                "--config" config-dir])]
-        (is (= bootstrap-file (cli-data :bootstrap-config)))
-        (is (= config-dir (cli-data :config)))
-        (is (cli-data :debug)))))
-
-    (testing "Invalid CLI data"
-      (is (thrown-with-msg?
-            Exception
-            #"not a valid argument"
-            (trapperkeeper/parse-cli-args! ["--invalid-argument"])))))
+              (parse-and-bootstrap bootstrap-config))))))))
 
 (deftest defservice-macro
   (def logging-service

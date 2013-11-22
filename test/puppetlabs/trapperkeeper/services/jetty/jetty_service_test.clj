@@ -1,13 +1,13 @@
 (ns puppetlabs.trapperkeeper.services.jetty.jetty-service-test
   (:require [clojure.test :refer :all]
             [clj-http.client :as http-client]
-            [puppetlabs.trapperkeeper.core :refer [defservice bootstrap* parse-cli-args! get-service-fn]]
+            [puppetlabs.trapperkeeper.core :refer [defservice bootstrap* get-service-fn]]
             [puppetlabs.trapperkeeper.services.jetty.jetty-service :refer :all]))
 
 (deftest test-jetty-service
   (testing "An example TK app with a jetty service"
     (let [services         [(jetty-service)]
-          cli-data         (parse-cli-args! ["--config" "./test-resources/config/jetty/jetty.ini"])
+          cli-data         {:config "./test-resources/config/jetty/jetty.ini"}
           tk-app           (bootstrap* services cli-data)
           add-ring-handler (get-service-fn tk-app :jetty-service :add-ring-handler)
           join             (get-service-fn tk-app :jetty-service :join)
@@ -29,8 +29,7 @@
   (testing "SSL initialization is supported for both .jks and .pem implementations"
     (doseq [config ["./test-resources/config/jetty/jetty-ssl-jks.ini"
                     "./test-resources/config/jetty/jetty-ssl-pem.ini"]]
-      (let [app               (bootstrap* [(jetty-service)]
-                                          (parse-cli-args! ["--config" config]))
+      (let [app               (bootstrap* [(jetty-service)] {:config config})
             add-ring-handler  (get-service-fn app :jetty-service :add-ring-handler)
             join              (get-service-fn app :jetty-service :join)
             shutdown          (get-service-fn app :jetty-service :shutdown)

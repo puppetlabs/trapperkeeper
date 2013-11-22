@@ -4,7 +4,7 @@
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
             [clojure.java.io :refer [file]]
-            [puppetlabs.kitchensink.core :refer [cli! add-shutdown-hook! boolean? inis-to-map]]
+            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? inis-to-map]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
             [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
@@ -237,19 +237,6 @@
         graph-instance  (instantiate graph-fn)]
     (TrapperKeeperApp. graph-instance))))
 
-(defn parse-cli-args!
-  "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
-  Hard-codes the command-line arguments expected by trapperkeeper to be:
-      --debug
-      --bootstrap-config <bootstrap file>
-      --config <.ini file or directory>"
-  [cli-args]
-  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
-                     ["-b" "--bootstrap-config" "Path to bootstrap config file"]
-                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]]
-        required    [:config]]
-    (first (cli! cli-args specs required))))
-
 (defn bootstrap
   "Bootstrap a trapperkeeper application.  This is accomplished by reading a
   bootstrap configuration file containing a list of (namespace-qualified)
@@ -263,15 +250,22 @@
 
   * At a path specified by the optional command-line argument `--bootstrap-config`
   * In the current working directory, in a file named `bootstrap.cfg`
-  * On the classpath, in a file named `bootstrap.cfg`."
-  [cli-args]
-  {:post [(instance? TrapperKeeperApp %)]}
-  (let [cli-data (parse-cli-args! cli-args)]
-    (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
+  * On the classpath, in a file named `bootstrap.cfg`.
+
+  `cli-data` is a map of the command-line arguments and their values.
+  `puppetlabs.kitchensink/cli!` can handle the parsing for you.
+
+  Their must be a `:config` key in this map which defines the .ini file
+  (or directory of files) used by the configuration service."
+  [cli-data]
+  {:pre [(map? cli-data)
+         (contains? cli-data :config)]
+  :post [(instance? TrapperKeeperApp %)]}
+  (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
                                   (bootstrap/config-from-cwd)
                                   (bootstrap/config-from-classpath))]
-      (-> bootstrap-config
-          (bootstrap/parse-bootstrap-config!)
-          (bootstrap* cli-data))
-      (throw (IllegalStateException.
-               "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath")))))
+    (-> bootstrap-config
+        (bootstrap/parse-bootstrap-config!)
+        (bootstrap* cli-data))
+    (throw (IllegalStateException.
+             "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"))))

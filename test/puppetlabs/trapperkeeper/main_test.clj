@@ -6,7 +6,7 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [parse-and-bootstrap]]
             [slingshot.slingshot :refer [try+]]))
 
-(testing "CLI arg parsing"
+(deftest cli-arg-parsing
   (testing "Parsed CLI data"
     (let [bootstrap-file "/fake/path/bootstrap.cfg"
           config-dir     "/fake/config/dir"
@@ -39,10 +39,14 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service
       (is (= config-file-path (cli-data-fn :config)))))
 
   (testing "Fails if config CLI arg is not specified"
-    (try+
-      (main)
-      (catch map? m
-        (is (contains? m :error-message))
-        (is (re-matches
-              #"(?s)^.*Missing required argument '--config'.*$"
-              (m :error-message)))))))
+    ;; looks like `thrown-with-msg?` can't be used with slingshot. :(
+    (let [got-expected-exception (atom false)]
+      (try+
+        (parse-cli-args! [])
+        (catch map? m
+          (is (contains? m :error-message))
+          (is (re-matches
+                #"(?s)^.*Missing required argument '--config'.*$"
+                (m :error-message)))
+          (reset! got-expected-exception true)))
+      (is (true? @got-expected-exception)))))

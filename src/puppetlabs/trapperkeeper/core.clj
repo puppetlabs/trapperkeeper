@@ -258,7 +258,9 @@
   Their must be a `:config` key in this map which defines the .ini file
   (or directory of files) used by the configuration service."
   [cli-data]
-  {:post [(instance? TrapperKeeperApp %)]}
+  {:pre [(map? cli-data)
+         (contains? cli-data :config)]
+  :post [(instance? TrapperKeeperApp %)]}
   (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
                                   (bootstrap/config-from-cwd)
                                   (bootstrap/config-from-classpath))]

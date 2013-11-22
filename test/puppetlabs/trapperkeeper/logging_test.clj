@@ -20,8 +20,12 @@
     (configure-logging! "./test-resources/log4j.properties")
     (is (= (Level/DEBUG) (.getLevel (Logger/getRootLogger)))))
 
-  (testing
-      "Calling `configure-logging!` with another log4j.properties file
-      in case the default logging level is DEBUG"
+  (testing "Calling `configure-logging!` with another log4j.properties file
+            in case the default logging level is DEBUG"
     (configure-logging! "./test-resources/another-log4j.properties")
-    (is (= (Level/WARN) (.getLevel (Logger/getRootLogger))))))
+    (is (= (Level/WARN) (.getLevel (Logger/getRootLogger)))))
+
+  (testing "a logging config file isn't required"
+    ;; This looks strange, but we're trying to make sure that there are
+    ;; no exceptions thrown when we configure logging without a log config file.
+    (is (= nil (configure-logging! nil)))))

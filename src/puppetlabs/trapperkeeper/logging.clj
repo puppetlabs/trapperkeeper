@@ -74,7 +74,7 @@
   ([logging-conf-file]
    (configure-logging! logging-conf-file false))
   ([logging-conf-file debug]
-   (when [logging-conf-file]
+   (when logging-conf-file
      (configure-logger-via-file! logging-conf-file))
    (when debug
      (add-console-logger! Level/DEBUG)

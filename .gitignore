@@ -2,3 +2,4 @@
 .lein-repl-history
 target/
 checkouts/
+pom.xml

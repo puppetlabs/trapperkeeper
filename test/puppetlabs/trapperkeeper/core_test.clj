@@ -184,15 +184,15 @@ This is not a legit line.
 
 (deftest shutdown
   (testing "service with shutdown hook gets called during shutdown"
-    (let [flag          (atom false)
-          test-service  (service :test-service
-                                 {:depends  []
-                                  :provides [shutdown]}
-                                 {:shutdown #(reset! flag true)})
-          app           (bootstrap-services-with-empty-config [(test-service)])]
-      (is (false? @flag))
+    (let [shutdown-called?  (atom false)
+          test-service      (service :test-service
+                                     {:depends  []
+                                      :provides [shutdown]}
+                                     {:shutdown #(reset! shutdown-called? true)})
+          app               (bootstrap-services-with-empty-config [(test-service)])]
+      (is (false? @shutdown-called?))
       (trapperkeeper/shutdown! app)
-      (is (true? @flag))))
+      (is (true? @shutdown-called?))))
 
   (testing "services are shut down in dependency order"
     (let [order       (atom [])
@@ -207,7 +207,37 @@ This is not a legit line.
           app         (bootstrap-services-with-empty-config [(service1) (service2)])]
       (is (empty? @order))
       (trapperkeeper/shutdown! app)
-      (is (= @order [2 1])))))
+      (is (= @order [2 1]))))
+
+  (testing "`run` blocks until shutdown signal received, then services are shut down"
+    (let [shutdown-called?  (atom false)
+          test-service      (service :test-service
+                                     {:depends  []
+                                      :provides [shutdown]}
+                                     {:shutdown #(reset! shutdown-called? true)})
+          app               (bootstrap-services-with-empty-config [(test-service)])
+          thread            (future (trapperkeeper/run app))]
+      (is (false? @shutdown-called?))
+      (trapperkeeper/shutdown! app)
+      (deref thread)
+      (is (true? @shutdown-called?))))
+
+  (testing "`shutdown-on-error` causes services to be shut down and the error is rethrown from main"
+    (let [shutdown-called?  (atom false)
+          test-service      (service :test-service
+                                     {:depends  [[:shutdown-service shutdown-on-error]]
+                                      :provides [throw-error-in-another-thread shutdown]}
+                                     {:shutdown  #(reset! shutdown-called? true)
+                                      :broken-fn (fn [] (future (shutdown-on-error #(throw (RuntimeException. "oops")))))})
+          app                (bootstrap-services-with-empty-config [(test-service)])
+          broken-fn          (trapperkeeper/get-service-fn app :test-service :broken-fn)
+          main-thread        (future (trapperkeeper/run app))]
+      (is (false? @shutdown-called?))
+      (broken-fn)
+      (is (thrown-with-msg?
+            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
+            (deref main-thread)))
+      (is (true? @shutdown-called?)))))
 
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"

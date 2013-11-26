@@ -191,7 +191,7 @@ This is not a legit line.
                                      {:shutdown #(reset! shutdown-called? true)})
           app               (bootstrap-services-with-empty-config [(test-service)])]
       (is (false? @shutdown-called?))
-      (trapperkeeper/shutdown! app)
+      (trapperkeeper/shutdown!)
       (is (true? @shutdown-called?))))
 
   (testing "services are shut down in dependency order"
@@ -206,7 +206,7 @@ This is not a legit line.
                                {:shutdown #(swap! order conj 2)})
           app         (bootstrap-services-with-empty-config [(service1) (service2)])]
       (is (empty? @order))
-      (trapperkeeper/shutdown! app)
+      (trapperkeeper/shutdown!)
       (is (= @order [2 1]))))
 
   (testing "`run` blocks until shutdown signal received, then services are shut down"
@@ -218,7 +218,7 @@ This is not a legit line.
           app               (bootstrap-services-with-empty-config [(test-service)])
           thread            (future (trapperkeeper/run app))]
       (is (false? @shutdown-called?))
-      (trapperkeeper/shutdown! app)
+      (trapperkeeper/request-shutdown! app)
       (deref thread)
       (is (true? @shutdown-called?))))
 

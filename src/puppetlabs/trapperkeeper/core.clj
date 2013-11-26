@@ -169,22 +169,27 @@
                 result))]
     (fn->fnk f [in out])))
 
+(def shutdown-fns (atom ()))
+
+(defn shutdown!
+  "Perform shutdown on the application by calling all service shutdown hooks.
+  Services will be shut down in dependency order."
+  []
+  (doseq [f @shutdown-fns]
+    (f)))
+
 (defn- register-shutdown-hooks!
   "Walk the graph and register all shutdown functions. The functions
   will be called when the JVM shuts down, or by calling `shutdown!`."
   [graph]
-  (let [shutdown-fns          (atom ())
-        wrapped-graph         (walk-leaves-and-path
+  (let [wrapped-graph         (walk-leaves-and-path
                                 (partial wrap-with-shutdown-registration shutdown-fns)
                                 graph)
         shutdown-reason       (promise)
-        perform-shutdown-fn   #(doseq [f @shutdown-fns] (f))
         shutdown-service      (service :shutdown-service
                                        {:depends  []
                                         :provides [request-shutdown wait-for-shutdown shutdown-on-error]}
-                                       {:request-shutdown   #(do
-                                                               (perform-shutdown-fn)
-                                                               (deliver shutdown-reason {:type :requested}))
+                                       {:request-shutdown   #(deliver shutdown-reason {:type :requested})
                                         :wait-for-shutdown  #(deref shutdown-reason)
                                         :shutdown-on-error  (fn [f]
                                                               (try
@@ -193,15 +198,19 @@
                                                                   (deliver shutdown-reason {:type  :service-error
                                                                                             :error t}))))})]
     (add-shutdown-hook! #(do
-                           (perform-shutdown-fn)
+                           (shutdown!)
                            (deliver shutdown-reason {:type :jvm-shutdown-hook})))
     (merge (shutdown-service) wrapped-graph)))
 
-(defn shutdown!
-  "Perform shutdown on the application by calling all service shutdown hooks.
-  Services will be shut down in dependency order."
+(defn request-shutdown!
+  "TODO docs"
   [^TrapperKeeperApp app]
   ((get-service-fn app :shutdown-service :request-shutdown)))
+
+(defn wait-for-shutdown
+  "TODO docs"
+  [^TrapperKeeperApp app]
+  ((get-service-fn app :shutdown-service :wait-for-shutdown)))
 
 (defn- compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.
@@ -308,10 +317,8 @@
 (defn run
   "TODO docstring"
   [^TrapperKeeperApp app]
-  (let [wait-for-shutdown (get-service-fn app :shutdown-service :wait-for-shutdown)
-        shutdown-reason   (wait-for-shutdown)]
-    (when (or (= :service-error (:type shutdown-reason))
-              (= :requested (:type shutdown-reason)))
-      (shutdown! app)
-      (when (:error shutdown-reason)
-        (throw (:error shutdown-reason))))))
+  (let [shutdown-reason (wait-for-shutdown app)]
+    (when (contains? #{:service-error :requested} (:type shutdown-reason))
+      (shutdown!)
+      (when-let [error (:error shutdown-reason)]
+        (throw error)))))

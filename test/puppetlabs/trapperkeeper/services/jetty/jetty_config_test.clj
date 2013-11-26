@@ -29,7 +29,7 @@
     (testing "should fail if some but not all of the PEM-based SSL settings are found"
       (let [partial-pem-config (merge old-config {:ssl-ca-cert "/some/path"})]
         (is (thrown-with-msg? java.lang.IllegalArgumentException
-              #"If configuring SSL from Puppet PEM files, you must provide all of the following options"
+              #"If configuring SSL from PEM files, you must provide all of the following options"
               (configure-web-server partial-pem-config)))))
 
     (let [pem-config (merge old-config
@@ -39,7 +39,7 @@
       (testing "should warn if both keystore-based and PEM-based SSL settings are found"
         (with-log-output logs
           (configure-web-server pem-config)
-          (is (= 1 (count (logs-matching #"Found settings for both keystore-based and Puppet PEM-based SSL" @logs))))))
+          (is (= 1 (count (logs-matching #"Found settings for both keystore-based and PEM-based SSL" @logs))))))
 
       (testing "should prefer PEM-based SSL settings, override old keystore settings
                   with instances of java.security.KeyStore, and remove PEM settings

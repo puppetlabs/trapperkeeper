@@ -80,7 +80,7 @@
           3 (configure-web-server-ssl-from-pems options)
           0 options
           (throw (IllegalArgumentException.
-                   (format "Found SSL config options: %s; If configuring SSL from Puppet PEM files, you must provide all of the following options: %s"
+                   (format "Found SSL config options: %s; If configuring SSL from PEM files, you must provide all of the following options: %s"
                      (keys pem-config) pem-required-keys))))
       (assoc :client-auth :need)
       (assoc :max-threads (jetty7-minimum-threads (:max-threads merged-options))))))

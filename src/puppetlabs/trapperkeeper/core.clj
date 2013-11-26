@@ -100,8 +100,7 @@
         config-data     (-> (parse-config-file (cli-data :config))
                             (assoc :debug debug))
         config-service  (config-service config-data)
-        _               (if-let [global-config (config-data :global)]
-                          (configure-logging! (global-config :logging-config) debug))
+        _               (configure-logging! (get-in config-data [:global :logging-config]) (cli-data :debug))
         graph-map       (-> (apply merge config-service services)
                             (register-shutdown-hooks!))
         graph-fn        (compile-graph graph-map)

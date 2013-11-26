@@ -5,8 +5,9 @@
             [clojure.java.io :refer [file]]
             [plumbing.fnk.pfnk :as pfnk]
             [plumbing.graph :as graph]
+            [slingshot.slingshot :refer [try+]]
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service]]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service parse-cli-args!]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
@@ -251,3 +252,48 @@ This is not a legit line.
       (is (thrown-with-msg?
             RuntimeException #"This shouldn't match the regexs"
             (bootstrap-services-with-empty-config [(broken-service)]))))))
+
+(deftest test-main
+  (testing "Parsed CLI data"
+    (let [bootstrap-file "/fake/path/bootstrap.cfg"
+          config-dir     "/fake/config/dir"
+          cli-data         (parse-cli-args!
+                             ["--debug"
+                              "--bootstrap-config" bootstrap-file
+                              "--config" config-dir])]
+      (is (= bootstrap-file (cli-data :bootstrap-config)))
+      (is (= config-dir (cli-data :config)))
+      (is (cli-data :debug))))
+
+  (testing "Invalid CLI data"
+    (is (thrown-with-msg?
+          Exception
+          #"not a valid argument"
+          (parse-cli-args! ["--invalid-argument"]))))
+
+  (testing "The CLI service has the CLI data."
+    (let [bootstrap-config "
+
+puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service
+
+"
+          config-file-path  "./test-resources/config/empty.ini"
+          cli-data          (parse-cli-args! ["--config" config-file-path "--debug"])
+          app-with-cli-args (parse-and-bootstrap (StringReader. bootstrap-config) cli-data)
+          cli-data-fn       (trapperkeeper/get-service-fn app-with-cli-args :cli-service :cli-data)]
+      (is (not (empty? (cli-data-fn))))
+      (is (cli-data-fn :debug))
+      (is (= config-file-path (cli-data-fn :config)))))
+
+  (testing "Fails if config CLI arg is not specified"
+    ;; looks like `thrown-with-msg?` can't be used with slingshot. :(
+    (let [got-expected-exception (atom false)]
+      (try+
+        (parse-cli-args! [])
+        (catch map? m
+          (is (contains? m :error-message))
+          (is (re-matches
+                #"(?s)^.*Missing required argument '--config'.*$"
+                (m :error-message)))
+          (reset! got-expected-exception true)))
+      (is (true? @got-expected-exception)))))

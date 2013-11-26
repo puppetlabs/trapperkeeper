@@ -1,6 +1,5 @@
 (ns puppetlabs.trapperkeeper.testutils.bootstrap
   (:require [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.main :as main]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]))
 
 (def empty-config "./test-resources/config/empty.ini")
@@ -15,7 +14,7 @@
   ([other-args]
    (-> other-args
        (conj "--config" empty-config )
-       (main/parse-cli-args!)
+       (trapperkeeper/parse-cli-args!)
        (trapperkeeper/bootstrap))))
 
 (defn parse-and-bootstrap

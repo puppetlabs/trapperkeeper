@@ -173,26 +173,28 @@
   "Walk the graph and register all shutdown functions. The functions
   will be called when the JVM shuts down, or by calling `shutdown!`."
   [graph]
-  (let [shutdown-fns        (atom ())
-        wrapped-graph       (walk-leaves-and-path
-                              (partial wrap-with-shutdown-registration shutdown-fns)
-                              graph)
-        shutdown-reason     (promise)
-        do-shutdown-fn      #(do
-                               (doseq [f @shutdown-fns] (f))
-                               (deliver shutdown-reason {:type :jvm-signal}))
-        shutdown-service    (service :shutdown-service
-                                     {:depends  []
-                                      :provides [do-shutdown wait-for-shutdown shutdown-on-error]}
-                                     {:do-shutdown        do-shutdown-fn
-                                      :wait-for-shutdown  #(deref shutdown-reason)
-                                      :shutdown-on-error  (fn [f]
-                                                            (try
-                                                              (f)
-                                                              (catch Throwable t
-                                                                (deliver shutdown-reason {:type  :service-error
-                                                                                          :error t}))))})]
-    (add-shutdown-hook! do-shutdown-fn)
+  (let [shutdown-fns          (atom ())
+        wrapped-graph         (walk-leaves-and-path
+                                (partial wrap-with-shutdown-registration shutdown-fns)
+                                graph)
+        shutdown-reason       (promise)
+        perform-shutdown-fn   #(doseq [f @shutdown-fns] (f))
+        shutdown-service      (service :shutdown-service
+                                       {:depends  []
+                                        :provides [do-shutdown wait-for-shutdown shutdown-on-error]}
+                                       {:do-shutdown        #(do
+                                                               (perform-shutdown-fn)
+                                                               (deliver shutdown-reason {:type :requested}))
+                                        :wait-for-shutdown  #(deref shutdown-reason)
+                                        :shutdown-on-error  (fn [f]
+                                                              (try
+                                                                (f)
+                                                                (catch Throwable t
+                                                                  (deliver shutdown-reason {:type  :service-error
+                                                                                            :error t}))))})]
+    (add-shutdown-hook! #(do
+                           (perform-shutdown-fn)
+                           (deliver shutdown-reason {:type :jvm-shutdown-hook})))
     (merge (shutdown-service) wrapped-graph)))
 
 (defn shutdown!
@@ -308,6 +310,8 @@
   [^TrapperKeeperApp app]
   (let [wait-for-shutdown (get-service-fn app :shutdown-service :wait-for-shutdown)
         shutdown-reason   (wait-for-shutdown)]
-    (when (= :service-error (:type shutdown-reason))
+    (when (or (= :service-error (:type shutdown-reason))
+              (= :requested (:type shutdown-reason)))
       (shutdown! app)
-      (throw (:error shutdown-reason)))))
+      (when (:error shutdown-reason)
+        (throw (:error shutdown-reason))))))

@@ -169,27 +169,48 @@
                 result))]
     (fn->fnk f [in out])))
 
-(defn- register-shutdown-hooks!
-  "Walk the graph and register all shutdown functions. The functions
-  will be called when the JVM shuts down, or by calling `shutdown!`."
-  [graph]
-  (let [shutdown-fns      (atom ())
-        wrapped-graph     (walk-leaves-and-path
-                            (partial wrap-with-shutdown-registration shutdown-fns)
-                            graph)
-        do-shutdown-fn    #(doseq [f @shutdown-fns] (f))
-        shutdown-service  (service :shutdown-service
-                                   {:depends  []
-                                    :provides [do-shutdown]}
-                                   {:do-shutdown do-shutdown-fn})]
-    (add-shutdown-hook! do-shutdown-fn)
-    (merge (shutdown-service) wrapped-graph)))
+(def shutdown-fns (atom ()))
 
 (defn shutdown!
   "Perform shutdown on the application by calling all service shutdown hooks.
   Services will be shut down in dependency order."
+  []
+  (doseq [f @shutdown-fns]
+    (f)))
+
+(defn- register-shutdown-hooks!
+  "Walk the graph and register all shutdown functions. The functions
+  will be called when the JVM shuts down, or by calling `shutdown!`."
+  [graph]
+  (let [wrapped-graph         (walk-leaves-and-path
+                                (partial wrap-with-shutdown-registration shutdown-fns)
+                                graph)
+        shutdown-reason       (promise)
+        shutdown-service      (service :shutdown-service
+                                       {:depends  []
+                                        :provides [request-shutdown wait-for-shutdown shutdown-on-error]}
+                                       {:request-shutdown   #(deliver shutdown-reason {:type :requested})
+                                        :wait-for-shutdown  #(deref shutdown-reason)
+                                        :shutdown-on-error  (fn [f]
+                                                              (try
+                                                                (f)
+                                                                (catch Throwable t
+                                                                  (deliver shutdown-reason {:type  :service-error
+                                                                                            :error t}))))})]
+    (add-shutdown-hook! #(do
+                           (shutdown!)
+                           (deliver shutdown-reason {:type :jvm-shutdown-hook})))
+    (merge (shutdown-service) wrapped-graph)))
+
+(defn request-shutdown!
+  "TODO docs"
   [^TrapperKeeperApp app]
-  ((get-service-fn app :shutdown-service :do-shutdown)))
+  ((get-service-fn app :shutdown-service :request-shutdown)))
+
+(defn wait-for-shutdown
+  "TODO docs"
+  [^TrapperKeeperApp app]
+  ((get-service-fn app :shutdown-service :wait-for-shutdown)))
 
 (defn- compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.
@@ -271,7 +292,6 @@
     (throw (IllegalStateException.
              "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"))))
 
-
 (defn parse-cli-args!
   "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
     Hard-codes the command-line arguments expected by trapperkeeper to be:
@@ -293,3 +313,12 @@
         (bootstrap))
     (catch map? {:keys [error-message]}
       (println error-message))))
+
+(defn run
+  "TODO docstring"
+  [^TrapperKeeperApp app]
+  (let [shutdown-reason (wait-for-shutdown app)]
+    (when (contains? #{:service-error :requested} (:type shutdown-reason))
+      (shutdown!)
+      (when-let [error (:error shutdown-reason)]
+        (throw error)))))

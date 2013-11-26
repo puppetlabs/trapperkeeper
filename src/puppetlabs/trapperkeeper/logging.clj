@@ -21,7 +21,7 @@
 
 (defn create-console-appender
   "Instantiates and returns a logging appender configured to write to
-  the console, using the standard puppetdb logging configuration.
+  the console, using the standard logging configuration.
 
   `level` is an optional argument (of type `org.apache.log4j.Level`)
   indicating the logging threshold for the new appender.  Defaults

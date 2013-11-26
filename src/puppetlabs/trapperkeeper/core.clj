@@ -305,15 +305,6 @@
         required    [:config]]
     (first (cli! cli-args specs required))))
 
-(defn main
-  [& args]
-  (try+
-    (-> args
-        (parse-cli-args!)
-        (bootstrap))
-    (catch map? {:keys [error-message]}
-      (println error-message))))
-
 (defn run
   "TODO docstring"
   [^TrapperKeeperApp app]
@@ -322,3 +313,13 @@
       (shutdown!)
       (when-let [error (:error shutdown-reason)]
         (throw error)))))
+
+(defn main
+  [& args]
+  (try+
+    (-> args
+        (parse-cli-args!)
+        (bootstrap)
+        (run))
+    (catch map? {:keys [error-message]}
+      (println error-message))))

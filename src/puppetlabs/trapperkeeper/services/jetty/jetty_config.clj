@@ -5,12 +5,12 @@
             [puppetlabs.kitchensink.core :refer [missing? num-cpus uuid]]))
 
 (defn configure-web-server-ssl-from-pems
-  "Configures the web server's SSL settings based on Puppet PEM files, rather than
+  "Configures the web server's SSL settings based on PEM files, rather than
   via a java keystore (jks) file.  The configuration map returned by this function
   will have overwritten any existing keystore-related settings to use in-memory
   KeyStore objects, which are constructed based on the values of
   `:ssl-key`, `:ssl-cert`, and `:ssl-ca-cert` from
-  the input map.  The output map does not include the `:puppet-*` keys, as they
+  the input map.  The output map does not include the `:ssl-*` keys, as they
   are not meaningful to the web server implementation."
   [{:keys [ssl-key ssl-cert ssl-ca-cert] :as options}]
   {:pre  [ssl-key
@@ -24,13 +24,13 @@
   (let [old-ssl-config-keys [:keystore :truststore :key-password :trust-password]
         old-ssl-config      (select-keys options old-ssl-config-keys)]
     (when (pos? (count old-ssl-config))
-      (log/warn (format "Found settings for both keystore-based and Puppet PEM-based SSL; using PEM-based settings, ignoring %s"
+      (log/warn (format "Found settings for both keystore-based and PEM-based SSL; using PEM-based settings, ignoring %s"
                   (keys old-ssl-config)))))
   (let [truststore  (-> (ssl/keystore)
-                      (ssl/assoc-cert-file! "PuppetDB CA" ssl-ca-cert))
+                      (ssl/assoc-cert-file! "CA Certificate" ssl-ca-cert))
         keystore-pw (uuid)
         keystore    (-> (ssl/keystore)
-                      (ssl/assoc-private-key-file! "PuppetDB Agent Private Key" ssl-key keystore-pw ssl-cert))]
+                      (ssl/assoc-private-key-file! "Private Key" ssl-key keystore-pw ssl-cert))]
     (-> options
       (dissoc :ssl-key :ssl-ca-cert :ssl-cert :trust-password)
       (assoc :keystore keystore)
@@ -67,7 +67,7 @@
 (defn configure-web-server
   "Update the supplied config map with information about the HTTP webserver to
   start. This will specify client auth, and add a default host/port
-  http://puppetdb:8080 if none are supplied (and SSL is not specified)."
+  http://localhost:8080 if none are supplied (and SSL is not specified)."
   [options]
   {:pre  [(map? options)]
    :post [(map? %)

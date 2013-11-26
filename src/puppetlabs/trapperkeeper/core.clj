@@ -181,8 +181,8 @@
         perform-shutdown-fn   #(doseq [f @shutdown-fns] (f))
         shutdown-service      (service :shutdown-service
                                        {:depends  []
-                                        :provides [do-shutdown wait-for-shutdown shutdown-on-error]}
-                                       {:do-shutdown        #(do
+                                        :provides [request-shutdown wait-for-shutdown shutdown-on-error]}
+                                       {:request-shutdown   #(do
                                                                (perform-shutdown-fn)
                                                                (deliver shutdown-reason {:type :requested}))
                                         :wait-for-shutdown  #(deref shutdown-reason)
@@ -201,7 +201,7 @@
   "Perform shutdown on the application by calling all service shutdown hooks.
   Services will be shut down in dependency order."
   [^TrapperKeeperApp app]
-  ((get-service-fn app :shutdown-service :do-shutdown)))
+  ((get-service-fn app :shutdown-service :request-shutdown)))
 
 (defn- compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.

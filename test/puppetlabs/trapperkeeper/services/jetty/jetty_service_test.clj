@@ -6,12 +6,12 @@
 
 (deftest test-jetty-service
   (testing "An example TK app with a jetty service"
-    (let [services         [(jetty-service)]
+    (let [services         [(webserver-service)]
           cli-data         {:config "./test-resources/config/jetty/jetty.ini"}
           tk-app           (bootstrap* services cli-data)
-          add-ring-handler (get-service-fn tk-app :jetty-service :add-ring-handler)
-          join             (get-service-fn tk-app :jetty-service :join)
-          shutdown         (get-service-fn tk-app :jetty-service :shutdown)
+          add-ring-handler (get-service-fn tk-app :webserver-service :add-ring-handler)
+          join             (get-service-fn tk-app :webserver-service :join)
+          shutdown         (get-service-fn tk-app :webserver-service :shutdown)
           body             "Hello World"
           path             "/hello_world"
           ring-handler     (fn [req] {:status 200 :body body})]
@@ -29,10 +29,10 @@
   (testing "SSL initialization is supported for both .jks and .pem implementations"
     (doseq [config ["./test-resources/config/jetty/jetty-ssl-jks.ini"
                     "./test-resources/config/jetty/jetty-ssl-pem.ini"]]
-      (let [app               (bootstrap* [(jetty-service)] {:config config})
-            add-ring-handler  (get-service-fn app :jetty-service :add-ring-handler)
-            join              (get-service-fn app :jetty-service :join)
-            shutdown          (get-service-fn app :jetty-service :shutdown)
+      (let [app               (bootstrap* [(webserver-service)] {:config config})
+            add-ring-handler  (get-service-fn app :webserver-service :add-ring-handler)
+            join              (get-service-fn app :webserver-service :join)
+            shutdown          (get-service-fn app :webserver-service :shutdown)
             body              "Hi World"
             path              "/hi_world"
             ring-handler      (fn [req] {:status 200 :body body})]

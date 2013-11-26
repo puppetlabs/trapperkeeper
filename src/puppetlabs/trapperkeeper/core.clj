@@ -4,7 +4,8 @@
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
             [clojure.java.io :refer [file]]
-            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? inis-to-map]]
+            [slingshot.slingshot :refer [try+]]
+            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? inis-to-map cli!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
             [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
@@ -269,3 +270,26 @@
         (bootstrap* cli-data))
     (throw (IllegalStateException.
              "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"))))
+
+
+(defn parse-cli-args!
+  "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
+    Hard-codes the command-line arguments expected by trapperkeeper to be:
+        --debug
+        --bootstrap-config <bootstrap file>
+        --config <.ini file or directory>"
+  [cli-args]
+  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
+                     ["-b" "--bootstrap-config" "Path to bootstrap config file"]
+                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]]
+        required    [:config]]
+    (first (cli! cli-args specs required))))
+
+(defn main
+  [& args]
+  (try+
+    (-> args
+        (parse-cli-args!)
+        (bootstrap))
+    (catch map? {:keys [error-message]}
+      (println error-message))))

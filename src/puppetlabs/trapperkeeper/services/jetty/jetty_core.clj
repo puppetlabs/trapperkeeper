@@ -174,4 +174,5 @@
 
 (defn shutdown
   [webserver]
+  (log/info "Shutting down web server.")
   (.stop (:server webserver)))

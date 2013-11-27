@@ -207,8 +207,9 @@
                                         :wait-for-shutdown  #(deref shutdown-reason)
                                         :shutdown-on-error  shutdown-on-error})]
     (add-shutdown-hook! #(do
-                           (shutdown!)
-                           (deliver shutdown-reason {:type :jvm-shutdown-hook})))
+                           (when-not (realized? shutdown-reason)
+                             (shutdown!)
+                             (deliver shutdown-reason {:type :jvm-shutdown-hook}))))
     (merge (shutdown-service) wrapped-graph)))
 
 (defn request-shutdown!

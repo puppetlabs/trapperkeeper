@@ -186,17 +186,26 @@
                                 (partial wrap-with-shutdown-registration shutdown-fns)
                                 graph)
         shutdown-reason       (promise)
+        shutdown-on-error     (fn
+                                ([f]
+                                  (try
+                                    (f)
+                                    (catch Throwable t
+                                      (deliver shutdown-reason {:type  :service-error
+                                                                :error t}))))
+                                ([f on-error-fn]
+                                  (try
+                                    (f)
+                                    (catch Throwable t
+                                      (deliver shutdown-reason {:type         :service-error
+                                                                :error        t
+                                                                :on-error-fn  on-error-fn})))))
         shutdown-service      (service :shutdown-service
                                        {:depends  []
                                         :provides [request-shutdown wait-for-shutdown shutdown-on-error]}
                                        {:request-shutdown   #(deliver shutdown-reason {:type :requested})
                                         :wait-for-shutdown  #(deref shutdown-reason)
-                                        :shutdown-on-error  (fn [f]
-                                                              (try
-                                                                (f)
-                                                                (catch Throwable t
-                                                                  (deliver shutdown-reason {:type  :service-error
-                                                                                            :error t}))))})]
+                                        :shutdown-on-error  shutdown-on-error})]
     (add-shutdown-hook! #(do
                            (shutdown!)
                            (deliver shutdown-reason {:type :jvm-shutdown-hook})))
@@ -310,6 +319,8 @@
   [^TrapperKeeperApp app]
   (let [shutdown-reason (wait-for-shutdown app)]
     (when (contains? #{:service-error :requested} (:type shutdown-reason))
+      (when-let [on-error-fn (:on-error-fn shutdown-reason)]
+        (on-error-fn))
       (shutdown!)
       (when-let [error (:error shutdown-reason)]
         (throw error)))))

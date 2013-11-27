@@ -226,7 +226,7 @@ This is not a legit line.
     (let [shutdown-called?  (atom false)
           test-service      (service :test-service
                                      {:depends  [[:shutdown-service shutdown-on-error]]
-                                      :provides [throw-error-in-another-thread shutdown]}
+                                      :provides [broken-fn shutdown]}
                                      {:shutdown  #(reset! shutdown-called? true)
                                       :broken-fn (fn [] (future (shutdown-on-error #(throw (RuntimeException. "oops")))))})
           app                (bootstrap-services-with-empty-config [(test-service)])
@@ -237,7 +237,28 @@ This is not a legit line.
       (is (thrown-with-msg?
             java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
             (deref main-thread)))
-      (is (true? @shutdown-called?)))))
+      (is (true? @shutdown-called?))))
+
+  (testing "`shutdown-on-error` takes an optional function that is called on error"
+    (let [shutdown-called?    (atom false)
+          on-error-fn-called? (atom false)
+          broken-service      (service :broken-service
+                                       {:depends  [[:shutdown-service shutdown-on-error]]
+                                        :provides [broken-fn shutdown]}
+                                       {:shutdown  #(reset! shutdown-called? true)
+                                        :broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "uh oh"))
+                                                                             #(reset! on-error-fn-called? true)))})
+          app                 (bootstrap-services-with-empty-config [(broken-service)])
+          broken-fn           (trapperkeeper/get-service-fn app :broken-service :broken-fn)
+          main-thread         (future (trapperkeeper/run app))]
+      (is (false? @shutdown-called?))
+      (is (false? @on-error-fn-called?))
+      (broken-fn)
+      (is (thrown-with-msg?
+            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: uh oh"
+            (deref main-thread)))
+      (is (true? @shutdown-called?))
+      (is (true? @on-error-fn-called?)))))
 
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"

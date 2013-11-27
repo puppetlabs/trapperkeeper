@@ -131,7 +131,7 @@
     "Start a Jetty webserver according to the supplied options:
 
     :configurator - a function called with the Jetty Server instance
-    :port         - the port to listen on (defaults to 80)
+    :port         - the port to listen on (defaults to 8080)
     :host         - the hostname to listen on
     :join?        - blocks the thread until server ends (defaults to true)
     :ssl?         - allow connections over HTTPS

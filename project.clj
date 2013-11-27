@@ -5,7 +5,7 @@
   ;; requires lein 2.2.0+.
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [puppetlabs/kitchensink "0.2.0"]
+                 [puppetlabs/kitchensink "0.3.0-SNAPSHOT"]
                  [org.eclipse.jetty/jetty-server "7.6.1.v20120215"]
                  [ring/ring-servlet "1.1.8"]
 
@@ -29,7 +29,8 @@
 
   :profiles {:dev {:test-paths ["test-resources"]}
              :test {:dependencies [[clj-http "0.5.3"]
-                                   [org.slf4j/slf4j-log4j12 "1.7.5"]]}
+                                   [org.slf4j/slf4j-log4j12 "1.7.5"]
+                                   [puppetlabs/kitchensink "0.3.0-SNAPSHOT" :classifier "test"]]}
              :testutils {:source-paths ^:replace ["test"]}}
 
   :main puppetlabs.trapperkeeper.main

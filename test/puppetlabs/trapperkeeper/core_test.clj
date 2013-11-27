@@ -10,7 +10,10 @@
             [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service parse-cli-args!]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
-            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
+            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
+            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
+
+(use-fixtures :once with-no-jvm-shutdown-hooks)
 
 (deftest test-bootstrapping
   (testing "Valid bootstrap configurations"

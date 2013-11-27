@@ -178,6 +178,19 @@
   (doseq [f @shutdown-fns]
     (f)))
 
+(defn- create-shutdown-on-error-fn
+  [shutdown-reason]
+  (fn shutdown-fn
+    ([f]
+     (shutdown-fn f nil))
+    ([f on-error-fn]
+     (try
+       (f)
+       (catch Throwable t
+         (deliver shutdown-reason {:type         :service-error
+                                   :error        t
+                                   :on-error-fn  on-error-fn}))))))
+
 (defn- register-shutdown-hooks!
   "Walk the graph and register all shutdown functions. The functions
   will be called when the JVM shuts down, or by calling `shutdown!`."
@@ -186,20 +199,9 @@
                                 (partial wrap-with-shutdown-registration shutdown-fns)
                                 graph)
         shutdown-reason       (promise)
-        shutdown-on-error     (fn
-                                ([f]
-                                  (try
-                                    (f)
-                                    (catch Throwable t
-                                      (deliver shutdown-reason {:type  :service-error
-                                                                :error t}))))
-                                ([f on-error-fn]
-                                  (try
-                                    (f)
-                                    (catch Throwable t
-                                      (deliver shutdown-reason {:type         :service-error
-                                                                :error        t
-                                                                :on-error-fn  on-error-fn})))))
+        shutdown-on-error     (create-shutdown-on-error-fn shutdown-reason)
+
+
         shutdown-service      (service :shutdown-service
                                        {:depends  []
                                         :provides [request-shutdown wait-for-shutdown shutdown-on-error]}

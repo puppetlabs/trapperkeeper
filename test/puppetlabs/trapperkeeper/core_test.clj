@@ -226,7 +226,7 @@ This is not a legit line.
       (is (false? @shutdown-called?))
       (with-test-logging
         (trapperkeeper/shutdown!)
-        (is (logged? #"Caught error during shutdown" :warn)))
+        (is (logged? #"Encountered error during shutdown sequence" :warn)))
       (is (true? @shutdown-called?))))
 
   (testing "`run` blocks until shutdown signal received, then services are shut down"
@@ -278,7 +278,21 @@ This is not a legit line.
             java.util.concurrent.ExecutionException #"java.lang.RuntimeException: uh oh"
             (deref main-thread)))
       (is (true? @shutdown-called?))
-      (is (true? @on-error-fn-called?)))))
+      (is (true? @on-error-fn-called?))))
+
+  (testing "errors thrown by the `shutdown-on-error` optional on-error function are caught and logged"
+    (let [broken-service  (service :broken-service
+                                   {:depends  [[:shutdown-service shutdown-on-error]]
+                                    :provides [broken-fn]}
+                                   {:broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "unused"))
+                                                                         #(throw (RuntimeException. "catch me"))))})
+          app             (bootstrap-services-with-empty-config [(broken-service)])
+          broken-fn       (trapperkeeper/get-service-fn app :broken-service :broken-fn)]
+      (with-test-logging
+        (let [main-thread (future (trapperkeeper/run app))]
+          (broken-fn)
+          (try (deref main-thread) (catch Throwable t))
+          (is (logged? #"Error occurred during shutdown" :warn)))))))
 
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"

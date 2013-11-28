@@ -181,7 +181,7 @@
     (try
       (f)
       (catch Throwable t
-        (log/warn t "Caught error during shutdown")))))
+        (log/warn t "Encountered error during shutdown sequence")))))
 
 (defn- create-shutdown-on-error-fn
   [shutdown-reason]
@@ -326,7 +326,10 @@
   (let [shutdown-reason (wait-for-shutdown app)]
     (when (contains? #{:service-error :requested} (:type shutdown-reason))
       (when-let [on-error-fn (:on-error-fn shutdown-reason)]
-        (on-error-fn))
+        (try
+          (on-error-fn)
+          (catch Throwable t
+            (log/warn t "Error occurred during shutdown"))))
       (shutdown!)
       (when-let [error (:error shutdown-reason)]
         (throw error)))))

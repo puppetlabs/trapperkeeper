@@ -212,6 +212,23 @@ This is not a legit line.
       (trapperkeeper/shutdown!)
       (is (= @order [2 1]))))
 
+  (testing "services continue to shut down when one throws an exception"
+    (let [shutdown-called?  (atom false)
+          test-service      (service :test-service
+                                     {:depends  []
+                                      :provides [shutdown]}
+                                     {:shutdown #(reset! shutdown-called? true)})
+          broken-service    (service :broken-service
+                                     {:depends  []
+                                      :provides [shutdown]}
+                                     {:shutdown #(throw (RuntimeException. "dangit"))})
+          app               (bootstrap-services-with-empty-config [(test-service) (broken-service)])]
+      (is (false? @shutdown-called?))
+      (with-test-logging
+        (trapperkeeper/shutdown!)
+        (is (logged? #"Caught error during shutdown" :warn)))
+      (is (true? @shutdown-called?))))
+
   (testing "`run` blocks until shutdown signal received, then services are shut down"
     (let [shutdown-called?  (atom false)
           test-service      (service :test-service

@@ -4,6 +4,7 @@
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
             [clojure.java.io :refer [file]]
+            [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? inis-to-map cli!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
@@ -175,8 +176,12 @@
   "Perform shutdown on the application by calling all service shutdown hooks.
   Services will be shut down in dependency order."
   []
+  (log/info "Beginning shutdown sequence")
   (doseq [f @shutdown-fns]
-    (f)))
+    (try
+      (f)
+      (catch Throwable t
+        (log/warn t "Caught error during shutdown")))))
 
 (defn- create-shutdown-on-error-fn
   [shutdown-reason]
@@ -200,8 +205,6 @@
                                 graph)
         shutdown-reason       (promise)
         shutdown-on-error     (create-shutdown-on-error-fn shutdown-reason)
-
-
         shutdown-service      (service :shutdown-service
                                        {:depends  []
                                         :provides [request-shutdown wait-for-shutdown shutdown-on-error]}

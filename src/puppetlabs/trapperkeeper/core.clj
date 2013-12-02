@@ -1,18 +1,17 @@
 (ns puppetlabs.trapperkeeper.core
   (:require [plumbing.graph :as graph]
-            [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
             [clojure.java.io :refer [file]]
             [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
-            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? inis-to-map cli!]]
+            [puppetlabs.kitchensink.core :refer [inis-to-map cli!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
+            [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks! wait-for-shutdown shutdown!]]
             [puppetlabs.trapperkeeper.services :as services :refer [get-service-fn]]
-            [puppetlabs.trapperkeeper.app :refer [service-graph? walk-leaves-and-path]])
+            [puppetlabs.trapperkeeper.app :refer [service-graph?]])
   (:import (java.io FileNotFoundException)
            (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
-;; TODO add explanatory comments - ncw
 (def #^{:macro true} service #'services/service)
 (def #^{:macro true} defservice #'services/defservice)
 
@@ -34,11 +33,11 @@
    Also provides a second function, `get-config`, which simply returns
    the entire configuration map."
   [config]
-  ((service :config-service
-            {:depends []
-             :provides [get-in-config get-config]}
-            {:get-in-config (fn [ks] (get-in config ks))
-             :get-config (fn [] config)})))
+  ((services/service :config-service
+    {:depends []
+     :provides [get-in-config get-config]}
+    {:get-in-config (fn [ks] (get-in config ks))
+     :get-config    (fn [] config)})))
 
 (defn- parse-config-file
   [config-file-path]
@@ -50,77 +49,6 @@
                "Configuration path '%s' must exist and must be readable."
                config-file-path))))
   (inis-to-map config-file-path))
-
-(defn- wrap-with-shutdown-registration
-  "Given an accumulating list of shutdown functions and a path to a service
-  in the graph, extract the shutdown function from the service and add it to
-  the list."
-  [shutdown-fns-atom path orig-fnk]
-  (let [in  (input-schema orig-fnk)
-        out (output-schema orig-fnk)
-        f   (fn [injected-vals]
-              (let [result (orig-fnk injected-vals)]
-                (when-let [shutdown-fn (result :shutdown)]
-                  (swap! shutdown-fns-atom conj shutdown-fn))
-                result))]
-    (fn->fnk f [in out])))
-
-(def shutdown-fns (atom ()))
-
-(defn shutdown!
-  "Perform shutdown on the application by calling all service shutdown hooks.
-  Services will be shut down in dependency order."
-  []
-  (log/info "Beginning shutdown sequence")
-  (doseq [f @shutdown-fns]
-    (try
-      (f)
-      (catch Exception e
-        (log/error e "Encountered error during shutdown sequence")))))
-
-(defn- create-shutdown-on-error-fn
-  [shutdown-reason]
-  (fn shutdown-fn
-    ([f]
-     (shutdown-fn f nil))
-    ([f on-error-fn]
-     (try
-       (f)
-       (catch Exception e
-         (deliver shutdown-reason {:type         :service-error
-                                   :error        e
-                                   :on-error-fn  on-error-fn}))))))
-
-(defn- register-shutdown-hooks!
-  "Walk the graph and register all shutdown functions. The functions
-  will be called when the JVM shuts down, or by calling `shutdown!`."
-  [graph]
-  (let [wrapped-graph         (walk-leaves-and-path
-                                (partial wrap-with-shutdown-registration shutdown-fns)
-                                graph)
-        shutdown-reason       (promise)
-        shutdown-on-error     (create-shutdown-on-error-fn shutdown-reason)
-        shutdown-service      (service :shutdown-service
-                                       {:depends  []
-                                        :provides [request-shutdown wait-for-shutdown shutdown-on-error]}
-                                       {:request-shutdown   #(deliver shutdown-reason {:type :requested})
-                                        :wait-for-shutdown  #(deref shutdown-reason)
-                                        :shutdown-on-error  shutdown-on-error})]
-    (add-shutdown-hook! #(do
-                           (when-not (realized? shutdown-reason)
-                             (shutdown!)
-                             (deliver shutdown-reason {:type :jvm-shutdown-hook}))))
-    (merge (shutdown-service) wrapped-graph)))
-
-(defn request-shutdown!
-  "TODO docs"
-  [^TrapperKeeperApp app]
-  ((get-service-fn app :shutdown-service :request-shutdown)))
-
-(defn wait-for-shutdown
-  "TODO docs"
-  [^TrapperKeeperApp app]
-  ((get-service-fn app :shutdown-service :wait-for-shutdown)))
 
 (defn- compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.

@@ -4,15 +4,12 @@
             [clojure.tools.logging :as log]
             [clojure.java.io :refer [file]]
             [slingshot.slingshot :refer [try+]]
-            [puppetlabs.trapperkeeper.services :refer [service defservice get-service-fn]]
+            [puppetlabs.trapperkeeper.services :refer [service get-service-fn]]
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
-            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
-            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
-
-(use-fixtures :once with-no-jvm-shutdown-hooks)
+            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
 
 (deftest test-bootstrapping
   (testing "Valid bootstrap configurations"
@@ -141,117 +138,6 @@ This is not a legit line.
               IllegalArgumentException
               #"Invalid service graph;"
               (parse-and-bootstrap bootstrap-config))))))))
-
-(deftest shutdown
-  (testing "service with shutdown hook gets called during shutdown"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          app               (bootstrap-services-with-empty-config [(test-service)])]
-      (is (false? @shutdown-called?))
-      (trapperkeeper/shutdown!)
-      (is (true? @shutdown-called?))))
-
-  (testing "services are shut down in dependency order"
-    (let [order       (atom [])
-          service1    (service :service1
-                               {:depends  []
-                                :provides [shutdown]}
-                               {:shutdown #(swap! order conj 1)})
-          service2    (service :service2
-                               {:depends  [service1]
-                                :provides [shutdown]}
-                               {:shutdown #(swap! order conj 2)})
-          app         (bootstrap-services-with-empty-config [(service1) (service2)])]
-      (is (empty? @order))
-      (trapperkeeper/shutdown!)
-      (is (= @order [2 1]))))
-
-  (testing "services continue to shut down when one throws an exception"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          broken-service    (service :broken-service
-                                     {:depends  [test-service]
-                                      :provides [shutdown]}
-                                     {:shutdown #(throw (RuntimeException. "dangit"))})
-          app               (bootstrap-services-with-empty-config [(test-service) (broken-service)])]
-      (is (false? @shutdown-called?))
-      (with-test-logging
-        (trapperkeeper/shutdown!)
-        (is (logged? #"Encountered error during shutdown sequence" :error)))
-      (is (true? @shutdown-called?))))
-
-  (testing "`run` blocks until shutdown signal received, then services are shut down"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          app               (bootstrap-services-with-empty-config [(test-service)])
-          thread            (future (trapperkeeper/run-app app))]
-      (is (false? @shutdown-called?))
-      (trapperkeeper/request-shutdown! app)
-      (deref thread)
-      (is (true? @shutdown-called?))))
-
-  (testing "`shutdown-on-error` causes services to be shut down and the error is rethrown from main"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  [[:shutdown-service shutdown-on-error]]
-                                      :provides [broken-fn shutdown]}
-                                     {:shutdown  #(reset! shutdown-called? true)
-                                      :broken-fn (fn [] (future (shutdown-on-error #(throw (RuntimeException. "oops")))))})
-          app                (bootstrap-services-with-empty-config [(test-service)])
-          broken-fn          (get-service-fn app :test-service :broken-fn)
-          main-thread        (future (trapperkeeper/run-app app))]
-      (is (false? @shutdown-called?))
-      (broken-fn)
-      (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
-            (deref main-thread)))
-      (is (true? @shutdown-called?))))
-
-  (testing "`shutdown-on-error` takes an optional function that is called on error"
-    (let [shutdown-called?    (atom false)
-          on-error-fn-called? (atom false)
-          broken-service      (service :broken-service
-                                       {:depends  [[:shutdown-service shutdown-on-error]]
-                                        :provides [broken-fn shutdown]}
-                                       {:shutdown  #(reset! shutdown-called? true)
-                                        :broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "uh oh"))
-                                                                             #(reset! on-error-fn-called? true)))})
-          app                 (bootstrap-services-with-empty-config [(broken-service)])
-          broken-fn           (get-service-fn app :broken-service :broken-fn)
-          main-thread         (future (trapperkeeper/run-app app))]
-      (is (false? @shutdown-called?))
-      (is (false? @on-error-fn-called?))
-      (broken-fn)
-      (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: uh oh"
-            (deref main-thread)))
-      (is (true? @shutdown-called?))
-      (is (true? @on-error-fn-called?))))
-
-  (testing "errors thrown by the `shutdown-on-error` optional on-error function are caught and logged"
-    (let [broken-service  (service :broken-service
-                                   {:depends  [[:shutdown-service shutdown-on-error]]
-                                    :provides [broken-fn]}
-                                   {:broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "unused"))
-                                                                         #(throw (RuntimeException. "catch me"))))})
-          app             (bootstrap-services-with-empty-config [(broken-service)])
-          broken-fn       (get-service-fn app :broken-service :broken-fn)]
-      (with-test-logging
-        (let [main-thread (future (trapperkeeper/run-app app))]
-          (broken-fn)
-          ;; main will rethrow the "unused" exception as expected
-          ;; so we need to prevent that from failing the test
-          (try (deref main-thread) (catch Throwable t))
-          (is (logged? #"Error occurred during shutdown" :error)))))))
 
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"

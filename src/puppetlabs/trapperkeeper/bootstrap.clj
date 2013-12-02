@@ -4,7 +4,7 @@
             [clojure.string :refer [trim]]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
-            [puppetlabs.trapperkeeper.utils :refer [validate-service-graph! service-graph?]]))
+            [puppetlabs.trapperkeeper.app :refer [validate-service-graph! service-graph?]]))
 
 (def bootstrap-config-file-name "bootstrap.cfg")
 

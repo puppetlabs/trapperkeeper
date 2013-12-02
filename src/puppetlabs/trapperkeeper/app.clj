@@ -1,5 +1,12 @@
-(ns puppetlabs.trapperkeeper.utils
+(ns puppetlabs.trapperkeeper.app
   (:require [plumbing.map]))
+
+;  A type representing a trapperkeeper application.  This is intended to provide
+;  an abstraction so that users don't need to worry about the implementation
+;  details and can pass the app object to our functions in a type-safe way.
+;  The internal properties are not intended to be used outside of this
+;  namespace.
+(defrecord TrapperKeeperApp [graph-instance])
 
 (def ^{:doc "Alias for plumbing.map/map-leaves-and-path, which is named inconsistently
             with Clojure conventions as it doesn't behave like other `map` functions.

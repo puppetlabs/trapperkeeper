@@ -1,5 +1,6 @@
 (ns puppetlabs.trapperkeeper.core
-  (:import (java.io FileNotFoundException))
+  (:import (java.io FileNotFoundException)
+           (puppetlabs.trapperkeeper.app TrapperKeeperApp))
   (:require [plumbing.graph :as graph]
             [plumbing.core :refer [fnk]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
@@ -9,14 +10,7 @@
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? inis-to-map cli!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
-            [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
-
-;  A type representing a trapperkeeper application.  This is intended to provide
-;  an abstraction so that users don't need to worry about the implementation
-;  details and can pass the app object to our functions in a type-safe way.
-;  The internal properties are not intended to be used outside of this
-;  namespace.
-(defrecord TrapperKeeperApp [graph-instance])
+            [puppetlabs.trapperkeeper.app :refer [service-graph? walk-leaves-and-path]]))
 
 (defn get-service-fn
   "Given a trapperkeeper application, a service name, and a sequence of keys,

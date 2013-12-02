@@ -1,8 +1,8 @@
 (ns puppetlabs.trapperkeeper.services.config.config-service-test
   (:import (java.io StringReader FileNotFoundException))
   (:require [clojure.test :refer :all]
-            [slingshot.slingshot :refer [try+]]
-            [puppetlabs.trapperkeeper.core :refer [defservice bootstrap* get-service-fn]]))
+            [puppetlabs.trapperkeeper.core :refer [bootstrap*]]
+            [puppetlabs.trapperkeeper.services :refer [defservice get-service-fn]]))
 
 (defservice test-service
    {:depends [[:config-service get-in-config get-config]]

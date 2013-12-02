@@ -60,8 +60,8 @@
   (testing "should merge configuration with initial-configs correctly"
     (let [user-config {:truststore "foo"}
           config      (configure-web-server user-config)]
-      (is (= config {:truststore "foo" :max-threads 50 :client-auth :need})))
-    (let [user-config {:max-threads 500 :truststore "foo"}
+      (is (= config {:truststore "foo" :max-threads 50 :client-auth :need :port 8080})))
+    (let [user-config {:max-threads 500 :truststore "foo" :port 8000}
           config      (configure-web-server user-config)]
-      (is (= config {:truststore "foo" :max-threads 500 :client-auth :need})))))
+      (is (= config {:truststore "foo" :max-threads 500 :client-auth :need :port 8000})))))
 

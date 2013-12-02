@@ -72,8 +72,8 @@
   {:pre  [(map? options)]
    :post [(map? %)
           (missing? % :ssl-key :ssl-cert :ssl-ca-cert)]}
-  (let [initial-config    {:max-threads 50}
-        merged-options    (merge initial-config options)
+  (let [defaults          {:max-threads 50 :port 8080}
+        options           (merge defaults options)
         pem-required-keys [:ssl-key :ssl-cert :ssl-ca-cert]
         pem-config        (select-keys options pem-required-keys)]
     (-> (condp = (count pem-config)
@@ -83,4 +83,4 @@
                    (format "Found SSL config options: %s; If configuring SSL from PEM files, you must provide all of the following options: %s"
                      (keys pem-config) pem-required-keys))))
       (assoc :client-auth :need)
-      (assoc :max-threads (jetty7-minimum-threads (:max-threads merged-options))))))
+      (assoc :max-threads (jetty7-minimum-threads (:max-threads options))))))

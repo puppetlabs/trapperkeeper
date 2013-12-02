@@ -219,7 +219,7 @@ This is not a legit line.
                                       :provides [shutdown]}
                                      {:shutdown #(reset! shutdown-called? true)})
           broken-service    (service :broken-service
-                                     {:depends  []
+                                     {:depends  [test-service]
                                       :provides [shutdown]}
                                      {:shutdown #(throw (RuntimeException. "dangit"))})
           app               (bootstrap-services-with-empty-config [(test-service) (broken-service)])]
@@ -291,6 +291,8 @@ This is not a legit line.
       (with-test-logging
         (let [main-thread (future (trapperkeeper/run app))]
           (broken-fn)
+          ;; main will rethrow the "unused" exception as expected
+          ;; so we need to prevent that from failing the test
           (try (deref main-thread) (catch Throwable t))
           (is (logged? #"Error occurred during shutdown" :warn)))))))
 

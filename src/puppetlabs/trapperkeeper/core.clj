@@ -180,8 +180,8 @@
   (doseq [f @shutdown-fns]
     (try
       (f)
-      (catch Throwable t
-        (log/warn t "Encountered error during shutdown sequence")))))
+      (catch Exception e
+        (log/warn e "Encountered error during shutdown sequence")))))
 
 (defn- create-shutdown-on-error-fn
   [shutdown-reason]
@@ -328,8 +328,8 @@
       (when-let [on-error-fn (:on-error-fn shutdown-reason)]
         (try
           (on-error-fn)
-          (catch Throwable t
-            (log/warn t "Error occurred during shutdown"))))
+          (catch Exception e
+            (log/warn e "Error occurred during shutdown"))))
       (shutdown!)
       (when-let [error (:error shutdown-reason)]
         (throw error)))))

@@ -212,6 +212,23 @@ This is not a legit line.
       (trapperkeeper/shutdown!)
       (is (= @order [2 1]))))
 
+  (testing "services continue to shut down when one throws an exception"
+    (let [shutdown-called?  (atom false)
+          test-service      (service :test-service
+                                     {:depends  []
+                                      :provides [shutdown]}
+                                     {:shutdown #(reset! shutdown-called? true)})
+          broken-service    (service :broken-service
+                                     {:depends  [test-service]
+                                      :provides [shutdown]}
+                                     {:shutdown #(throw (RuntimeException. "dangit"))})
+          app               (bootstrap-services-with-empty-config [(test-service) (broken-service)])]
+      (is (false? @shutdown-called?))
+      (with-test-logging
+        (trapperkeeper/shutdown!)
+        (is (logged? #"Encountered error during shutdown sequence" :error)))
+      (is (true? @shutdown-called?))))
+
   (testing "`run` blocks until shutdown signal received, then services are shut down"
     (let [shutdown-called?  (atom false)
           test-service      (service :test-service
@@ -261,7 +278,23 @@ This is not a legit line.
             java.util.concurrent.ExecutionException #"java.lang.RuntimeException: uh oh"
             (deref main-thread)))
       (is (true? @shutdown-called?))
-      (is (true? @on-error-fn-called?)))))
+      (is (true? @on-error-fn-called?))))
+
+  (testing "errors thrown by the `shutdown-on-error` optional on-error function are caught and logged"
+    (let [broken-service  (service :broken-service
+                                   {:depends  [[:shutdown-service shutdown-on-error]]
+                                    :provides [broken-fn]}
+                                   {:broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "unused"))
+                                                                         #(throw (RuntimeException. "catch me"))))})
+          app             (bootstrap-services-with-empty-config [(broken-service)])
+          broken-fn       (trapperkeeper/get-service-fn app :broken-service :broken-fn)]
+      (with-test-logging
+        (let [main-thread (future (trapperkeeper/run app))]
+          (broken-fn)
+          ;; main will rethrow the "unused" exception as expected
+          ;; so we need to prevent that from failing the test
+          (try (deref main-thread) (catch Throwable t))
+          (is (logged? #"Error occurred during shutdown" :error)))))))
 
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"

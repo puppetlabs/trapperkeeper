@@ -226,7 +226,7 @@ This is not a legit line.
       (is (false? @shutdown-called?))
       (with-test-logging
         (trapperkeeper/shutdown!)
-        (is (logged? #"Encountered error during shutdown sequence" :warn)))
+        (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?))))
 
   (testing "`run` blocks until shutdown signal received, then services are shut down"
@@ -294,7 +294,7 @@ This is not a legit line.
           ;; main will rethrow the "unused" exception as expected
           ;; so we need to prevent that from failing the test
           (try (deref main-thread) (catch Throwable t))
-          (is (logged? #"Error occurred during shutdown" :warn)))))))
+          (is (logged? #"Error occurred during shutdown" :error)))))))
 
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"

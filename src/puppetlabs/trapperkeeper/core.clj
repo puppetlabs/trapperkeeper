@@ -181,7 +181,7 @@
     (try
       (f)
       (catch Exception e
-        (log/warn e "Encountered error during shutdown sequence")))))
+        (log/error e "Encountered error during shutdown sequence")))))
 
 (defn- create-shutdown-on-error-fn
   [shutdown-reason]
@@ -191,9 +191,9 @@
     ([f on-error-fn]
      (try
        (f)
-       (catch Throwable t
+       (catch Exception e
          (deliver shutdown-reason {:type         :service-error
-                                   :error        t
+                                   :error        e
                                    :on-error-fn  on-error-fn}))))))
 
 (defn- register-shutdown-hooks!
@@ -329,7 +329,7 @@
         (try
           (on-error-fn)
           (catch Exception e
-            (log/warn e "Error occurred during shutdown"))))
+            (log/error e "Error occurred during shutdown"))))
       (shutdown!)
       (when-let [error (:error shutdown-reason)]
         (throw error)))))

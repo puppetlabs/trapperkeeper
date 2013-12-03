@@ -20,6 +20,17 @@ a shutdown service, and a webserver service.  Your custom services can specify
 dependencies on these and leverage the functions that they provide.  For more
 details, see the section on [built-in services](#built-in-services) later in this document.
 
+One of the goals of trapperkeeper's "service" model is that a service should
+basically be thought of as simply an interface; any given service provides a
+well-known set of functions as its "contract", and the implementation details
+of these functions are not important to consumers.  (Again, this borrows heavily
+from OSGi's concept of a "service".)  This means that you can
+write multiple implementations of a given service and swap them in and out of
+your application by simply modifying your configuration, without having to change
+any of the consuming code.  Trapperkeeper's built-in `webserver` service is
+intended to be an example of this pattern.  (More details in the
+[built-in services](#built-in-services) section below.)
+
 ## Credits
 
 Most of the heavy-lifting of the trapperkeeper framework is handled by the

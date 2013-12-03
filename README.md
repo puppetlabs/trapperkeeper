@@ -46,7 +46,7 @@ Prismatic for sharing their code!
 
 Here's a "hello world" example for getting started with trapperkeeper.
 
-First, you need to define one or more service:
+First, you need to define one or more services:
 
 ```clj
 (ns hello
@@ -127,7 +127,7 @@ Let's look at a concrete example:
               [:another-service function3 function4]]
     ;; the :provides value is simply a vector of symbols; each symbol is the name
     ;; of a function that your service promises to provide in its output map.
-    :provides [foo1 foo2]
+    :provides [foo1 foo2 foo3]
    }
 
    ;; After your metadata map comes the body of the service; this is the code
@@ -143,9 +143,10 @@ Let's look at a concrete example:
       ;; do some other initialization
       ;; ...
       ;; now return our service function map.  we said we'd provide functions
-      ;; `foo1` and `foo2`, so we need to do that:
+      ;; `foo1`, `foo2`, and `foo3`, so we need to do that:
       {:foo1 (comp function2 function3)
-       :foo2 #(println "Function4 returns" (function4))}))
+       :foo2 #(println "Function4 returns" (function4))
+       :foo3 (fn [x] (format "x + function1 is: '%s'" (str x someval)))}))
 ```
 
 After this `defservice` statement, you will have a var named `foo-service` in
@@ -243,11 +244,12 @@ see:
 
 #### Logging configuration
 
-Trapperkeeper services are expected to use `clojure.tools/logging` to handle
-logging.  The configuration service will initialize logging for you during
-application startup, so your individual services don't have to concern themselves
-with the details; they can just call the `clojure.tools/logging` functions and
-logging will work out of the box.
+Trapperkeeper provides some automatic configuration for logging during application
+startup.  This way, services don't have to deal with that independently, and all
+services running in the same trapperkeeper container will be able to share a
+common logging configuration.  The built-in logging configuration
+is compatible with `clojure.tools/logging`, so services can just call the
+`clojure.tools/logging` functions and logging will work out of the box.
 
 The current implementation of the logging initialization is based on `log4j`
 (though we plan to make this more flexible in the future; see the
@@ -392,8 +394,13 @@ various properties of the server (ports, SSL, etc.) by adding a `[webserver]`
 section to one of your configuration ini files, and setting various properties
 therein.  For more info, see [TODO LINK: Configuring the Web Server](.).
 
-The `webserver-service` currently provides two functions: `add-ring-handler` and
-`join`.
+The `webserver-service` is currently geared towards web applications built using
+the clojure [Ring](https://github.com/ring-clojure/ring) library.  (We hope to
+add support for a few more different types of web applications in the future;
+see the [Hopes and Dreams](#hopes-and-dreams) section for more info.)
+
+The current implementation of the `webserver-service` provides two functions:
+`add-ring-handler` and `join`.
 
 #### `add-ring-handler`
 
@@ -414,7 +421,7 @@ Then your routes will be served at `/my-app/foo` and `my-app/bar`.
 You may specify `""` as the value for `path` if you are only registering a single
 handler and do not need to prefix the URL.
 
-Here's an example of how to use the web server service:
+Here's an example of how to use the `:webserver-service`:
 
 ```clj
 (defservice my-web-service
@@ -663,6 +670,16 @@ We may also experiment with some other options such as Netty.
 We plan to switch the built-in logging initialization off of `log4j` and on to
 `logback` at some point soon.  Services should not be affected by this, as
 `clojure.tools/logging` should work transparently with either.
+
+### Add support for other types of web applications
+
+The current `:webserver-service` interface only provides a function for registering
+a [Ring](https://github.com/ring-clojure/ring) application.  We'd like to add
+a few more similar functions that would allow you to register other types of
+web applications; specifically, an `add-servlet-handler` function that would
+allow you to register any web application that conforms to the Java Servlet API,
+and perhaps an `add-rack-handler` function that would allow you to register
+a Rack application (to be run via JRuby).
 
 ### More robust life cycle / context management
 

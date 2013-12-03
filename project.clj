@@ -30,7 +30,7 @@
   :profiles {:dev {:test-paths ["test-resources"]}
              :test {:dependencies [[clj-http "0.5.3"]
                                    [org.slf4j/slf4j-log4j12 "1.7.5"]
-                                   [puppetlabs/kitchensink "0.3.0-SNAPSHOT" :classifier "test"]]}
+                                   [puppetlabs/kitchensink "0.3.0" :classifier "test"]]}
              :testutils {:source-paths ^:replace ["test"]}}
 
   :main puppetlabs.trapperkeeper.main

@@ -4,16 +4,24 @@
             [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [inis-to-map cli!]]
+            [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
-            [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks! wait-for-shutdown shutdown!]]
-            [puppetlabs.trapperkeeper.services :as services :refer [get-service-fn]]
-            [puppetlabs.trapperkeeper.app :refer [service-graph?]])
+            [puppetlabs.trapperkeeper.app :refer [service-graph?]]
+            [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks! wait-for-shutdown
+                                                       shutdown! initiated-internally? call-error-handler!]])
   (:import (java.io FileNotFoundException)
            (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
-(def #^{:macro true} service #'services/service)
-(def #^{:macro true} defservice #'services/defservice)
+(def #^{:macro true
+        :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
+             so that it appears to consumers to be defined in the core namespace."}
+  service #'services/service)
+
+(def #^{:macro true
+        :doc "An alias for the `puppetlabs.trapperkeeper.services/defservice` macro
+             so that it appears to consumers to be defined in the core namespace."}
+  defservice #'services/defservice)
 
 (defn config-service
   "A simple configuration service based on .ini config files.  Expects
@@ -34,14 +42,14 @@
    the entire configuration map."
   [config]
   ((services/service :config-service
-    {:depends []
+    {:depends  []
      :provides [get-in-config get-config]}
     {:get-in-config (fn [ks] (get-in config ks))
      :get-config    (fn [] config)})))
 
 (defn- parse-config-file
   [config-file-path]
-  {:pre [(not (nil? config-file-path))]
+  {:pre  [(not (nil? config-file-path))]
    :post [(map? %)]}
   (when-not (.canRead (file config-file-path))
     (throw (FileNotFoundException.
@@ -82,9 +90,9 @@
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
   ([services cli-data]
-  {:pre [(sequential? services)
-         (every? service-graph? services)
-         (map? cli-data)]
+  {:pre  [(sequential? services)
+          (every? service-graph? services)
+          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
   (let [debug           (or (cli-data :debug) false)
         config-data     (-> (parse-config-file (cli-data :config))
@@ -123,8 +131,8 @@
          (contains? cli-data :config)]
   :post [(instance? TrapperKeeperApp %)]}
   (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
-                                  (bootstrap/config-from-cwd)
-                                  (bootstrap/config-from-classpath))]
+                                (bootstrap/config-from-cwd)
+                                (bootstrap/config-from-classpath))]
     (-> bootstrap-config
         (bootstrap/parse-bootstrap-config!)
         (bootstrap* cli-data))
@@ -145,15 +153,13 @@
     (first (cli! cli-args specs required))))
 
 (defn run-app
-  "TODO docstring"
+  "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
+  which may be triggered by one of several different ways. In all cases, services
+  will be shut down and any exceptions they might throw will be caught and logged."
   [^TrapperKeeperApp app]
   (let [shutdown-reason (wait-for-shutdown app)]
-    (when (contains? #{:service-error :requested} (:type shutdown-reason))
-      (when-let [on-error-fn (:on-error-fn shutdown-reason)]
-        (try
-          (on-error-fn)
-          (catch Exception e
-            (log/error e "Error occurred during shutdown"))))
+    (when (initiated-internally? shutdown-reason)
+      (call-error-handler! shutdown-reason)
       (shutdown!)
       (when-let [error (:error shutdown-reason)]
         (throw error)))))

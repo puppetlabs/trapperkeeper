@@ -60,9 +60,10 @@
                                       :provides [shutdown]}
                                      {:shutdown #(reset! shutdown-called? true)})
           app               (bootstrap-services-with-empty-config [(test-service)])
+          request-shutdown  (get-service-fn app :shutdown-service :request-shutdown)
           thread            (future (trapperkeeper/run app))]
       (is (false? @shutdown-called?))
-      (request-shutdown! app)
+      (request-shutdown)
       (deref thread)
       (is (true? @shutdown-called?))))
 

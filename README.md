@@ -39,7 +39,7 @@ To a large degree, trapperkeeper just wraps some basic conventions and convenien
 functions around that library, so many thanks go out to the fine folks at
 Prismatic for sharing their code!
 
-## TOC
+## Table of Contents
 
 * [tl;dr: Quick Start](#tldr-quick-start)
 * [Defining Services](#defining-services)
@@ -285,7 +285,9 @@ service, is always loaded.  It has three main responsibilities:
 * Listen for a shutdown signal to the process, and initiate shutdown of the
   application if one is received (via CTRL-C or TERM signal)
 * Allow other services to register their own shutdown hooks, which will be
-  called the correct order during normal shutdown
+  called in the correct order during normal shutdown (i.e., the shutdown hook
+  for any given service is guaranteed to be called *before* the shutdown hook
+  for any of the services that it depends on)
 * Provide functions that can be used by other services to initiate a shutdown
   (either because of a normal application termination condition, or in the event
   of a fatal error)
@@ -302,7 +304,7 @@ function in its service function map.  For example:
 
 (defservice bar-service
    {:depends [[:foo-service foo]]
-    :provides [:shutdown]}
+    :provides [shutdown]}
    ;; service initialization code
    (log/info "bar-service initializing.")
    ;; return service function map
@@ -372,7 +374,7 @@ Here's an example:
 
 (defservice yet-another-service
    {:depends [[:shutdown-service shutdown-on-error]]
-    :provides [:shutdown]}
+    :provides [shutdown]}
    ;; initialization
    (let [worker-thread (future (shutdown-on-error my-work-fn my-error-cleanup-fn))]
       ;; return service function map

@@ -405,7 +405,7 @@ see the [Hopes and Dreams](#hopes-and-dreams) section below).
 The web server is configured via the configuration service; so, you can control
 various properties of the server (ports, SSL, etc.) by adding a `[webserver]`
 section to one of your configuration ini files, and setting various properties
-therein.  For more info, see [TODO LINK: Configuring the Web Server](.).
+therein.  For more info, see [Configuring the Webserver](doc/jetty-config.md).
 
 The `webserver-service` is currently geared towards web applications built using
 the clojure [Ring](https://github.com/ring-clojure/ring) library.  (We hope to

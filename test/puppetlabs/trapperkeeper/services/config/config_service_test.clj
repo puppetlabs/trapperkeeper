@@ -33,7 +33,7 @@
       (is (= (test-fn [:bar :setting1]) "bar1"))
 
       (testing "`get-config` function"
-        (is (= (test-fn-2) {:foo {:setting2 "foo2", :setting1 "foo1"}, :bar {:setting1 "bar1"}} )))))
+        (is (= (test-fn-2) {:foo {:setting2 "foo2", :setting1 "foo1"}, :bar {:setting1 "bar1"} :debug false} )))))
 
   (testing "Can read values from a directory of .ini files"
     (let [app (bootstrap

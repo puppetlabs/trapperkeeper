@@ -17,6 +17,13 @@
        (trapperkeeper/parse-cli-args!)
        (trapperkeeper/bootstrap))))
 
+(defn bootstrap*-with-empty-config
+  [services other-args]
+  (let [cli-data (->
+                   (conj other-args "--config" empty-config)
+                   (trapperkeeper/parse-cli-args!))]
+    (trapperkeeper/bootstrap* services cli-data)))
+
 (defn parse-and-bootstrap
   ([bootstrap-config]
    (parse-and-bootstrap bootstrap-config {:config empty-config}))

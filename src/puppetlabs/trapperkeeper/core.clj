@@ -110,20 +110,9 @@
        ~svc-doc
        (service ~(keyword svc-name) ~io-map ~@body))))
 
-(defn- cli-service
-  "Provides access to the command-line arguments for other services."
-  [cli-data]
-  ((service :cli-service
-    {:depends  []
-     :provides [cli-data]}
-    {:cli-data (fn
-                 ([] cli-data)
-                 ([k] (cli-data k)))})))
-
 (defn config-service
   "A simple configuration service based on .ini config files.  Expects
-   to find a command-line argument value for `:config` (which it will
-   retrieve from the `:cli-service`'s `cli-data` fn); the value of this
+   to find a command-line argument value for `:config`; the value of this
    parameter should be the path to an .ini file or a directory of .ini
    files.
 
@@ -263,12 +252,13 @@
          (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [cli-service     (cli-service cli-data)
-        config-data     (parse-config-file (cli-data :config))
+  (let [debug           (or (cli-data :debug) false)
+        config-data     (-> (parse-config-file (cli-data :config))
+                            (assoc :debug debug))
         config-service  (config-service config-data)
         _               (if-let [global-config (config-data :global)]
-                          (configure-logging! (global-config :logging-config) (cli-data :debug)))
-        graph-map       (-> (apply merge cli-service config-service services)
+                          (configure-logging! (global-config :logging-config) debug))
+        graph-map       (-> (apply merge config-service services)
                             (register-shutdown-hooks!))
         graph-fn        (compile-graph graph-map)
         graph-instance  (instantiate graph-fn)]

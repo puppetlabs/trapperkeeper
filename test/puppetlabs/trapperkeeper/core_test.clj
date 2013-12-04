@@ -31,10 +31,6 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
           (is (= (test-fn) :foo))
           (is (= (hello-world-fn) "hello world"))))
 
-      (testing "The CLI service is included in the service graph."
-        (let [cli-data-fn (trapperkeeper/get-service-fn app :cli-service :cli-data)]
-          (is (not (nil? (cli-data-fn))))))
-
     (with-additional-classpath-entries ["./test-resources/bootstrapping/classpath"]
       (testing "Looks for bootstrap config on classpath (test-resources)"
         (with-test-logging
@@ -357,20 +353,6 @@ This is not a legit line.
           Exception
           #"not a valid argument"
           (parse-cli-args! ["--invalid-argument"]))))
-
-  (testing "The CLI service has the CLI data."
-    (let [bootstrap-config "
-
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service
-
-"
-          config-file-path  "./test-resources/config/empty.ini"
-          cli-data          (parse-cli-args! ["--config" config-file-path "--debug"])
-          app-with-cli-args (parse-and-bootstrap (StringReader. bootstrap-config) cli-data)
-          cli-data-fn       (trapperkeeper/get-service-fn app-with-cli-args :cli-service :cli-data)]
-      (is (not (empty? (cli-data-fn))))
-      (is (cli-data-fn :debug))
-      (is (= config-file-path (cli-data-fn :config)))))
 
   (testing "Fails if config CLI arg is not specified"
     ;; looks like `thrown-with-msg?` can't be used with slingshot. :(

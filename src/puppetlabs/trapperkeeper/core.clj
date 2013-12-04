@@ -252,7 +252,7 @@
          (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [debug           (cli-data :debug)
+  (let [debug           (or (cli-data :debug) false)
         config-data     (-> (parse-config-file (cli-data :config))
                             (assoc :debug debug))
         config-service  (config-service config-data)

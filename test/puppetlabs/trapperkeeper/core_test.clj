@@ -372,9 +372,9 @@ This is not a legit line.
   (testing "debug mode is off by default"
     (let [app (bootstrap-services-with-empty-config [(foo-test-service)])
           get-in-config (trapperkeeper/get-service-fn app :config-service :get-in-config)]
-      (is (not (get-in-config [:debug])))))
+      (is (= false (get-in-config [:debug]))))))
 
   (testing "--debug puts TK in debug mode"
     (let [app (bootstrap*-with-empty-config [(foo-test-service)] ["--debug"])
           get-in-config (trapperkeeper/get-service-fn app :config-service :get-in-config)]
-      (is  (get-in-config [:debug])))))
+      (is (= true (get-in-config [:debug])))))

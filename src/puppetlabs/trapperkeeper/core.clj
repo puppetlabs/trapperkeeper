@@ -15,12 +15,14 @@
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
-             so that it appears to consumers to be defined in the core namespace."}
+             so that it is accessible from the core namespace along with the
+             rest of the API."}
   service #'services/service)
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/defservice` macro
-             so that it appears to consumers to be defined in the core namespace."}
+             so that it is accessible from the core namespace along with the
+             rest of the API."}
   defservice #'services/defservice)
 
 (defn config-service

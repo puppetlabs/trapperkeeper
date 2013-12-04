@@ -23,7 +23,7 @@
 ;;;; in to the top-level functions that perform various shutdown steps.
 (ns puppetlabs.trapperkeeper.shutdown
   (:require [clojure.tools.logging :as log]
-            [puppetlabs.kitchensink.core :refer [add-shutdown-hook!]]
+            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean?]]
             [puppetlabs.trapperkeeper.app :refer [walk-leaves-and-path]]
             [puppetlabs.trapperkeeper.services :refer [service get-service-fn]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]])
@@ -35,15 +35,21 @@
 
 (def ^{:private true
        :doc "List of service shutdown hooks in service-dependency order."}
+  ;; Note that we maintain this list of shutdown functions as
+  ;; opposed to walking the graph because there's no `walk`
+  ;; function in the Prismatic library that guarantees traversal
+  ;; in dependency order.
   shutdown-fns (atom ()))
 
 (defn- request-shutdown
   "Initiate the normal shutdown of TrapperKeeper. This is asynchronous.
   It is assumed that `wait-for-shutdown` has been called and is blocking.
-  This is intended to be used by application services to programatically
-  trigger application shutdown."
-  [shutdown-reason]
-  (deliver shutdown-reason {:cause :requested}))
+  Intended to be used by application services (likely their worker threads)
+  to programatically trigger application shutdown.
+  Note that this is exposed via the `shutdown-service` where it is a no-arg
+  function."
+  [shutdown-reason-promise]
+  (deliver shutdown-reason-promise {:cause :requested}))
 
 (defn- shutdown-on-error
   "A higher-order function that is intended to be used as a wrapper around
@@ -54,17 +60,17 @@
 
   If an optional `on-error-fn` is provided, it will be executed if `f` throws
   an exception, but before the primary shutdown sequence begins."
-  ([shutdown-reason f]
-    (shutdown-on-error shutdown-reason f nil))
-  ([shutdown-reason f on-error-fn]
+  ([shutdown-reason-promise f]
+    (shutdown-on-error shutdown-reason-promise f nil))
+  ([shutdown-reason-promise f on-error-fn]
     {:pre [(ifn? f)
            ((some-fn nil? ifn?) on-error-fn)]}
     (try
       (f)
       (catch Exception e
-        (deliver shutdown-reason {:cause       :service-error
-                                  :error       e
-                                  :on-error-fn on-error-fn})))))
+        (deliver shutdown-reason-promise {:cause       :service-error
+                                          :error       e
+                                          :on-error-fn on-error-fn})))))
 
 (defn- shutdown-service
   "Provides various functions for triggering application shutdown programatically.
@@ -77,13 +83,13 @@
                          and trigger shutdown in the event of an exception
 
   For more information, see `request-shutdown` and `shutdown-on-error`."
-  [shutdown-reason]
+  [shutdown-reason-promise]
   ((service :shutdown-service
      {:depends  []
       :provides [wait-for-shutdown request-shutdown shutdown-on-error]}
-     {:wait-for-shutdown  #(deref shutdown-reason)
-      :request-shutdown   (partial request-shutdown shutdown-reason)
-      :shutdown-on-error  (partial shutdown-on-error shutdown-reason)})))
+     {:wait-for-shutdown  #(deref shutdown-reason-promise)
+      :request-shutdown   (partial request-shutdown shutdown-reason-promise)
+      :shutdown-on-error  (partial shutdown-on-error shutdown-reason-promise)})))
 
 (defn shutdown!
   "Perform shutdown on the application by calling all service shutdown hooks.
@@ -97,10 +103,13 @@
         (log/error e "Encountered error during shutdown sequence"))))
   (log/info "Finished shutdown sequence"))
 
-(defn- wrap-with-shutdown-registration
+(defn- grab-shutdown-functions!
   "Given a path to a service in the graph, extract the shutdown function from
   the service and add it to the `shutdown-fns` list atom."
   [path orig-fnk]
+  {:pre  [(sequential? path)
+          (ifn? orig-fnk)]
+   :post [(ifn? %)]}
   (let [in  (input-schema orig-fnk)
         out (output-schema orig-fnk)
         f   (fn [injected-vals]
@@ -114,12 +123,12 @@
   "Walk the graph and register all shutdown functions. The functions
   will be called when the JVM shuts down, or by calling `shutdown!`."
   [graph]
-  (let [wrapped-graph    (walk-leaves-and-path wrap-with-shutdown-registration graph)
-        shutdown-reason  (promise)
-        shutdown-service (shutdown-service shutdown-reason)]
-    (add-shutdown-hook! #(when-not (realized? shutdown-reason)
+  (let [wrapped-graph           (walk-leaves-and-path grab-shutdown-functions! graph)
+        shutdown-reason-promise (promise)
+        shutdown-service        (shutdown-service shutdown-reason-promise)]
+    (add-shutdown-hook! #(when-not (realized? shutdown-reason-promise)
                            (shutdown!)
-                           (deliver shutdown-reason {:cause :jvm-shutdown-hook})))
+                           (deliver shutdown-reason-promise {:cause :jvm-shutdown-hook})))
     (merge shutdown-service wrapped-graph)))
 
 (defn wait-for-shutdown
@@ -138,9 +147,11 @@
   "Given the shutdown reason obtained from `wait-for-shutdown`, determine whether
   the cause was internal so further shutdown steps can be performed.
   In the case of an externally-initiated shutdown (e.g. Ctrl-C), we assume that
-  the JVM shutdown hook will perform the actual shutdown sequence as all bets are
-  off as to where control goes during JVM shutdown."
+  the JVM shutdown hook will perform the actual shutdown sequence as we don't want
+  to rely on control returning to the main thread where it can perform shutdown."
   [shutdown-reason]
+  {:pre  [(map? shutdown-reason)]
+   :post [(boolean? %)]}
   (contains? (disj shutdown-causes :jvm-shutdown-hook) (:cause shutdown-reason)))
 
 (defn call-error-handler!
@@ -148,6 +159,7 @@
   error callback that was provided to `shutdown-on-error`, if there is one.
   An error will be logged if the function throws an exception."
   [shutdown-reason]
+  {:pre [(map? shutdown-reason)]}
   (when-let [on-error-fn (:on-error-fn shutdown-reason)]
     (try
       (on-error-fn)

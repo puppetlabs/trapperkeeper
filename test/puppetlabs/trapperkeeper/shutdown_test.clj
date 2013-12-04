@@ -61,10 +61,10 @@
                                      {:shutdown #(reset! shutdown-called? true)})
           app               (bootstrap-services-with-empty-config [(test-service)])
           request-shutdown  (get-service-fn app :shutdown-service :request-shutdown)
-          thread            (future (trapperkeeper/run app))]
+          main-thread       (future (trapperkeeper/run-app app))]
       (is (false? @shutdown-called?))
       (request-shutdown)
-      (deref thread)
+      (deref main-thread)
       (is (true? @shutdown-called?))))
 
   (testing "`shutdown-on-error` causes services to be shut down and the error is rethrown from main"
@@ -76,7 +76,7 @@
                                       :broken-fn (fn [] (future (shutdown-on-error #(throw (RuntimeException. "oops")))))})
           app                (bootstrap-services-with-empty-config [(test-service)])
           broken-fn          (get-service-fn app :test-service :broken-fn)
-          main-thread        (future (trapperkeeper/run app))]
+          main-thread        (future (trapperkeeper/run-app app))]
       (is (false? @shutdown-called?))
       (broken-fn)
       (is (thrown-with-msg?
@@ -95,7 +95,7 @@
                                                                              #(reset! on-error-fn-called? true)))})
           app                 (bootstrap-services-with-empty-config [(broken-service)])
           broken-fn           (get-service-fn app :broken-service :broken-fn)
-          main-thread         (future (trapperkeeper/run app))]
+          main-thread         (future (trapperkeeper/run-app app))]
       (is (false? @shutdown-called?))
       (is (false? @on-error-fn-called?))
       (broken-fn)
@@ -114,9 +114,9 @@
           app             (bootstrap-services-with-empty-config [(broken-service)])
           broken-fn       (get-service-fn app :broken-service :broken-fn)]
       (with-test-logging
-        (let [main-thread (future (trapperkeeper/run app))]
+        (let [main-thread (future (trapperkeeper/run-app app))]
           (broken-fn)
           ;; main will rethrow the "unused" exception as expected
-          ;; so we ned to prevent that from failing the test
+          ;; so we need to prevent that from failing the test
           (try (deref main-thread) (catch Throwable t))
           (is (logged? #"Error occurred during shutdown" :error)))))))

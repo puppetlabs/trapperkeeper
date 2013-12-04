@@ -232,7 +232,7 @@ This is not a legit line.
                                       :provides [shutdown]}
                                      {:shutdown #(reset! shutdown-called? true)})
           app               (bootstrap-services-with-empty-config [(test-service)])
-          thread            (future (trapperkeeper/run app))]
+          thread            (future (trapperkeeper/run-app app))]
       (is (false? @shutdown-called?))
       (trapperkeeper/request-shutdown! app)
       (deref thread)
@@ -247,7 +247,7 @@ This is not a legit line.
                                       :broken-fn (fn [] (future (shutdown-on-error #(throw (RuntimeException. "oops")))))})
           app                (bootstrap-services-with-empty-config [(test-service)])
           broken-fn          (trapperkeeper/get-service-fn app :test-service :broken-fn)
-          main-thread        (future (trapperkeeper/run app))]
+          main-thread        (future (trapperkeeper/run-app app))]
       (is (false? @shutdown-called?))
       (broken-fn)
       (is (thrown-with-msg?
@@ -266,7 +266,7 @@ This is not a legit line.
                                                                              #(reset! on-error-fn-called? true)))})
           app                 (bootstrap-services-with-empty-config [(broken-service)])
           broken-fn           (trapperkeeper/get-service-fn app :broken-service :broken-fn)
-          main-thread         (future (trapperkeeper/run app))]
+          main-thread         (future (trapperkeeper/run-app app))]
       (is (false? @shutdown-called?))
       (is (false? @on-error-fn-called?))
       (broken-fn)
@@ -285,7 +285,7 @@ This is not a legit line.
           app             (bootstrap-services-with-empty-config [(broken-service)])
           broken-fn       (trapperkeeper/get-service-fn app :broken-service :broken-fn)]
       (with-test-logging
-        (let [main-thread (future (trapperkeeper/run app))]
+        (let [main-thread (future (trapperkeeper/run-app app))]
           (broken-fn)
           ;; main will rethrow the "unused" exception as expected
           ;; so we need to prevent that from failing the test

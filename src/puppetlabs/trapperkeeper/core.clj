@@ -310,7 +310,7 @@
         required    [:config]]
     (first (cli! cli-args specs required))))
 
-(defn run
+(defn run-app
   "TODO docstring"
   [^TrapperKeeperApp app]
   (let [shutdown-reason (wait-for-shutdown app)]
@@ -324,12 +324,17 @@
       (when-let [error (:error shutdown-reason)]
         (throw error)))))
 
+(defn run
+  [cli-data]
+  (->
+    (bootstrap)
+    (run-app)))
+
 (defn main
   [& args]
   (try+
     (-> args
         (parse-cli-args!)
-        (bootstrap)
         (run))
     (catch map? {:keys [error-message]}
       (println error-message))))

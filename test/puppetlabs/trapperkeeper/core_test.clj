@@ -11,6 +11,7 @@
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
+            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [foo-test-service]]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
 
 (use-fixtures :once with-no-jvm-shutdown-hooks)
@@ -366,3 +367,14 @@ This is not a legit line.
                 (m :error-message)))
           (reset! got-expected-exception true)))
       (is (true? @got-expected-exception)))))
+
+(deftest test-debug
+  (testing "debug mode is off by default"
+    (let [app (bootstrap-services-with-empty-config [(foo-test-service)])
+          get-in-config (trapperkeeper/get-service-fn app :config-service :get-in-config)]
+      (is (not (get-in-config [:debug])))))
+
+  (testing "--debug puts TK in debug mode"
+    (let [app (bootstrap*-with-empty-config [(foo-test-service)] ["--debug"])
+          get-in-config (trapperkeeper/get-service-fn app :config-service :get-in-config)]
+      (is  (get-in-config [:debug])))))

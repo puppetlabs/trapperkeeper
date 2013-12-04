@@ -252,10 +252,11 @@
          (every? service-graph? services)
          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
-  (let [config-data     (parse-config-file (cli-data :config))
+  (let [debug           (cli-data :debug)
+        config-data     (assoc (parse-config-file (cli-data :config)) :debug debug)
         config-service  (config-service config-data)
         _               (if-let [global-config (config-data :global)]
-                          (configure-logging! (global-config :logging-config) (cli-data :debug)))
+                          (configure-logging! (global-config :logging-config) debug))
         graph-map       (-> (apply merge config-service services)
                             (register-shutdown-hooks!))
         graph-fn        (compile-graph graph-map)

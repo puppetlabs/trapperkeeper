@@ -172,6 +172,7 @@
   `cli-data` is expected to be a map constructed by parsing the CLI args.
   (see `parse-cli-args`)"
   [cli-data]
+  {:pre [(map? cli-data)]}
   (-> cli-data
       (bootstrap)
       (run-app)))

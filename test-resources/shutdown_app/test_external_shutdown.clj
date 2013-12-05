@@ -8,9 +8,8 @@
 
 (defn -main
   [& args]
-  (let [app (trapperkeeper/bootstrap
-              {:config "./test-resources/config/empty.ini"
-               :bootstrap-config "test-resources/shutdown_app/bootstrap.cfg"})]
-    (println "Waiting for a shutdown signal - use Ctrl-C or kill.")
-    (println "You should see a message printed out when services are being shutdown.")
-    (trapperkeeper/run-app app)))
+  (println "Waiting for a shutdown signal - use Ctrl-C or kill.")
+  (println "You should see a message printed out when services are being shutdown.")
+  (trapperkeeper/run
+    {:config "./test-resources/config/empty.ini"
+     :bootstrap-config "test-resources/shutdown_app/bootstrap.cfg"}))

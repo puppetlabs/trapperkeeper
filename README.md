@@ -575,11 +575,11 @@ like:
   (apply trapperkeeper/main args))
 ```
 
-#### Call trapperkeeper's bootstrap function directly
+#### Call trapperkeeper's `run` function directly
 
 If your application needs to handle command line arguments directly, rather than
 allowing trapperkeeper to handle them, you can circumvent trapperkeeper's `main`
-functions and call into the bootstrapping code directly.
+function and call `run` directly.
 
 *NOTE* that if you intend to write multiple services and load them into the
 same trapperkeeper instance, it can end up being tricky to deal with varying
@@ -602,11 +602,10 @@ Here's how it can be done:
                                 :bootstrap-config nil
                                 :debug            false}]
       ;; ... other app initialization code
-      (trapperkeeper/bootstrap trapperkeeper-options)))
-      ;; TODO: NATE, DO WE NEED TO CALL 'RUN' HERE?
+      (trapperkeeper/run trapperkeeper-options)))
 ```
 
-Note that trapperkeeper's `bootstrap` function requires a map as an argument,
+Note that trapperkeeper's `run` function requires a map as an argument,
 and this map must contain the `:config` key which trapperkeeper will use just
 as it would have used the `--config` value from the command line.  You may also
 (optionally) provide `:bootstrap-config` and `:debug` keys, to override the

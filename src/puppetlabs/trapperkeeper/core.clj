@@ -167,10 +167,14 @@
         (throw error)))))
 
 (defn run
+  "Bootstraps a trapperkeeper application and runs it.
+  Blocks the calling thread until trapperkeeper is shut down.
+  `cli-data` is expected to be a map constructed by parsing the CLI args
+  (see `parse-cli-args`."
   [cli-data]
-  (->
-    (bootstrap)
-    (run-app)))
+  (-> cli-data
+      (bootstrap)
+      (run-app)))
 
 (defn main
   [& args]

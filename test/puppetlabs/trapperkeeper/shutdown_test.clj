@@ -53,7 +53,7 @@
         (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?))))
 
-  (testing "`run` blocks until shutdown signal received, then services are shut down"
+  (testing "`core/run-app` runs the framework (blocking until shutdown signal received), and `request-shutdown` shuts down services"
     (let [shutdown-called?  (atom false)
           test-service      (service :test-service
                                      {:depends  []

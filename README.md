@@ -280,19 +280,19 @@ logging-config = /path/to/log4j.properties
 ### Shutdown Service
 
 The shutdown service is built-in to trapperkeeper and, like the configuration
-service, is always loaded.  It has three main responsibilities:
+service, is always loaded.  It has two main responsibilities:
 
 * Listen for a shutdown signal to the process, and initiate shutdown of the
   application if one is received (via CTRL-C or TERM signal)
-* Allow other services to register their own shutdown hooks, which will be
-  called in the correct order during normal shutdown (i.e., the shutdown hook
-  for any given service is guaranteed to be called *before* the shutdown hook
-  for any of the services that it depends on)
 * Provide functions that can be used by other services to initiate a shutdown
   (either because of a normal application termination condition, or in the event
   of a fatal error)
 
 #### Shutdown Hooks
+
+A service may provide a shutdown function which will be called during application
+shutdown.  The shutdown hook for any given service is guaranteed to be called
+*before* the shutdown hook for any of the services that it depends on.
 
 To register a shutdown hook, a service need only provide a no-arg `:shutdown`
 function in its service function map.  For example:

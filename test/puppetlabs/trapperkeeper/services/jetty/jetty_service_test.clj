@@ -1,7 +1,8 @@
 (ns puppetlabs.trapperkeeper.services.jetty.jetty-service-test
   (:require [clojure.test :refer :all]
             [clj-http.client :as http-client]
-            [puppetlabs.trapperkeeper.core :refer [bootstrap* get-service-fn]]
+            [puppetlabs.trapperkeeper.core :refer [bootstrap*]]
+            [puppetlabs.trapperkeeper.services :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.services.jetty.jetty-service :refer :all]))
 
 (deftest test-jetty-service

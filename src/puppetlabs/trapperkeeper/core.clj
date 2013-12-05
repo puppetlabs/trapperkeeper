@@ -1,114 +1,29 @@
 (ns puppetlabs.trapperkeeper.core
-  (:import (java.io FileNotFoundException))
   (:require [plumbing.graph :as graph]
-            [plumbing.core :refer [fnk]]
-            [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
             [clojure.java.io :refer [file]]
             [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
-            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? inis-to-map cli!]]
+            [puppetlabs.kitchensink.core :refer [inis-to-map cli!]]
+            [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
-            [puppetlabs.trapperkeeper.utils :refer [service-graph? walk-leaves-and-path]]))
+            [puppetlabs.trapperkeeper.app :refer [service-graph?]]
+            [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks! wait-for-shutdown
+                                                       shutdown! initiated-internally? call-error-handler!]])
+  (:import (java.io FileNotFoundException)
+           (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
-;  A type representing a trapperkeeper application.  This is intended to provide
-;  an abstraction so that users don't need to worry about the implementation
-;  details and can pass the app object to our functions in a type-safe way.
-;  The internal properties are not intended to be used outside of this
-;  namespace.
-(defrecord TrapperKeeperApp [graph-instance])
+(def #^{:macro true
+        :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
+             so that it is accessible from the core namespace along with the
+             rest of the API."}
+  service #'services/service)
 
-(defn get-service-fn
-  "Given a trapperkeeper application, a service name, and a sequence of keys,
-  returns the function provided by the service at that path.
-
-  Example usage: (get-service-fn app :my-service :do-something-awesome)"
-  [^TrapperKeeperApp app service k & ks]
-  {:pre [(keyword? service)
-         (keyword? k)
-         (every? keyword? ks)]
-   :post [(not (nil? %))
-          (ifn? %)]}
-  (get-in (:graph-instance app) (cons service (cons k ks))))
-
-(defn- io->fnk-binding-form
-  "Converts a service's input-output map into a binding-form suitable for
-  passing to a fnk. The binding-form defines the fnk's expected input and
-  output values, and is required to satisfy graph compilation.
-
-  This function is necessary in order to allow for the defservice macro to
-  support arbitrary code in the body. A fnk will attempt to determine what
-  its output-schema is, but will only work if a map is immediately returned
-  from the body. When a map is not immediately returned (i.e. a `let` block
-  around the map), the output-schema must be explicitly provided in the fnk
-  metadata."
-  [io-map]
-  (let [to-output-schema  (fn [provides]
-                            (reduce (fn [m p] (assoc m (keyword p) true))
-                                    {}
-                                    provides))
-        output-schema     (to-output-schema (:provides io-map))]
-    ;; Add an output-schema entry to the depends vector's metadata map
-    (vary-meta (:depends io-map) assoc :output-schema output-schema)))
-
-(defmacro service
-  "Define a service that may depend on other services, and provides functions
-  for other services to depend on. This macro is intended to be used inline
-  rather than at the top-level (see `defservice` for that).
-
-  Defining a service requires a:
-    * service name keyword
-    * input-output map in the form: {:depends [...] :provides [...]}
-    * a body of code that returns a map of functions the service provides.
-      The keys of the map must match the values of the :provides vector.
-
-  Example:
-
-    (service :logging-service
-      {:depends  []
-       :provides [log]}
-      {:log (fn [msg] (println msg))})"
-  [svc-name io-map & body]
-  (let [binding-form (io->fnk-binding-form io-map)]
-    `(fn []
-       {~svc-name
-        (fnk
-          ~binding-form
-          ~@body)})))
-
-(defmacro defservice
-  "Define a service that may depend on other services, and provides functions
-  for other services to depend on. Defining a service requires a:
-    * service name
-    * optional documentation string
-    * input-output map in the form: {:depends [...] :provides [...]}
-    * a body of code that returns a map of functions the service provides.
-      The keys of the map must match the values of the :provides vector.
-
-  Examples:
-
-    (defservice logging-service
-      {:depends  []
-       :provides [debug info warn]}
-      {:debug (partial println \"DEBUG:\")
-       :info  (partial println \"INFO:\")
-       :warn  (partial println \"WARN:\")})
-
-    (defservice datastore-service
-      \"Store key-value pairs.\"
-      {:depends  [[:logging-service debug]]
-       :provides [get put]}
-      (let [log       (partial debug \"[datastore]\")
-            datastore (atom {})]
-        {:get (fn [key]       (log \"Getting...\") (get @datastore key))
-         :put (fn [key value] (log \"Putting...\") (swap! datastore assoc key value))}))"
-  [svc-name & forms]
-  (let [[svc-doc io-map body] (if (string? (first forms))
-                                [(first forms) (second forms) (nthrest forms 2)]
-                                ["" (first forms) (rest forms)])]
-    `(def ~svc-name
-       ~svc-doc
-       (service ~(keyword svc-name) ~io-map ~@body))))
+(def #^{:macro true
+        :doc "An alias for the `puppetlabs.trapperkeeper.services/defservice` macro
+             so that it is accessible from the core namespace along with the
+             rest of the API."}
+  defservice #'services/defservice)
 
 (defn config-service
   "A simple configuration service based on .ini config files.  Expects
@@ -128,15 +43,15 @@
    Also provides a second function, `get-config`, which simply returns
    the entire configuration map."
   [config]
-  ((service :config-service
-            {:depends []
-             :provides [get-in-config get-config]}
-            {:get-in-config (fn [ks] (get-in config ks))
-             :get-config (fn [] config)})))
+  ((services/service :config-service
+    {:depends  []
+     :provides [get-in-config get-config]}
+    {:get-in-config (fn [ks] (get-in config ks))
+     :get-config    (fn [] config)})))
 
 (defn- parse-config-file
   [config-file-path]
-  {:pre [(not (nil? config-file-path))]
+  {:pre  [(not (nil? config-file-path))]
    :post [(map? %)]}
   (when-not (.canRead (file config-file-path))
     (throw (FileNotFoundException.
@@ -144,77 +59,6 @@
                "Configuration path '%s' must exist and must be readable."
                config-file-path))))
   (inis-to-map config-file-path))
-
-(defn- wrap-with-shutdown-registration
-  "Given an accumulating list of shutdown functions and a path to a service
-  in the graph, extract the shutdown function from the service and add it to
-  the list."
-  [shutdown-fns-atom path orig-fnk]
-  (let [in  (input-schema orig-fnk)
-        out (output-schema orig-fnk)
-        f   (fn [injected-vals]
-              (let [result (orig-fnk injected-vals)]
-                (when-let [shutdown-fn (result :shutdown)]
-                  (swap! shutdown-fns-atom conj shutdown-fn))
-                result))]
-    (fn->fnk f [in out])))
-
-(def shutdown-fns (atom ()))
-
-(defn shutdown!
-  "Perform shutdown on the application by calling all service shutdown hooks.
-  Services will be shut down in dependency order."
-  []
-  (log/info "Beginning shutdown sequence")
-  (doseq [f @shutdown-fns]
-    (try
-      (f)
-      (catch Exception e
-        (log/error e "Encountered error during shutdown sequence")))))
-
-(defn- create-shutdown-on-error-fn
-  [shutdown-reason]
-  (fn shutdown-fn
-    ([f]
-     (shutdown-fn f nil))
-    ([f on-error-fn]
-     (try
-       (f)
-       (catch Exception e
-         (deliver shutdown-reason {:type         :service-error
-                                   :error        e
-                                   :on-error-fn  on-error-fn}))))))
-
-(defn- register-shutdown-hooks!
-  "Walk the graph and register all shutdown functions. The functions
-  will be called when the JVM shuts down, or by calling `shutdown!`."
-  [graph]
-  (let [wrapped-graph         (walk-leaves-and-path
-                                (partial wrap-with-shutdown-registration shutdown-fns)
-                                graph)
-        shutdown-reason       (promise)
-        shutdown-on-error     (create-shutdown-on-error-fn shutdown-reason)
-        shutdown-service      (service :shutdown-service
-                                       {:depends  []
-                                        :provides [request-shutdown wait-for-shutdown shutdown-on-error]}
-                                       {:request-shutdown   #(deliver shutdown-reason {:type :requested})
-                                        :wait-for-shutdown  #(deref shutdown-reason)
-                                        :shutdown-on-error  shutdown-on-error})]
-    (add-shutdown-hook! #(do
-                           (when-not (realized? shutdown-reason)
-                             (shutdown!)
-                             (deliver shutdown-reason {:type :jvm-shutdown-hook}))))
-    (merge (shutdown-service) wrapped-graph)))
-
-(defn request-shutdown!
-  "TODO docs"
-  [^TrapperKeeperApp app]
-  ((get-service-fn app :shutdown-service :request-shutdown)))
-
-(defn wait-for-shutdown
-  "TODO docs"
-  [^TrapperKeeperApp app]
-  ((get-service-fn app :shutdown-service :wait-for-shutdown)))
 
 (defn- compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.
@@ -248,9 +92,9 @@
 (defn bootstrap*
   "Helper function for bootstrapping a trapperkeeper app."
   ([services cli-data]
-  {:pre [(sequential? services)
-         (every? service-graph? services)
-         (map? cli-data)]
+  {:pre  [(sequential? services)
+          (every? service-graph? services)
+          (map? cli-data)]
    :post [(instance? TrapperKeeperApp %)]}
   (let [debug           (or (cli-data :debug) false)
         config-data     (-> (parse-config-file (cli-data :config))
@@ -289,8 +133,8 @@
          (contains? cli-data :config)]
   :post [(instance? TrapperKeeperApp %)]}
   (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
-                                  (bootstrap/config-from-cwd)
-                                  (bootstrap/config-from-classpath))]
+                                (bootstrap/config-from-cwd)
+                                (bootstrap/config-from-classpath))]
     (-> bootstrap-config
         (bootstrap/parse-bootstrap-config!)
         (bootstrap* cli-data))
@@ -311,15 +155,13 @@
     (first (cli! cli-args specs required))))
 
 (defn run-app
-  "TODO docstring"
+  "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
+  which may be triggered by one of several different ways. In all cases, services
+  will be shut down and any exceptions they might throw will be caught and logged."
   [^TrapperKeeperApp app]
   (let [shutdown-reason (wait-for-shutdown app)]
-    (when (contains? #{:service-error :requested} (:type shutdown-reason))
-      (when-let [on-error-fn (:on-error-fn shutdown-reason)]
-        (try
-          (on-error-fn)
-          (catch Exception e
-            (log/error e "Error occurred during shutdown"))))
+    (when (initiated-internally? shutdown-reason)
+      (call-error-handler! shutdown-reason)
       (shutdown!)
       (when-let [error (:error shutdown-reason)]
         (throw error)))))

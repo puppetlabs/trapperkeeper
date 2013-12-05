@@ -3,17 +3,13 @@
   (:require [clojure.test :refer :all]
             [clojure.tools.logging :as log]
             [clojure.java.io :refer [file]]
-            [plumbing.fnk.pfnk :as pfnk]
-            [plumbing.graph :as graph]
             [slingshot.slingshot :refer [try+]]
+            [puppetlabs.trapperkeeper.services :refer [service get-service-fn]]
             [puppetlabs.trapperkeeper.bootstrap :refer [parse-bootstrap-config!]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper :refer [defservice service parse-cli-args!]]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
+            [puppetlabs.trapperkeeper.core :as trapperkeeper]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
-            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
-            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
-
-(use-fixtures :once with-no-jvm-shutdown-hooks)
+            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
 
 (deftest test-bootstrapping
   (testing "Valid bootstrap configurations"
@@ -26,8 +22,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
           app                 (parse-and-bootstrap (StringReader. bootstrap-config))]
 
       (testing "Can load a service based on a valid bootstrap config string"
-        (let [test-fn             (trapperkeeper/get-service-fn app :foo-test-service :test-fn)
-              hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
+        (let [test-fn             (get-service-fn app :foo-test-service :test-fn)
+              hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
           (is (= (test-fn) :foo))
           (is (= (hello-world-fn) "hello world"))))
 
@@ -35,8 +31,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "Looks for bootstrap config on classpath (test-resources)"
         (with-test-logging
           (let [app                 (bootstrap-with-empty-config)
-                test-fn             (trapperkeeper/get-service-fn app :classpath-test-service :test-fn)
-                hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
+                test-fn             (get-service-fn app :classpath-test-service :test-fn)
+                hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
             (is (logged?
                   #"Loading bootstrap config from classpath: 'file:/.*test-resources/bootstrapping/classpath/bootstrap.cfg'"
                   :debug))
@@ -51,8 +47,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
               (.getAbsolutePath (file "./test-resources/bootstrapping/cwd")))
             (with-test-logging
               (let [app                 (bootstrap-with-empty-config)
-                    test-fn             (trapperkeeper/get-service-fn app :cwd-test-service :test-fn)
-                    hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
+                    test-fn             (get-service-fn app :cwd-test-service :test-fn)
+                    hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
                 (is (logged?
                       #"Loading bootstrap config from current working directory: '.*/test-resources/bootstrapping/cwd/bootstrap.cfg'"
                       :debug))
@@ -63,8 +59,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "Gives precedence to bootstrap config specified as CLI arg"
         (with-test-logging
             (let [app                 (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/bootstrap.cfg"])
-                  test-fn             (trapperkeeper/get-service-fn app :cli-test-service :test-fn)
-                  hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
+                  test-fn             (get-service-fn app :cli-test-service :test-fn)
+                  hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
               (is (logged?
                     #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/bootstrap.cfg'"
                     :debug))
@@ -74,8 +70,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
       (testing "Ensure that a bootstrap config can be loaded with a path that contains spaces"
         (with-test-logging
           (let [app                 (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
-                test-fn             (trapperkeeper/get-service-fn app :cli-test-service :test-fn)
-                hello-world-fn      (trapperkeeper/get-service-fn app :hello-world-service :hello-world)]
+                test-fn             (get-service-fn app :cli-test-service :test-fn)
+                hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
             (is (logged?
                   #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
                   :debug))
@@ -143,155 +139,6 @@ This is not a legit line.
               #"Invalid service graph;"
               (parse-and-bootstrap bootstrap-config))))))))
 
-(deftest defservice-macro
-  (def logging-service
-    (service :logging-service
-      {:depends  []
-       :provides [log]}
-      {:log (fn [msg] "do nothing")}))
-
-  (defservice simple-service
-    "My simple service"
-    {:depends  [[:logging-service log]]
-     :provides [hello]}
-    ;; this line is just here to test support for multi-form service bodies
-    (log "Calling our test log function!")
-    (let [state "world"]
-      {:hello (fn [] state)}))
-
-  (testing "service has the correct form"
-    (is (= (:doc (meta #'simple-service)) "My simple service"))
-
-    (let [service-graph (simple-service)]
-      (is (map? service-graph))
-
-      (let [graph-keys (keys service-graph)]
-        (is (= (count graph-keys) 1))
-        (is (= (first graph-keys) :simple-service)))
-
-      (let [service-fnk  (:simple-service service-graph)
-            depends      (pfnk/input-schema service-fnk)
-            provides     (pfnk/output-schema service-fnk)]
-        (is (ifn? service-fnk))
-        (is (= depends  {:logging-service {:log true}}))
-        (is (= provides {:hello true})))))
-
-  (testing "services compile correctly and can be called"
-    (let [app       (bootstrap-services-with-empty-config [(logging-service) (simple-service)])
-          hello-fn  (trapperkeeper/get-service-fn app :simple-service :hello)]
-      (is (= (hello-fn) "world")))))
-
-(deftest shutdown
-  (testing "service with shutdown hook gets called during shutdown"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          app               (bootstrap-services-with-empty-config [(test-service)])]
-      (is (false? @shutdown-called?))
-      (trapperkeeper/shutdown!)
-      (is (true? @shutdown-called?))))
-
-  (testing "services are shut down in dependency order"
-    (let [order       (atom [])
-          service1    (service :service1
-                               {:depends  []
-                                :provides [shutdown]}
-                               {:shutdown #(swap! order conj 1)})
-          service2    (service :service2
-                               {:depends  [service1]
-                                :provides [shutdown]}
-                               {:shutdown #(swap! order conj 2)})
-          app         (bootstrap-services-with-empty-config [(service1) (service2)])]
-      (is (empty? @order))
-      (trapperkeeper/shutdown!)
-      (is (= @order [2 1]))))
-
-  (testing "services continue to shut down when one throws an exception"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          broken-service    (service :broken-service
-                                     {:depends  [test-service]
-                                      :provides [shutdown]}
-                                     {:shutdown #(throw (RuntimeException. "dangit"))})
-          app               (bootstrap-services-with-empty-config [(test-service) (broken-service)])]
-      (is (false? @shutdown-called?))
-      (with-test-logging
-        (trapperkeeper/shutdown!)
-        (is (logged? #"Encountered error during shutdown sequence" :error)))
-      (is (true? @shutdown-called?))))
-
-  (testing "`run` blocks until shutdown signal received, then services are shut down"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          app               (bootstrap-services-with-empty-config [(test-service)])
-          thread            (future (trapperkeeper/run-app app))]
-      (is (false? @shutdown-called?))
-      (trapperkeeper/request-shutdown! app)
-      (deref thread)
-      (is (true? @shutdown-called?))))
-
-  (testing "`shutdown-on-error` causes services to be shut down and the error is rethrown from main"
-    (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  [[:shutdown-service shutdown-on-error]]
-                                      :provides [broken-fn shutdown]}
-                                     {:shutdown  #(reset! shutdown-called? true)
-                                      :broken-fn (fn [] (future (shutdown-on-error #(throw (RuntimeException. "oops")))))})
-          app                (bootstrap-services-with-empty-config [(test-service)])
-          broken-fn          (trapperkeeper/get-service-fn app :test-service :broken-fn)
-          main-thread        (future (trapperkeeper/run-app app))]
-      (is (false? @shutdown-called?))
-      (broken-fn)
-      (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
-            (deref main-thread)))
-      (is (true? @shutdown-called?))))
-
-  (testing "`shutdown-on-error` takes an optional function that is called on error"
-    (let [shutdown-called?    (atom false)
-          on-error-fn-called? (atom false)
-          broken-service      (service :broken-service
-                                       {:depends  [[:shutdown-service shutdown-on-error]]
-                                        :provides [broken-fn shutdown]}
-                                       {:shutdown  #(reset! shutdown-called? true)
-                                        :broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "uh oh"))
-                                                                             #(reset! on-error-fn-called? true)))})
-          app                 (bootstrap-services-with-empty-config [(broken-service)])
-          broken-fn           (trapperkeeper/get-service-fn app :broken-service :broken-fn)
-          main-thread         (future (trapperkeeper/run-app app))]
-      (is (false? @shutdown-called?))
-      (is (false? @on-error-fn-called?))
-      (broken-fn)
-      (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: uh oh"
-            (deref main-thread)))
-      (is (true? @shutdown-called?))
-      (is (true? @on-error-fn-called?))))
-
-  (testing "errors thrown by the `shutdown-on-error` optional on-error function are caught and logged"
-    (let [broken-service  (service :broken-service
-                                   {:depends  [[:shutdown-service shutdown-on-error]]
-                                    :provides [broken-fn]}
-                                   {:broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "unused"))
-                                                                         #(throw (RuntimeException. "catch me"))))})
-          app             (bootstrap-services-with-empty-config [(broken-service)])
-          broken-fn       (trapperkeeper/get-service-fn app :broken-service :broken-fn)]
-      (with-test-logging
-        (let [main-thread (future (trapperkeeper/run-app app))]
-          (broken-fn)
-          ;; main will rethrow the "unused" exception as expected
-          ;; so we need to prevent that from failing the test
-          (try (deref main-thread) (catch Throwable t))
-          (is (logged? #"Error occurred during shutdown" :error)))))))
-
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"
     (let [broken-service (service :broken-service
@@ -340,7 +187,7 @@ This is not a legit line.
   (testing "Parsed CLI data"
     (let [bootstrap-file "/fake/path/bootstrap.cfg"
           config-dir     "/fake/config/dir"
-          cli-data         (parse-cli-args!
+          cli-data         (trapperkeeper/parse-cli-args!
                              ["--debug"
                               "--bootstrap-config" bootstrap-file
                               "--config" config-dir])]
@@ -352,13 +199,13 @@ This is not a legit line.
     (is (thrown-with-msg?
           Exception
           #"not a valid argument"
-          (parse-cli-args! ["--invalid-argument"]))))
+          (trapperkeeper/parse-cli-args! ["--invalid-argument"]))))
 
   (testing "Fails if config CLI arg is not specified"
     ;; looks like `thrown-with-msg?` can't be used with slingshot. :(
     (let [got-expected-exception (atom false)]
       (try+
-        (parse-cli-args! [])
+        (trapperkeeper/parse-cli-args! [])
         (catch map? m
           (is (contains? m :error-message))
           (is (re-matches
@@ -370,10 +217,10 @@ This is not a legit line.
 (deftest test-debug
   (testing "debug mode is off by default"
     (let [app (bootstrap-services-with-empty-config [])
-          get-in-config (trapperkeeper/get-service-fn app :config-service :get-in-config)]
+          get-in-config (get-service-fn app :config-service :get-in-config)]
       (is (false? (get-in-config [:debug]))))))
 
   (testing "--debug puts TK in debug mode"
     (let [app (bootstrap*-with-empty-config [] ["--debug"])
-          get-in-config (trapperkeeper/get-service-fn app :config-service :get-in-config)]
+          get-in-config (get-service-fn app :config-service :get-in-config)]
       (is (true? (get-in-config [:debug])))))

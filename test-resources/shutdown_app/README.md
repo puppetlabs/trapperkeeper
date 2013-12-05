@@ -6,4 +6,4 @@ called.
 You should see instructions upon starting the application.
 
 To run:
-  lein test-shutdown
+  lein test-external-shutdown

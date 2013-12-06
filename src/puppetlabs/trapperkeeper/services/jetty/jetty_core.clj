@@ -15,8 +15,7 @@
   (:require [ring.util.servlet :as servlet]
             [clojure.string :refer [split trim]]
             [clojure.tools.logging :as log]
-            [puppetlabs.trapperkeeper.services.jetty.jetty-config :as jetty-config]
-            [puppetlabs.kitchensink.core :refer [compare-jvm-versions]]))
+            [puppetlabs.trapperkeeper.services.jetty.jetty-config :as jetty-config]))
 
 ;; Work around an issue with OpenJDK's PKCS11 implementation preventing TLSv1
 ;; connections from working correctly

@@ -41,22 +41,17 @@
 ;; https://forums.oracle.com/forums/thread.jspa?messageID=10999587
 ;; https://issues.apache.org/jira/browse/APLO-287
 ;;
-;; If not running on an affected JVM version, this is nil.
-(defn acceptable-ciphers
-  ([]
-    (acceptable-ciphers (System/getProperty "java.version")))
-  ([jvm-version]
-    (let [known-good-version "1.7.0_05"]
-      (if (pos? (compare-jvm-versions jvm-version known-good-version))
-        ;; We're more recent than the last known-good version, and hence
-        ;; are busted
-        ["TLS_RSA_WITH_AES_256_CBC_SHA256"
-         "TLS_RSA_WITH_AES_256_CBC_SHA"
-         "TLS_RSA_WITH_AES_128_CBC_SHA256"
-         "TLS_RSA_WITH_AES_128_CBC_SHA"
-         "SSL_RSA_WITH_RC4_128_SHA"
-         "SSL_RSA_WITH_3DES_EDE_CBC_SHA"
-         "SSL_RSA_WITH_RC4_128_MD5"]))))
+;; This also applies to all JDK's with regards to EC algorithms causing
+;; issues.
+;;
+(def acceptable-ciphers
+  ["TLS_RSA_WITH_AES_256_CBC_SHA256"
+   "TLS_RSA_WITH_AES_256_CBC_SHA"
+   "TLS_RSA_WITH_AES_128_CBC_SHA256"
+   "TLS_RSA_WITH_AES_128_CBC_SHA"
+   "SSL_RSA_WITH_RC4_128_SHA"
+   "SSL_RSA_WITH_3DES_EDE_CBC_SHA"
+   "SSL_RSA_WITH_RC4_128_MD5"])
 
 (defn- proxy-handler
   "Returns an Jetty Handler implementation for the given Ring handler."
@@ -114,7 +109,7 @@
             connector (ssl-connector options)
             ciphers   (if-let [txt (options :cipher-suites)]
                         (map trim (split txt #","))
-                        (acceptable-ciphers))
+                        acceptable-ciphers)
             protocols (if-let [txt (options :ssl-protocols)]
                         (map trim (split txt #",")))]
         (when ciphers

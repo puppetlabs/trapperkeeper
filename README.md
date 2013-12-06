@@ -101,7 +101,7 @@ Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
 
 And now you should be able to run the app via `lein run`.  This example doesn't
 do much; for a more interesting example that shows how you can use trapperkeeper
-to create a web application, see TODO JUSTIN LINK HERE.
+to create a web application, see TODO LINK HERE.
 
 ## Defining Services
 

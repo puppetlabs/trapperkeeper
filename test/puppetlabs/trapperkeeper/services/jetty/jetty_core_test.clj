@@ -5,16 +5,6 @@
             [puppetlabs.trapperkeeper.services.jetty.jetty-core :as jetty]
             [puppetlabs.trapperkeeper.testutils.jetty :refer [with-test-jetty]]))
 
-(deftest ciphers
-  (testing "buggy JVMs should return a specific set of ciphers to use"
-    (is (seq (jetty/acceptable-ciphers "1.7.0_20"))))
-
-  (testing "last-known-good JVM version should return a nil set of ciphers"
-    (is (nil? (jetty/acceptable-ciphers "1.7.0_05"))))
-
-  (testing "unaffected JVM version should return a nil set of ciphers"
-    (is (nil? (jetty/acceptable-ciphers "1.6.0_05")))))
-
 (deftest compression
   (testing "should return"
     (let [body (apply str (repeat 1000 "f"))

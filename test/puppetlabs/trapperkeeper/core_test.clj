@@ -207,10 +207,12 @@ This is not a legit line.
       (try+
         (trapperkeeper/parse-cli-args! [])
         (catch map? m
-          (is (contains? m :error-message))
+          (is (contains? m :type))
+          (is (= :error (:type m)))
+          (is (contains? m :message))
           (is (re-matches
                 #"(?s)^.*Missing required argument '--config'.*$"
-                (m :error-message)))
+                (m :message)))
           (reset! got-expected-exception true)))
       (is (true? @got-expected-exception)))))
 

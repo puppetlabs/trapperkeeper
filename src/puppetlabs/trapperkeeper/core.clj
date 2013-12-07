@@ -183,5 +183,8 @@
     (-> args
         (parse-cli-args!)
         (run))
-    (catch map? {:keys [error-message]}
-      (println error-message))))
+    (catch map? m
+      (println (:message m))
+      (case (:type m)
+        :error (System/exit 1)
+        :help  (System/exit 0)))))

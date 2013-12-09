@@ -31,7 +31,8 @@
              :test {:dependencies [[clj-http "0.5.3"]
                                    [org.slf4j/slf4j-log4j12 "1.7.5"]
                                    [puppetlabs/kitchensink "0.3.1-SNAPSHOT" :classifier "test"]]}
-             :testutils {:source-paths ^:replace ["test"]}}
+             :testutils {:source-paths ^:replace ["test"]}
+             :uberjar {:aot [puppetlabs.trapperkeeper.main]}}
 
   :main puppetlabs.trapperkeeper.main
   )

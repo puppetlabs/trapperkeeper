@@ -101,7 +101,7 @@ Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
 
 And now you should be able to run the app via `lein run`.  This example doesn't
 do much; for a more interesting example that shows how you can use trapperkeeper
-to create a web application, see TODO LINK HERE.
+to create a web application, see [Example Web Service](doc/example_web_service.md).
 
 ## Defining Services
 
@@ -242,7 +242,7 @@ Then, you can define a service like this:
    ;; service initialization code
    (println
       (format "foosetting2 has a value of '%s'"
-         (get-in-config :foosection1 :foosetting2)))
+         (get-in-config [:foosection1 :foosetting2])))
    ;; return empty service function map
    {})
 ```

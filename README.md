@@ -1,6 +1,5 @@
 # trapperkeeper
 
-Trapperkeeper is a lightweight clojure application / service framework.  It
 borrows some of the most basic concepts of the OSGi "service registry" to allow
 users to create simple "services" and bind them together in a single
 container, but it doesn't attempt to do any fancy classloading magic, hot-swapping

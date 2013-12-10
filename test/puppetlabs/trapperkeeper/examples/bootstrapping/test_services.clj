@@ -7,26 +7,21 @@
   {:test-service "hi"})
 
 (defservice hello-world-service
-  {:depends  []
-   :provides [hello-world]}
+  {:provides [hello-world]}
   {:hello-world (fn [] "hello world")})
 
 (defservice foo-test-service
-  {:depends  []
-   :provides [test-fn]}
+  {:provides [test-fn]}
   {:test-fn (fn [] :foo)})
 
 (defservice classpath-test-service
-  {:depends  []
-   :provides [test-fn]}
+  {:provides [test-fn]}
   {:test-fn (fn [] :classpath)})
 
 (defservice cwd-test-service
-  {:depends  []
-   :provides [test-fn]}
+  {:provides [test-fn]}
   {:test-fn (fn [] :cwd)})
 
 (defservice cli-test-service
-  {:depends  []
-   :provides [test-fn]}
+  {:provides [test-fn]}
   {:test-fn (fn [] :cli)})

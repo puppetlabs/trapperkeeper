@@ -2,8 +2,7 @@
   (:require [puppetlabs.trapperkeeper.core :as trapperkeeper]))
 
 (trapperkeeper/defservice test-service
-  {:depends  []
-   :provides [shutdown]}
+  {:provides [shutdown]}
   {:shutdown #(println "If you see this printed out then shutdown works correctly!")})
 
 (defn -main

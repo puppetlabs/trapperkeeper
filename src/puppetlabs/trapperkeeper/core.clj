@@ -90,7 +90,9 @@
           (throw e))))))
 
 (defn bootstrap*
-  "Helper function for bootstrapping a trapperkeeper app."
+  "Bootstraps a trapperkeeper application given a sequence of service graphs and
+  the parsed CLI data. This is just a helper function for `bootstrap` and is
+  only public for testing purposes."
   ([services cli-data]
   {:pre  [(sequential? services)
           (every? service-graph? services)
@@ -177,7 +179,13 @@
       (run-app)))
 
 (defn main
+  "Launches the trapperkeeper framework. This function blocks until
+  trapperkeeper is shut down. This may be called directly, but is also called by
+  `puppetlabs.trapperkeeper.core/-main` if you use `puppetlabs.trapperkeeper.core`
+  as the `:main` namespace in your leinengen project."
   [& args]
+  {:pre [(seq? args)
+         (every? string? args)]}
   (try+
     (-> args
         (parse-cli-args!)

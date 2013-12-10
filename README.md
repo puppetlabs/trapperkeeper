@@ -240,19 +240,19 @@ Here's a concrete example of how this might work:
 Given this combination of services, you might have a `bootstrap.cfg` file
 that looks like:
 
-```
+<pre>
 services.foo-consumer/foo-consumer
-services.foo.**lowercase-foo**/foo-service
-```
+services.foo.<strong>lowercase-foo</strong>/foo-service
+</pre>
 
 If you then ran your app, calling the function `bar` provided by the `foo-consumer`
 service would yield: `"Foo service returned 'foo'"`.  If you then modified your
 `bootstrap.cfg` file to look like:
 
-```
+<pre>
 services.foo-consumer/foo-consumer
-services.foo.**uppercase-foo**/foo-service
-```
+services.foo.<strong>uppercase-foo</strong>/foo-service
+</pre>
 
 Then the `bar` function would return `"Foo service returned 'bar'"`.  This allows
 you to swap out a service implementation without making any code changes; you

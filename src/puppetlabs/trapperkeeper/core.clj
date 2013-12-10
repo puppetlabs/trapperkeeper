@@ -180,7 +180,9 @@
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
-  trapperkeeper is shut down. This is called by the magic, AOT-compiled `-main`."
+  trapperkeeper is shut down. This may be called directly, but is also called by
+  `puppetlabs.trapperkeeper.core/-main` if you use `puppetlabs.trapperkeeper.core`
+  as the `:main` namespace in your leinengen project."
   [& args]
   {:pre [(seq? args)
          (every? string? args)]}

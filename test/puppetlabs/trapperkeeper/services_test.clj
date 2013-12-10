@@ -8,8 +8,7 @@
 (deftest defservice-macro
   (def logging-service
     (service :logging-service
-      {:depends  []
-       :provides [log]}
+      {:provides [log]}
       {:log (fn [msg] "do nothing")}))
 
   (defservice simple-service

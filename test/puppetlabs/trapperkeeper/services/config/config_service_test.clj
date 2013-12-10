@@ -5,8 +5,7 @@
             [puppetlabs.trapperkeeper.services :refer [defservice get-service-fn]]))
 
 (defservice test-service
-   {:depends [[:config-service get-in-config get-config]]
-    :provides []}
+   {:depends [[:config-service get-in-config get-config]]}
    {:test-fn (fn [ks] (get-in-config ks))
     :test-fn-2 (fn [] (get-config))})
 

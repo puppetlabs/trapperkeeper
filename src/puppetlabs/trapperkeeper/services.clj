@@ -19,9 +19,11 @@
                             (reduce (fn [m p] (assoc m (keyword p) true))
                                     {}
                                     provides))
-        output-schema     (to-output-schema (:provides io-map))]
+        provides          (if (contains? io-map :provides) (:provides io-map) [])
+        depends           (if (contains? io-map :depends) (:depends io-map) [])
+        output-schema     (to-output-schema provides)]
     ;; Add an output-schema entry to the depends vector's metadata map
-    (vary-meta (:depends io-map) assoc :output-schema output-schema)))
+    (vary-meta depends assoc :output-schema output-schema)))
 
 (defmacro service
   "Define a service that may depend on other services, and provides functions

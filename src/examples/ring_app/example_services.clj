@@ -24,8 +24,7 @@
    increments the count and returns it."
 
   ;; This map declares the service's dependencies on other services and their functions,
-  {:depends []              ; A :depends key is required to be present, even if it is empty.
-   :provides [inc-and-get]} ; This service provides a function called inc-and-get.
+  {:provides [inc-and-get]} ; This service provides a function called inc-and-get.
 
   ;; Export the inc-and-get function via the return map.
   {:inc-and-get inc-and-get})

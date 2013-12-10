@@ -8,6 +8,7 @@
                  [puppetlabs/kitchensink "0.3.1-SNAPSHOT"]
                  [org.eclipse.jetty/jetty-server "7.6.1.v20120215"]
                  [ring/ring-servlet "1.1.8"]
+                 [org.clojure/tools.logging "0.2.6"]
 
                  [prismatic/plumbing "0.1.0"]
                  [log4j "1.2.17" :exclusions [javax.mail/mail

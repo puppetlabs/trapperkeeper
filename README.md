@@ -1,11 +1,11 @@
 # trapperkeeper
 
-Trapperkeeper is a lightweight clojure application / service framework.  It
-borrows some of the most basic concepts of the OSGi "service registry" to allow
-users to create simple "services" and bind them together in a single
-container, but it doesn't attempt to do any fancy classloading magic, hot-swapping
-of code at runtime, or any of the other things that can make OSGi and other similar
-application frameworks complex to work with.
+Trapperkeeper is a lightweight, pure Clojure framework for hosting long-running
+applications and services.  It borrows some of the most basic concepts of the OSGi
+"service registry" to allow users to create simple "services" and bind them together
+in a single container, but it doesn't attempt to do any fancy classloading magic,
+hot-swapping of code at runtime, or any of the other things that can make OSGi
+and other similar application frameworks complex to work with.
 
 A "service" in trapperkeeper is represented as simply a map of clojure functions.
 Each service can advertise the functions that it provides, as well as a list of
@@ -20,17 +20,6 @@ a shutdown service, and a webserver service.  Your custom services can specify
 dependencies on these and leverage the functions that they provide.  For more
 details, see the section on [built-in services](#built-in-services) later in this document.
 
-One of the goals of trapperkeeper's "service" model is that a service should
-basically be thought of as simply an interface; any given service provides a
-well-known set of functions as its "contract", and the implementation details
-of these functions are not important to consumers.  (Again, this borrows heavily
-from OSGi's concept of a "service".)  This means that you can
-write multiple implementations of a given service and swap them in and out of
-your application by simply modifying your configuration, without having to change
-any of the consuming code.  Trapperkeeper's built-in `webserver` service is
-intended to be an example of this pattern.  (More details in the
-[built-in services](#built-in-services) section below.)
-
 ## Credits
 
 Most of the heavy-lifting of the trapperkeeper framework is handled by the
@@ -43,6 +32,7 @@ Prismatic for sharing their code!
 
 * [tl;dr: Quick Start](#tldr-quick-start)
 * [Defining Services](#defining-services)
+* [Service Interfaces](#service-interfaces)
 * [Built-in Services](#built-in-services)
  * [Configuration Service](#configuration-service)
  * [Shutdown Service](#shutdown-service)
@@ -181,6 +171,98 @@ a keyword value to name the service instead of the var name that you use with
    ;; initialization code goes here, then we return our service function map
    {:bar (fn [] "bar")})
 ```
+
+## Service Interfaces
+
+One of the goals of trapperkeeper's "service" model is that a service should
+be thought of as simply an interface; any given service provides a
+well-known set of functions as its "contract", and the implementation details
+of these functions are not important to consumers.  (Again, this borrows heavily
+from OSGi's concept of a "service".)  This means that you can
+write multiple implementations of a given service and swap them in and out of
+your application by simply modifying your configuration, without having to change
+any of the consuming code.  Trapperkeeper's built-in `webserver` service is
+intended to be an example of this pattern.  (More details in the
+[built-in services](#built-in-services) section below.)
+
+(In the future, we'd like to move to a more concrete mechanism for specifying
+a service "interface"; most likely by using a Clojure protocol.  For more info,
+see the [Hopes and Dreams](#hopes-and-dreams) section below.)
+
+One of the motivations behind this approach is to make it easier to ship
+"on-premise" or "shrink-wrapped" software written in Clojure.  In SaaS
+environments, the developers and administrators have tight control over what
+components are used in an application, and can afford to be fairly rigid about
+how things are deployed.  For on-premise software, the end user may need to
+have a great deal more control over how components are mixed and matched to
+provide a solution that scales to meet their needs; for example, a small shop
+may be able to run 10 services on a single machine without approaching the
+load capacity of the hardware, but a slightly larger shop might need to separate
+those services out onto multiple machines.  Trapperkeeper provides an easy way
+to do this at packaging time or configuration time, and the administrator does not
+necessarily have to be familiar with clojure or EDN in order to effectively
+configure their system.
+
+Here's a concrete example of how this might work:
+
+```clj
+(ns services.foo.lowercase-foo)
+
+(defservice foo-service
+   "A lower-case implementation of the `foo-service`"
+   ;; metadata
+   {:depends []
+    :provides [foo]}
+   ;; now return our service function map:
+   {:foo (fn [] "foo")})
+
+(ns services.foo.uppercase-foo)
+
+(defservice foo-service
+   "An upper-case implementation of the `foo-service`"
+   ;; metadata
+   {:depends []
+    :provides [foo]}
+   ;; now return our service function map:
+   {:foo (fn [] "FOO")})
+
+(ns services.foo-consumer)
+
+(defservice foo-consumer
+   "A service that consumes the `foo-service`"
+   ;; metadata
+   {:depends [[:foo-service foo]]
+    :provides [bar]}
+   ;; now return our service function map:
+   {:bar (fn [] (format "Foo service returned: '%s'" (foo)))})
+```
+
+Given this combination of services, you might have a `bootstrap.cfg` file
+that looks like:
+
+<pre>
+services.foo-consumer/foo-consumer
+services.foo.<strong>lowercase-foo</strong>/foo-service
+</pre>
+
+If you then ran your app, calling the function `bar` provided by the `foo-consumer`
+service would yield: `"Foo service returned 'foo'"`.  If you then modified your
+`bootstrap.cfg` file to look like:
+
+<pre>
+services.foo-consumer/foo-consumer
+services.foo.<strong>uppercase-foo</strong>/foo-service
+</pre>
+
+Then the `bar` function would return `"Foo service returned 'bar'"`.  This allows
+you to swap out a service implementation without making any code changes; you
+need only modify your `bootstrap.cfg` file.
+
+This is obviously a trivial example, but the same approach could be used to
+swap out the implementation of something more interesting; a webserver, a message
+queue, a persistence layer, etc.  This also has the added benefit of helping to
+keep code more modular; a downstream service should only interact with a service
+that it depends on through a well-known interface.
 
 ## Built-in Services
 
@@ -657,6 +739,17 @@ For more details, see the [TODO LINK: Test Utils README](.)
 
 Here are some ideas that we've had and things we've played around with a bit for
 improving trapperkeeper in the future.
+
+### More rigid specification of service interfaces
+
+As it stands right now, a service provides an implicit "contract" as to what its
+interface is via the list of functions in its `:provides` metadata.  We'd like
+to promote the ability to swap out services with alternate implementations that
+use the same interface, but in order to do that, we probably need to come up
+with a more concrete and less implicit way for the services to specify their
+contract/interface.  This will most likely end up leveraging Clojure's
+protocols, but we haven't quite sorted out what the API for that would look
+like.
 
 ### More flexible configuration service
 

@@ -65,6 +65,7 @@ responses to requests made to specific endpoints, and is defined here:
   [hit-count req]
   {:status 200
    :body (str "<h1>Hello from http://" (:server-name req) ":" (:server-port req) (:uri req) "</h1>"
+              (if (:debug? req) "<h3>DEBUGGING ENABLED!</h3>" "")
               "<p>You are visitor number " hit-count ".</p>"
               "<pre>" (pprint-to-string req) "</pre>")})
 
@@ -115,16 +116,28 @@ See https://github.com/ring-clojure/ring for further documentation on the Ring A
 
 ## Define the _ernie_ service ##
 
-The _ernie_ service is nearly an exact copy of the _bert_ service, but also leverages
-another built-in trapperkeeper: the `config-service`.  This service can be
-specified as a dependency, and provides functions that can be used to retrieve
-user-specified configuration values.  In this case, we've added an `[example]`
+The _ernie_ service is very similar to the _bert_ service, but also leverages
+another bit of built-in trapperkeeper functionality: the `config-service`.
+
+This service can be specified as a dependency, and provides functions that can be
+used to retrieve user-specified configuration values.  In this case, we've added an `[example]`
 section to the `config.ini` file, and specified a setting `ernie-url-prefix`
 that can be used to control the URL prefix where the `ernie-service` will
-be available in the web server:
+be available in the web server.
 
+The config service also provides a top-level config setting named `:debug`, which
+is a boolean that reflects whether or not the user launched trapperkeeper in
+debug mode.  In the `ernie-service` we use a simple ring middleware function
+to inject that value into the ring request map, so that it can be checked by
+the ring handler.
 
 ```clojure
+(defn debug-middleware
+  "Ring middleware to add the :debug configuration value to the request map."
+  [app debug?]
+  (fn [req]
+    (app (assoc req :debug? debug?))))
+
 (defservice ernie-service
   "This is the ernie service which operates on the /ernie endpoint. It is essentially identical to the bert service."
 
@@ -133,8 +146,10 @@ be available in the web server:
              [:config-service get-in-config]]
    :provides [shutdown]}
 
-  (let [endpoint (get-in-config [:example :ernie-url-prefix])]
-    (add-ring-handler (partial ring-handler inc-and-get endpoint) endpoint)
+  (let [endpoint      (get-in-config [:example :ernie-url-prefix])
+        ring-handler  (-> (partial ring-handler inc-and-get endpoint)
+                          (debug-middleware (get-in-config [:debug])))]
+    (add-ring-handler ring-handler endpoint)
     {:shutdown #(println "Ernie service shutting down") }))
 ```
 

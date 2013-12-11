@@ -36,6 +36,7 @@
   [hit-count req]
   {:status 200
    :body (str "<h1>Hello from http://" (:server-name req) ":" (:server-port req) (:uri req) "</h1>"
+              (if (:debug? req) "<h3>DEBUGGING ENABLED!</h3>" "")
               "<p>You are visitor number " hit-count ".</p>"
               "<pre>" (pprint-to-string req) "</pre>")})
 
@@ -60,6 +61,12 @@
     ;; Return the service's exposed function map.
     {:shutdown #(println "Bert service shutting down")}))
 
+(defn debug-middleware
+  "Ring middleware to add the :debug configuration value to the request map."
+  [app debug?]
+  (fn [req]
+    (app (assoc req :debug? debug?))))
+
 (defservice ernie-service
   "This is the ernie service which operates on the /ernie endpoint. It is essentially identical to the bert service."
 
@@ -68,6 +75,8 @@
              [:config-service get-in-config]]
    :provides [shutdown]}
 
-  (let [endpoint (get-in-config [:example :ernie-url-prefix])]
-    (add-ring-handler (partial ring-handler inc-and-get endpoint) endpoint)
+  (let [endpoint      (get-in-config [:example :ernie-url-prefix])
+        ring-handler  (-> (partial ring-handler inc-and-get endpoint)
+                          (debug-middleware (get-in-config [:debug])))]
+    (add-ring-handler ring-handler endpoint)
     {:shutdown #(println "Ernie service shutting down") }))

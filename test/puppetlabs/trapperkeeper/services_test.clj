@@ -42,3 +42,25 @@
     (let [app       (bootstrap-services-with-empty-config [(logging-service) (simple-service)])
           hello-fn  (get-service-fn app :simple-service :hello)]
       (is (= (hello-fn) "world")))))
+
+(deftest missing-depends-provides
+  (testing "an appropriate exception is thrown when :depends is missing"
+    ;; Due to the implementation of defservice we have to
+    ;; operate at the compiler level in order to test it.
+    (is (thrown-with-msg?
+          clojure.lang.Compiler$CompilerException
+          #"IllegalArgumentException: :depends is required in service definition"
+          (load-string
+            "(require '[puppetlabs.trapperkeeper.services :refer [defservice]])
+             (defservice broken-service
+               {:provides []}
+               {})")))
+  (testing "an appropriate exception is thrown when :provides is missing"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #":provides is required in service definition"
+          (load-string
+            "(require '[puppetlabs.trapperkeeper.services :refer [service]])
+             (service :broken-service
+                      {:depends []}
+                      {})"))))))

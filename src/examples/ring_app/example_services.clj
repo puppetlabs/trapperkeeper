@@ -64,9 +64,10 @@
   "This is the ernie service which operates on the /ernie endpoint. It is essentially identical to the bert service."
 
   {:depends [[:webserver-service add-ring-handler]
-             [:count-service inc-and-get]]
+             [:count-service inc-and-get]
+             [:config-service get-in-config]]
    :provides [shutdown]}
 
-  (let [endpoint "/ernie"]
+  (let [endpoint (get-in-config [:example :ernie-url-prefix])]
     (add-ring-handler (partial ring-handler inc-and-get endpoint) endpoint)
     {:shutdown #(println "Ernie service shutting down") }))

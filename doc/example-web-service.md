@@ -115,21 +115,31 @@ See https://github.com/ring-clojure/ring for further documentation on the Ring A
 
 ## Define the _ernie_ service ##
 
-The _ernie_ service is nearly an exact copy of the _bert_ servce, but the endpoint has been changed.
+The _ernie_ service is nearly an exact copy of the _bert_ service, but also leverages
+another built-in trapperkeeper: the `config-service`.  This service can be
+specified as a dependency, and provides functions that can be used to retrieve
+user-specified configuration values.  In this case, we've added an `[example]`
+section to the `config.ini` file, and specified a setting `ernie-url-prefix`
+that can be used to control the URL prefix where the `ernie-service` will
+be available in the web server:
+
 
 ```clojure
 (defservice ernie-service
   "This is the ernie service which operates on the /ernie endpoint. It is essentially identical to the bert service."
 
   {:depends [[:webserver-service add-ring-handler]
-             [:count-service inc-and-get]]
+             [:count-service inc-and-get]
+             [:config-service get-in-config]]
    :provides [shutdown]}
 
-  (let [endpoint "/ernie"]
+  (let [endpoint (get-in-config [:example :ernie-url-prefix])]
     (add-ring-handler (partial ring-handler inc-and-get endpoint) endpoint)
     {:shutdown #(println "Ernie service shutting down") }))
 ```
 
+This means that you can change the URL of the `ernie-service` simply by editing
+the configuration file.
 
 ## Launching _trapperkeeper_ and running the app ##
 
@@ -137,8 +147,8 @@ To start up _trapperkeeper_ and launch the previously defined services, use the 
 _trapperkeeper_ home directory:
 
 ```sh
-lein trampoline run -m puppetlabs.trapperkeeper.main --config src/examples/ring_app/config.ini \
-                                                     --bootstrap-config src/examples/ring_app/bootstrap.cfg
+lein trampoline run --config src/examples/ring_app/config.ini \
+                    --bootstrap-config src/examples/ring_app/bootstrap.cfg
 ```
 
 Once _trapperkeeper_ is running, point your browser to either http://localhost:8080/ernie or http://localhost:8080/bert
@@ -197,9 +207,9 @@ There is a debugging statement inside the count-service which displays the state
 to be incremented. To turn on debugging logging pass in the `--debug` option on the command line, like so:
 
 ```sh
-lein trampoline run -m puppetlabs.trapperkeeper.main --config src/examples/ring_app/config.ini \
-                                                     --bootstrap-config src/examples/ring_app/bootstrap.cfg \
-                                                     --debug
+lein trampoline run --config src/examples/ring_app/config.ini \
+                    --bootstrap-config src/examples/ring_app/bootstrap.cfg \
+                    --debug
 ```
 
 When run you will see debug output any time you hit the hit-counting endpoint. This is the equivalent of setting the

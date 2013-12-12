@@ -93,7 +93,7 @@
   "Bootstraps a trapperkeeper application given a sequence of service graphs and
   the parsed CLI data. This is just a helper function for `bootstrap` and is
   only public for testing purposes."
-  ([services cli-data]
+  [services cli-data]
   {:pre  [(sequential? services)
           (every? service-graph? services)
           (map? cli-data)]
@@ -107,7 +107,7 @@
                             (register-shutdown-hooks!))
         graph-fn        (compile-graph graph-map)
         graph-instance  (instantiate graph-fn)]
-    (TrapperKeeperApp. graph-instance))))
+    (TrapperKeeperApp. graph-instance)))
 
 (defn bootstrap
   "Bootstrap a trapperkeeper application.  This is accomplished by reading a

@@ -23,6 +23,16 @@
     ;; Add an output-schema entry to the depends vector's metadata map
     (vary-meta (:depends io-map) assoc :output-schema output-schema)))
 
+(defn- validate-io-map!
+  "Validates a service's io-map contains the required :depends & :provides keys,
+  otherwise an exception is thrown."
+  [io-map]
+  {:pre [(map? io-map)]}
+  (when-not (contains? io-map :depends)
+    (throw (IllegalArgumentException. ":depends is required in service definition")))
+  (when-not (contains? io-map :provides)
+    (throw (IllegalArgumentException. ":provides is required in service definition"))))
+
 (defmacro service
   "Define a service that may depend on other services, and provides functions
   for other services to depend on. This macro is intended to be used inline
@@ -41,6 +51,7 @@
        :provides [log]}
       {:log (fn [msg] (println msg))})"
   [svc-name io-map & body]
+  (validate-io-map! io-map)
   (let [binding-form (io->fnk-binding-form io-map)]
     `(fn []
        {~svc-name

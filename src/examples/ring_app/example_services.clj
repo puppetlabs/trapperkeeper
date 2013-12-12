@@ -59,7 +59,7 @@
   (let [endpoint "/bert"]
     (add-ring-handler (partial ring-handler inc-and-get endpoint) endpoint)
     ;; Return the service's exposed function map.
-    {:shutdown #(println "Bert service shutting down")}))
+    {:shutdown #(log/info "Bert service shutting down")}))
 
 (defn debug-middleware
   "Ring middleware to add the :debug configuration value to the request map."
@@ -79,4 +79,4 @@
         ring-handler  (-> (partial ring-handler inc-and-get endpoint)
                           (debug-middleware (get-in-config [:debug])))]
     (add-ring-handler ring-handler endpoint)
-    {:shutdown #(println "Ernie service shutting down") }))
+    {:shutdown #(log/info "Ernie service shutting down") }))

@@ -88,7 +88,7 @@ responses to requests made to specific endpoints, and is defined here:
   (let [endpoint "/bert"]
     (add-ring-handler (partial ring-handler inc-and-get endpoint) endpoint)
     ;; Return the service's exposed function map.
-    {:shutdown #(println "Bert service shutting down")}))
+    {:shutdown #(log/info "Bert service shutting down")}))
 ```
 
 The general structure of this service is similar to the _hit count_ service; it contains a list of dependencies and
@@ -150,7 +150,7 @@ the ring handler.
         ring-handler  (-> (partial ring-handler inc-and-get endpoint)
                           (debug-middleware (get-in-config [:debug])))]
     (add-ring-handler ring-handler endpoint)
-    {:shutdown #(println "Ernie service shutting down") }))
+    {:shutdown #(log/info "Ernie service shutting down") }))
 ```
 
 This means that you can change the URL of the `ernie-service` simply by editing

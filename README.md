@@ -91,7 +91,7 @@ Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
 
 And now you should be able to run the app via `lein run`.  This example doesn't
 do much; for a more interesting example that shows how you can use trapperkeeper
-to create a web application, see [Example Web Service](doc/example_web_service.md).
+to create a web application, see [Example Web Service](doc/example-web-service.md).
 
 ## Defining Services
 
@@ -733,7 +733,9 @@ on by using a classifier in your project dependencies.
     :profiles {:test {:dependencies [[puppetlabs/trapperkeeper "x.y.z" :classifier "test"]]}})
 ```
 
-For more details, see the [TODO LINK: Test Utils README](.)
+Since _trapperkeeper_ handles logging initialization and provides a web server, some utility functions are available
+to assist writing tests for your application. See the [Trapperkeeper Test Utils](doc/test-utils.md) for more
+information.
 
 ## Hopes and Dreams
 

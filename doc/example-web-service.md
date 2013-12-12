@@ -41,11 +41,11 @@ visitor number they are. It is entirely expressed with this code:
   {:inc-and-get inc-and-get})
 ```
 
-The `defservice` macro is used to define a _trapperkeeper_ service and it is located in the
+The `defservice` macro is used to define a _TrapperKeeper_ service and it is located in the
 `puppetlabs.trapperkeeper.core` namespace.
 
 After an optional doc-string, the first form needs to be a map containing a `:depends` key and a `:provides` key. These
-are used to inform _trapperkeeper_ of a service's dependencies and the functions publicly available for consumption by
+are used to inform _TrapperKeeper_ of a service's dependencies and the functions publicly available for consumption by
 other services. Since this service has no dependencies, an empty list is provided for the `:depends` key. The
 `:provides` key is a list of a functions this service provides.
 
@@ -156,24 +156,24 @@ the ring handler.
 This means that you can change the URL of the `ernie-service` simply by editing
 the configuration file.
 
-## Launching _trapperkeeper_ and running the app ##
+## Launching TrapperKeeper and running the app ##
 
-To start up _trapperkeeper_ and launch the previously defined services, use the following _lein_ command while in the
-_trapperkeeper_ home directory:
+To start up _TrapperKeeper_ and launch the previously defined services, use the following _lein_ command while in the
+_TrapperKeeper_ home directory:
 
 ```sh
 lein trampoline run --config src/examples/ring_app/config.ini \
                     --bootstrap-config src/examples/ring_app/bootstrap.cfg
 ```
 
-Once _trapperkeeper_ is running, point your browser to either http://localhost:8080/ernie or http://localhost:8080/bert
+Once _TrapperKeeper_ is running, point your browser to either http://localhost:8080/ernie or http://localhost:8080/bert
 to see the ring handlers and hit counter in action.
 
-As you can see from the command line there are two configuration files needed to launch _trapperkeeper_.
+As you can see from the command line there are two configuration files needed to launch _TrapperKeeper_. 
 
 ### The `bootstrap.cfg` file ###
 
-The bootstrap config file contains a list of services that _trapperkeeper_ will load up and make available. They are
+The bootstrap config file contains a list of services that _TrapperKeeper_ will load up and make available. They are
 listed as fully-qualified Clojure namespaces and service names. For this example the bootstrap.cfg looks like this:
 
 ```
@@ -183,7 +183,7 @@ examples.ring-app.example-services/bert-service
 examples.ring-app.example-services/ernie-service
 ``` 
 
-This configuration indicates that _trapperkeeper's_ bundled webserver-service is to be loaded, as well as the three new
+This configuration indicates that _TrapperKeeper's_ bundled webserver-service is to be loaded, as well as the three new
 services defined in the `example_services.clj` file.
 
 ### The `config.ini` configuration file ###
@@ -205,7 +205,7 @@ port = 8080
 ### The `log4j.properties` file ###
 
 A minimal `log4j.properties` file is provided in this example to demonstrate how to configure logging in
-_trapperkeeper_.
+_TrapperKeeper_.
 
 ```properties
 log4j.rootLogger=INFO, A1

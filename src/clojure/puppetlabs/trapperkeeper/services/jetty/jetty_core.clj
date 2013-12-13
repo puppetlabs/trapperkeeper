@@ -11,7 +11,8 @@
            (org.eclipse.jetty.server.ssl SslSelectChannelConnector)
            (org.eclipse.jetty.server.nio SelectChannelConnector)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.util.concurrent Executors))
+           (java.util.concurrent Executors)
+           (org.eclipse.jetty.servlet ServletContextHandler ServletHolder))
   (:require [ring.util.servlet :as servlet]
             [clojure.string :refer [split trim]]
             [clojure.tools.logging :as log]
@@ -161,6 +162,16 @@
     (.addHandler handler-coll ctxt-handler)
     (.start ctxt-handler)
     ctxt-handler))
+
+(defn add-servlet-handler
+  [webserver servlet path]
+  (let [handlers  (:handlers webserver)
+        handler   (doto (ServletContextHandler. (ServletContextHandler/SESSIONS))
+                    (.setContextPath path)
+                    (.addServlet (ServletHolder. servlet) "/*"))]
+    (.addHandler handlers handler)
+    (.start handler)
+    handler))
 
 (defn join
   [webserver]

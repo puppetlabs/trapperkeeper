@@ -30,7 +30,7 @@ The bootstrap config file contains a list of services that _trapperkeeper_ will 
 listed as fully-qualified Clojure namespaces and service names. For this example the bootstrap.cfg looks like this:
 
 ```
-puppetlabs._trapperkeeper_.services.jetty.jetty-service/webserver-service
+puppetlabs.trapperkeeper.services.jetty.jetty-service/webserver-service
 examples.ring-app.example-services/count-service
 examples.ring-app.example-services/bert-service
 examples.ring-app.example-services/ernie-service
@@ -53,6 +53,7 @@ logging-config = src/examples/ring_app/log4j.properties
 [webserver]
 # Port to listen on for clear-text HTTP.
 port = 8080
+```
 
 ### Debug mode ###
 
@@ -221,9 +222,7 @@ the ring handler.
 This means that you can change the URL of the `ernie-service` simply by editing
 the configuration file.
 
-```
-
-## Logging
+## Logging ##
 
 At startup, _trapperkeeper_ will configure the logging system based on a log4j.properties
 file.  This means that your services can all just dive run it and call the

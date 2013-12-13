@@ -19,7 +19,7 @@
                  ["snapshots" "http://nexus.delivery.puppetlabs.net/content/repositories/snapshots/"]]
 
   ;; Convenience for manually testing application shutdown support - run `lein test-external-shutdown`
-  :aliases {"test-external-shutdown" ["trampoline" "run" "-m" "shutdown-app.test-external-shutdown"]}
+  :aliases {"test-external-shutdown" ["trampoline" "run" "-m" "examples.shutdown-app.test-external-shutdown"]}
 
   ;; By declaring a classifier here and a corresponding profile below we'll get an additional jar
   ;; during `lein jar` that has all the code in the test/ directory. Downstream projects can then

@@ -35,4 +35,6 @@
              :uberjar {:aot [puppetlabs.trapperkeeper.main]}}
 
   :main puppetlabs.trapperkeeper.main
+  :source-paths ["src" "examples/clj"]
+  :java-source-paths ["examples/java"]
   )

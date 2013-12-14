@@ -6,14 +6,17 @@
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [puppetlabs/kitchensink "0.3.1-SNAPSHOT"]
-                 [org.eclipse.jetty/jetty-server "7.6.1.v20120215"]
-                 [ring/ring-servlet "1.1.8"]
                  [prismatic/plumbing "0.1.0"]
+                 [puppetlabs/kitchensink "0.3.1-SNAPSHOT"]
                  [log4j "1.2.17" :exclusions [javax.mail/mail
                                               javax.jms/jms
                                               com.sun.jdmk/jmxtools
-                                              com.sun.jmx/jmxri]]]
+                                              com.sun.jmx/jmxri]]
+
+                 ;; Jetty Webserver
+                 [org.eclipse.jetty/jetty-server "7.6.1.v20120215"]
+                 [org.eclipse.jetty/jetty-servlet "7.6.1.v20120215"]
+                 [ring/ring-servlet "1.1.8"]]
 
   :repositories [["releases" "http://nexus.delivery.puppetlabs.net/content/repositories/releases/"]
                  ["snapshots" "http://nexus.delivery.puppetlabs.net/content/repositories/snapshots/"]]
@@ -32,7 +35,8 @@
                    :java-source-paths ["examples/java"]}
              :test {:dependencies [[clj-http "0.5.3"]
                                    [org.slf4j/slf4j-log4j12 "1.7.5"]
-                                   [puppetlabs/kitchensink "0.3.1-SNAPSHOT" :classifier "test"]]}
+                                   [puppetlabs/kitchensink "0.3.1-SNAPSHOT" :classifier "test"]]
+                    :java-source-paths ["test-resources/java"]}
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]}}
 

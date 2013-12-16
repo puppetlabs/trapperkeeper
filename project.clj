@@ -27,7 +27,9 @@
   ;; code that we have.
   :classifiers [["test" :testutils]]
 
-  :profiles {:dev {:test-paths ["test-resources"]}
+  :profiles {:dev {:test-paths ["test-resources"]
+                   :source-paths ["examples/clj"]
+                   :java-source-paths ["examples/java"]}
              :test {:dependencies [[clj-http "0.5.3"]
                                    [org.slf4j/slf4j-log4j12 "1.7.5"]
                                    [puppetlabs/kitchensink "0.3.1-SNAPSHOT" :classifier "test"]]}
@@ -35,6 +37,4 @@
              :uberjar {:aot [puppetlabs.trapperkeeper.main]}}
 
   :main puppetlabs.trapperkeeper.main
-  :source-paths ["src" "examples/clj"]
-  :java-source-paths ["examples/java"]
   )

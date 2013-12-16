@@ -557,7 +557,7 @@ is a normal Java [Servlet](http://docs.oracle.com/javaee/7/api/javax/servlet/Ser
 The `path` is a URL prefix / context string that will be prepended to all your handler's
 URLs.
 
-For example, to host a servlet at `"/my-app"`:
+For example, to host a servlet at `/my-app`:
 
 ```clj
 (ns foo
@@ -572,6 +572,8 @@ For example, to host a servlet at `"/my-app"`:
   ;; return service function map
   {})
 ```
+
+For more information see the [example servlet app](examples/servlet_app).
 
 #### `join`
 

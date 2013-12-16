@@ -31,12 +31,16 @@
   :classifiers [["test" :testutils]]
 
   :profiles {:dev {:test-paths ["test-resources"]
-                   :source-paths ["examples/clj"]
-                   :java-source-paths ["examples/java"]}
+                   :source-paths ["examples/shutdown_app/src"
+                                  "examples/ring_app/src"
+                                  "examples/servlet_app/src/clj"]
+                   :java-source-paths ["examples/servlet_app/src/java"]}
+
              :test {:dependencies [[clj-http "0.5.3"]
                                    [org.slf4j/slf4j-log4j12 "1.7.5"]
                                    [puppetlabs/kitchensink "0.3.1-SNAPSHOT" :classifier "test"]]
                     :java-source-paths ["test-resources/java"]}
+
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]}}
 

@@ -37,6 +37,7 @@ Prismatic for sharing their code!
  * [Configuration Service](#configuration-service)
  * [Shutdown Service](#shutdown-service)
  * [Webserver Service](#webserver-service)
+ * [nREPL Service](#nrepl-service)
 * [Command Line Arguments](#command-line-arguments)
 * [Bootstrapping](#bootstrapping)
 * [Dev Practices](#dev-practices)
@@ -583,6 +584,12 @@ trapperkeeper usage, because trapperkeeper already blocks the main thread and
 waits for a termination condition before allowing the process to exit.  However,
 if you do need this functionality for some reason, you can simply call `(join)`
 to cause your thread to wait for the Jetty server to shut down.
+
+### nREPL Service
+
+To assist in debugging applications, _trapperkeeper_ comes with a service that allows starting
+up a network REPL (`nREPL`) inside of the running _trapperkeeper_ process. See
+[Configuring the nREPL service](doc/nrepl-config.md) for more information.
 
 ## Command Line Arguments
 

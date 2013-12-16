@@ -489,13 +489,13 @@ various properties of the server (ports, SSL, etc.) by adding a `[webserver]`
 section to one of your configuration ini files, and setting various properties
 therein.  For more info, see [Configuring the Webserver](doc/jetty-config.md).
 
-The `webserver-service` is currently geared towards web applications built using
-the clojure [Ring](https://github.com/ring-clojure/ring) library.  (We hope to
-add support for a few more different types of web applications in the future;
-see the [Hopes and Dreams](#hopes-and-dreams) section for more info.)
+The `webserver-service` currently supports web applications built using
+Clojure's [Ring](https://github.com/ring-clojure/ring) library and Java's Servlet
+API.  We hope to add support for different types of web applications in the future;
+see the [Hopes and Dreams](#hopes-and-dreams) section for more info.
 
-The current implementation of the `webserver-service` provides two functions:
-`add-ring-handler` and `join`.
+The current implementation of the `webserver-service` provides three functions:
+`add-ring-handler`, `add-servlet-handler`, and `join`.
 
 #### `add-ring-handler`
 
@@ -548,6 +548,29 @@ you will need to do something like this:
      (add-ring-handler context-app context-path))
    ;; return service function map
    {})
+```
+
+#### `add-servlet-handler`
+
+`add-servlet-handler` takes two arguments: `[servlet path]`.  The `servlet` argument
+is a normal Java [Servlet](http://docs.oracle.com/javaee/7/api/javax/servlet/Servlet.html).
+The `path` is a URL prefix / context string that will be prepended to all your handler's
+URLs.
+
+For example, to host a servlet at `"/my-app"`:
+
+```clj
+(ns foo
+    ;; ...
+    (:import [bar.baz SomeServlet]))
+
+(defservice my-web-service
+  {:depends [[:webserver-service add-servlet-handler]]
+   :provides []}
+  ;; initialization
+  (add-servlet-handler (SomeServlet. "some config") "/my-app")
+  ;; return service function map
+  {})
 ```
 
 #### `join`
@@ -780,13 +803,12 @@ We plan to switch the built-in logging initialization off of `log4j` and on to
 
 ### Add support for other types of web applications
 
-The current `:webserver-service` interface only provides a function for registering
-a [Ring](https://github.com/ring-clojure/ring) application.  We'd like to add
-a few more similar functions that would allow you to register other types of
-web applications; specifically, an `add-servlet-handler` function that would
-allow you to register any web application that conforms to the Java Servlet API,
-and perhaps an `add-rack-handler` function that would allow you to register
-a Rack application (to be run via JRuby).
+The current `:webserver-service` interface provides functions for registering
+a [Ring](https://github.com/ring-clojure/ring) or
+[Servlet](http://docs.oracle.com/javaee/7/api/javax/servlet/Servlet.html) application.
+We'd like to add a few more similar functions that would allow you to register other
+types of web applications, specifically an `add-rack-handler` function that would allow
+you to register a Rack application (to be run via JRuby).
 
 ### More robust life cycle / context management
 

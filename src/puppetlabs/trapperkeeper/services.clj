@@ -108,6 +108,5 @@
           (ifn? %)]}
   (or
     (get-in (:graph-instance app) [service service-fn])
-    (throw+ {:type :error
-             :message
-                   (str "Service " service " or service function " service-fn " not found in graph.")})))
+    (throw (IllegalArgumentException.
+                   (str "Service " service " or service function " service-fn " not found in graph.")))))

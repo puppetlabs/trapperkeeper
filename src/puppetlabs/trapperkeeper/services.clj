@@ -100,10 +100,9 @@
   Example:
 
     (get-service-fn app :logging-service :info)"
-  [^TrapperKeeperApp app service k & ks]
+  [^TrapperKeeperApp app service service-fn]
   {:pre [(keyword? service)
-         (keyword? k)
-         (every? keyword? ks)]
+         (keyword? service-fn)]
    :post [(not (nil? %))
           (ifn? %)]}
-  (get-in (:graph-instance app) (cons service (cons k ks))))
+  (get-in (:graph-instance app) [service service-fn]))

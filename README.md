@@ -555,8 +555,7 @@ you will need to do something like this:
 
 `add-servlet-handler` takes two arguments: `[servlet path]`.  The `servlet` argument
 is a normal Java [Servlet](http://docs.oracle.com/javaee/7/api/javax/servlet/Servlet.html).
-The `path` is a URL prefix / context string that will be prepended to all your handler's
-URLs.
+The `path` is the URL prefix at which the servlet will be registered.
 
 For example, to host a servlet at `/my-app`:
 

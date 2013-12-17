@@ -1,5 +1,6 @@
 (ns puppetlabs.trapperkeeper.services
   (:require [plumbing.core :refer [fnk]]
+            [slingshot.slingshot :refer [throw+]]
             [puppetlabs.trapperkeeper.app])
   (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
@@ -105,4 +106,8 @@
          (keyword? service-fn)]
    :post [(not (nil? %))
           (ifn? %)]}
-  (get-in (:graph-instance app) [service service-fn]))
+  (or
+    (get-in (:graph-instance app) [service service-fn])
+    (throw+ {:type :error
+             :message
+                   (str "Service " service " or service function " service-fn " not found in graph.")})))

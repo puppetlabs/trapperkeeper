@@ -226,3 +226,20 @@ This is not a legit line.
     (let [app (bootstrap*-with-empty-config [] ["--debug"])
           get-in-config (get-service-fn app :config-service :get-in-config)]
       (is (true? (get-in-config [:debug])))))
+
+(deftest test-error-handling
+  (testing "`get-service-fn` throws a useful error message if the service or service fn does not exist"
+    (let [got-expected-exception (atom false)]
+      (try+
+        (->
+          (bootstrap-framework-with-no-services)
+          (get-service-fn :service :service-fn))
+        (catch map? m
+          (is (contains? m :type))
+          (is (= :error (:type m)))
+          (is (contains? m :message))
+          (is (re-matches
+                #"(?s)^.*Service .* not found in graph.*$"
+                (m :message)))
+          (reset! got-expected-exception true)))
+      (is (true? @got-expected-exception)))))

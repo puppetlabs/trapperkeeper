@@ -4,7 +4,7 @@ This example demonstrates how to create a simple set of web services which both 
 generating content. When run, this code will attach two endpoints, `/bert` and `/ernie` which will generate a simple
 block of HTML that displays seperate hit counters for each service.
 
-All code needed to execute this example is located in `src/examples/ring_app`. The Clojure code is
+All code needed to execute this example is located in `examples/clj/examples/ring_app`. The Clojure code is
 contained in the `example_services.clj` file.
 
 And now, a few quick housekeeping items before we get to the code...
@@ -15,8 +15,8 @@ To start up _trapperkeeper_ and launch the sample application, use the following
 _trapperkeeper_ home directory:
 
 ```sh
-lein trampoline run --config src/examples/ring_app/config.ini \
-                    --bootstrap-config src/examples/ring_app/bootstrap.cfg
+lein trampoline run --config examples/clj/examples/ring_app/config.ini \
+                    --bootstrap-config examples/clj/examples/ring_app/bootstrap.cfg
 ```
 
 Once _trapperkeeper_ is running, point your browser to either http://localhost:8080/ernie or http://localhost:8080/bert
@@ -48,7 +48,7 @@ contains a path to a `log4j.properties` file which defines the logging configura
 ```ini
 [global]
 # Points to a log4j properties file
-logging-config = src/examples/ring_app/log4j.properties
+logging-config = examples/clj/examples/ring_app/log4j.properties
 
 [webserver]
 # Port to listen on for clear-text HTTP.
@@ -61,8 +61,8 @@ There is a debugging statement inside the count-service which displays the state
 to be incremented. To turn on debugging logging pass in the `--debug` option on the command line, like so:
 
 ```sh
-lein trampoline run --config src/examples/ring_app/config.ini \
-                    --bootstrap-config src/examples/ring_app/bootstrap.cfg \
+lein trampoline run --config examples/clj/examples/ring_app/config.ini \
+                    --bootstrap-config examples/clj/examples/ring_app/bootstrap.cfg \
                     --debug
 ```
 

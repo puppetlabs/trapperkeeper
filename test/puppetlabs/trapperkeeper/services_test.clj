@@ -3,6 +3,7 @@
             [plumbing.fnk.pfnk :as pfnk]
             [puppetlabs.trapperkeeper.services :refer :all]
             [puppetlabs.trapperkeeper.app :refer [service-graph?]]
+            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [hello-world-service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config bootstrap-framework-with-no-services]]))
 
 (deftest defservice-macro
@@ -72,4 +73,10 @@
           #"(?s)^.*Service .* not found in graph.*$"
           (->
             (bootstrap-framework-with-no-services)
-            (get-service-fn :service :service-fn))))))
+            (get-service-fn :service :service-fn))))
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"(?s)^.*service function.* not found in graph.*$"
+          (->
+            (bootstrap-services-with-empty-config [(hello-world-service)])
+            (get-service-fn :simple-service :invalid-service-fn))))))

@@ -1,5 +1,9 @@
 ## Configuring the nREPL service
 
+The `nREPL` service is intended to be used as a debugging tool and not directly called by any
+other application code. So no useful functions are directly exported by this service. A `shutdown`
+function is provided solely to allow the shutdown service to cleanly stop the `nREPL` server.
+
 The `[nrepl]` section in a _trapperkeeper_ `.ini` configuration file specifies all the settings
 needed to start up an `nREPL` server attached to _trapperkeeper_.
 

@@ -13,7 +13,7 @@
 (defn- startup-nrepl
   [config]
   {:pre [(map? config)]}
-  (let [enabled?     (parse-bool (get-in config [:nrepl :enabled] false))
+  (let [enabled?     (parse-bool (get-in config [:nrepl :enabled]))
         port         (get-in config [:nrepl :port] default-nrepl-port)
         bind         (get-in config [:nrepl :host] default-bind-addr)]
     (if enabled?

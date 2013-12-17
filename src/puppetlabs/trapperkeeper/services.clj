@@ -1,6 +1,5 @@
 (ns puppetlabs.trapperkeeper.services
   (:require [plumbing.core :refer [fnk]]
-            [slingshot.slingshot :refer [throw+]]
             [puppetlabs.trapperkeeper.app])
   (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 

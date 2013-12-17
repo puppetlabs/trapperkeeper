@@ -31,3 +31,7 @@
    (-> bootstrap-config
        bootstrap/parse-bootstrap-config!
        (trapperkeeper/bootstrap* cli-data))))
+
+(defn bootstrap-framework-with-no-services
+  []
+  (trapperkeeper/bootstrap* [] {:config empty-config}))

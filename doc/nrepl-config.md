@@ -9,7 +9,7 @@ The `enabled` flag is a boolean value, which can be set to either `"true"` or `"
 this is set to true, the `nREPL` server will start and accept connections. If this value is
 not specified then `enabled=false` is assumed.
 
-### `bind`
+### `host`
 
 The IP address to bind the nREPL server to. If not specified then `0.0.0.0` is used, which
 indicates binding to all available interfaces.

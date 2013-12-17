@@ -8,25 +8,24 @@
 
 ;; If no port is specified in the config then 7888 is used
 (def ^{:private true} default-nrepl-port 7888)
-(def ^{:private true} default-bind-addr "0.0.0.0")
+(def ^{:private true} default-bind-addr  "0.0.0.0")
 
 (defn- startup-nrepl
-  [config nrepl-server]
+  [config]
   {:pre [(map? config)]}
   (let [enabled?     (parse-bool (get-in config [:nrepl :enabled] false))
         port         (get-in config [:nrepl :port] default-nrepl-port)
-        bind         (get-in config [:nrepl :bind] default-bind-addr)]
+        bind         (get-in config [:nrepl :host] default-bind-addr)]
     (if enabled?
-      (do (log/debug "Starting nrepl service on port" port)
-          (compare-and-set! nrepl-server nil (nrepl/start-server :port port :bind bind)))
-      (log/debug "nrepl service disabled, not starting"))))
+      (do (log/info "Starting nREPL service on" bind "port" port)
+          (nrepl/start-server :port port :bind bind))
+      (log/info "nREPL service disabled, not starting"))))
 
 (defn- shutdown-nrepl
-  [config nrepl-server]
-  {:pre [(map? config)]}
-  (when-not (nil? @nrepl-server)
-    (log/debug "Shutting down nrepl service")
-    (nrepl/stop-server @nrepl-server)))
+  [nrepl-server]
+  (when nrepl-server
+    (log/info "Shutting down nREPL service")
+    (nrepl/stop-server nrepl-server)))
 
 (defservice nrepl-service
   "The nREPL trapperkeeper service starts up a Clojure network REPL (nREPL) server attached to the running
@@ -35,14 +34,14 @@
    [nrepl]
    enabled=true
    port=7888
+   host=0.0.0.0
 
    The nrepl service will only start if enabled is set to true, and the port specified which port nREPL should bind to.
    If no port is specified then the default port of 7888 is used."
   {:depends [[:config-service get-config]]
    :provides [shutdown]}
-  (let [nrepl-server (atom nil)]
-    (startup-nrepl (get-config) nrepl-server)
-    {:shutdown (partial shutdown-nrepl (get-config) nrepl-server)}))
+  (let [nrepl-server (startup-nrepl (get-config))]
+    {:shutdown (partial shutdown-nrepl nrepl-server)}))
 
 
 

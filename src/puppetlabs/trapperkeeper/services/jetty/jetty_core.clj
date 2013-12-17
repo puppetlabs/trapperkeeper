@@ -165,7 +165,7 @@
 
 (defn add-servlet-handler
   [webserver servlet path]
-  (let [handler (doto (ServletContextHandler. (ServletContextHandler/SESSIONS))
+  (let [handler (doto (ServletContextHandler. ServletContextHandler/SESSIONS)
                   (.setContextPath path)
                   (.addServlet (ServletHolder. servlet) "/*"))]
     (.addHandler (:handlers webserver) handler)

@@ -141,13 +141,15 @@ This is not a legit line.
 
   (testing "comments allowed in bootstrap config file"
     (let [bootstrap-config "
-# commented out line
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service
+ # commented out line
+puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service # comment
 ; another commented out line
-# puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service"
+ ;puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
+puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ; comment"
           services        (parse-bootstrap-config! (StringReader. bootstrap-config))]
-      (is (= (count services) 1))
-      (is (contains? (first services) :hello-world-service)))))
+      (is (= (count services) 2))
+      (is (contains? (first services) :hello-world-service))
+      (is (contains? (second services) :foo-test-service)))))
 
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message"

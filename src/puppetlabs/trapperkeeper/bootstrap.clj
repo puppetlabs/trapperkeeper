@@ -4,7 +4,6 @@
             [clojure.string :refer [trim]]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
-            [puppetlabs.kitchensink.core :refer [boolean?]]
             [puppetlabs.trapperkeeper.app :refer [validate-service-graph! service-graph?]]))
 
 (def bootstrap-config-file-name "bootstrap.cfg")
@@ -50,13 +49,23 @@
              (str "Unable to load service: "
                   fn-ns "/" fn-name)))))
 
-(defn- comment?
-  "Test whether the given bootstrap config line is commented out."
+(defn- remove-comments
+  "Given a line of text from the bootstrap config file, remove
+  anything that is commented out with either a '#' or ';'. If
+  the entire line is commented out, an empty string is returned."
   [line]
   {:pre  [(string? line)]
-   :post [(boolean? %)]}
-  (or (.startsWith line "#")
-      (.startsWith line ";")))
+   :post [(string? %)]}
+  (letfn [(trim-comment
+            [line comment-char]
+            (let [index (.indexOf line comment-char)]
+              (if (> index -1)
+                (.substring line 0 index)
+                line)))]
+    (-> line
+        (trim-comment "#")
+        (trim-comment ";")
+        (trim))))
 
 (defn parse-bootstrap-config!
   "Parse the trapperkeeper bootstrap configuration and return the service graph
@@ -68,9 +77,8 @@
           (every? service-graph? %)]}
   (let [lines (line-seq (reader config))]
     (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
-    (for [line (map trim lines)
-          :when (and (not (empty? line))
-                     (not (comment? line)))]
+    (for [line (map remove-comments lines)
+          :when (not (empty? line))]
       (let [[service-fn-namespace service-fn-name] (parse-bootstrap-line! line)]
         (call-service-fn! service-fn-namespace service-fn-name)))))
 

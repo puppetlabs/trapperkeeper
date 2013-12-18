@@ -4,6 +4,7 @@
             [clojure.string :refer [trim]]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
+            [puppetlabs.kitchensink.core :refer [boolean?]]
             [puppetlabs.trapperkeeper.app :refer [validate-service-graph! service-graph?]]))
 
 (def bootstrap-config-file-name "bootstrap.cfg")
@@ -49,6 +50,14 @@
              (str "Unable to load service: "
                   fn-ns "/" fn-name)))))
 
+(defn- comment?
+  "Test whether the given bootstrap config line is commented out."
+  [line]
+  {:pre  [(string? line)]
+   :post [(boolean? %)]}
+  (or (.startsWith line "#")
+      (.startsWith line ";")))
+
 (defn parse-bootstrap-config!
   "Parse the trapperkeeper bootstrap configuration and return the service graph
   that is the result of merging the graphs of all of the services specified in
@@ -60,7 +69,8 @@
   (let [lines (line-seq (reader config))]
     (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
     (for [line (map trim lines)
-          :when (not (empty? line))]
+          :when (and (not (empty? line))
+                     (not (comment? line)))]
       (let [[service-fn-namespace service-fn-name] (parse-bootstrap-line! line)]
         (call-service-fn! service-fn-namespace service-fn-name)))))
 

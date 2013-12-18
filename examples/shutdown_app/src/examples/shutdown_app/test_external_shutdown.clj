@@ -12,4 +12,4 @@
   (println "You should see a message printed out when services are being shutdown.")
   (trapperkeeper/run
     {:config "test-resources/config/empty.ini"
-     :bootstrap-config "examples/clj/examples/shutdown_app/bootstrap.cfg"}))
+     :bootstrap-config "examples/shutdown_app/bootstrap.cfg"}))

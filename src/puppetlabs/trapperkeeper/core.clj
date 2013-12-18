@@ -76,14 +76,16 @@
   Hard-codes the command-line arguments expected by trapperkeeper to be:
       --debug
       --bootstrap-config <bootstrap file>
-      --config <.ini file or directory>"
+      --config <.ini file or directory>
+      --plugins <plugins directory>"
   [cli-args]
   {:pre  [(sequential? cli-args)]
    :post [(map? %)]}
-  (let [specs    [["-d" "--debug" "Turns on debug mode" :flag true]
-                  ["-b" "--bootstrap-config" "Path to bootstrap config file"]
-                  ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]]
-        required [:config]]
+  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
+                     ["-b" "--bootstrap-config" "Path to bootstrap config file"]
+                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]
+                     ["-p" "--plugins" "Path to directory plugin .jars"]]
+        required    [:config]]
     (first (cli! cli-args specs required))))
 
 (defn main

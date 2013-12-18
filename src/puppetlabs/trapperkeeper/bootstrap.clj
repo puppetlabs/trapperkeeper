@@ -4,6 +4,7 @@
             [clojure.string :as string]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
+            [puppetlabs.trapperkeeper.plugins :as plugins]
             [puppetlabs.trapperkeeper.config :refer [configure!]]
             [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks!]]
             [puppetlabs.trapperkeeper.app :refer [validate-service-graph! service-graph?
@@ -159,6 +160,7 @@
   {:pre  [(map? cli-data)
           (contains? cli-data :config)]
    :post [(instance? TrapperKeeperApp %)]}
+  (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
   (-> cli-data
       (find-bootstrap-config)
       (parse-bootstrap-config!)

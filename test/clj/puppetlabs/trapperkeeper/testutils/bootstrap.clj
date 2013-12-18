@@ -28,3 +28,10 @@
    (-> bootstrap-config
        (bootstrap/parse-bootstrap-config!)
        (bootstrap/bootstrap-services cli-data))))
+
+(defn bootstrap-framework-with-no-services
+  ([]
+   (bootstrap-framework-with-no-services {}))
+  ([other-cli-data]
+   {:pre [(map? other-cli-data)]}
+   (bootstrap/bootstrap-services [] (merge other-cli-data {:config empty-config} ))))

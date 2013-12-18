@@ -84,7 +84,7 @@
           (reset! got-expected-exception true)))
       (is (true? @got-expected-exception)))))
 
-(deftest test-debug
+(deftest test-cli-args
   (testing "debug mode is off by default"
     (let [app           (bootstrap-services-with-empty-config [])
           get-in-config (get-service-fn app :config-service :get-in-config)]
@@ -93,4 +93,9 @@
   (testing "--debug puts TK in debug mode"
     (let [app           (bootstrap-services-with-empty-config [] ["--debug"])
           get-in-config (get-service-fn app :config-service :get-in-config)]
-      (is (true? (get-in-config [:debug]))))))
+      (is (true? (get-in-config [:debug])))))
+
+  (testing "TK should accept --plugins arg"
+    ;; Make sure --plugins is allowed; will throw an exception if not.
+    (trapperkeeper/parse-cli-args! ["--config" "yo mama"
+                                    "--plugins" "some/plugin/directory"])))

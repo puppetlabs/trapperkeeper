@@ -1,7 +1,7 @@
 (ns puppetlabs.trapperkeeper.bootstrap
   (:import (java.io Reader FileNotFoundException))
   (:require [clojure.java.io :refer [IOFactory]]
-            [clojure.string :refer [trim]]
+            [clojure.string :as string]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.app :refer [validate-service-graph! service-graph?]]))
@@ -56,16 +56,9 @@
   [line]
   {:pre  [(string? line)]
    :post [(string? %)]}
-  (letfn [(trim-comment
-            [line comment-char]
-            (let [index (.indexOf line comment-char)]
-              (if (> index -1)
-                (.substring line 0 index)
-                line)))]
-    (-> line
-        (trim-comment "#")
-        (trim-comment ";")
-        (trim))))
+  (-> line
+      (string/replace #"(?:#|;).*$" "")
+      (string/trim)))
 
 (defn parse-bootstrap-config!
   "Parse the trapperkeeper bootstrap configuration and return the service graph

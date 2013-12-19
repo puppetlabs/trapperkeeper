@@ -46,7 +46,7 @@
   ((services/service :config-service
     {:depends  []
      :provides [get-in-config get-config]}
-    {:get-in-config (fn [ks] (get-in config ks))
+    {:get-in-config (partial get-in config)
      :get-config    (fn [] config)})))
 
 (defn- parse-config-file

@@ -11,11 +11,10 @@
 (def ^{:private true} default-bind-addr  "0.0.0.0")
 
 (defn- startup-nrepl
-  [config]
-  {:pre [(map? config)]}
-  (let [enabled?     (parse-bool (get-in config [:nrepl :enabled]))
-        port         (get-in config [:nrepl :port] default-nrepl-port)
-        bind         (get-in config [:nrepl :host] default-bind-addr)]
+  [get-in-config]
+  (let [enabled?     (parse-bool (get-in-config [:nrepl :enabled]))
+        port         (get-in-config [:nrepl :port] default-nrepl-port)
+        bind         (get-in-config [:nrepl :host] default-bind-addr)]
     (if enabled?
       (do (log/info "Starting nREPL service on" bind "port" port)
           (nrepl/start-server :port port :bind bind))
@@ -38,9 +37,9 @@
 
    The nrepl service will only start if enabled is set to true, and the port specified which port nREPL should bind to.
    If no port is specified then the default port of 7888 is used."
-  {:depends [[:config-service get-config]]
+  {:depends [[:config-service get-in-config]]
    :provides [shutdown]}
-  (let [nrepl-server (startup-nrepl (get-config))]
+  (let [nrepl-server (startup-nrepl get-in-config)]
     {:shutdown (partial shutdown-nrepl nrepl-server)}))
 
 

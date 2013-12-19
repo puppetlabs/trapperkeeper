@@ -3,7 +3,7 @@
             [clojure.java.io :refer [file]]
             [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
-            [puppetlabs.kitchensink.core :refer [inis-to-map cli!]]
+            [puppetlabs.kitchensink.core :refer [inis-to-map cli! without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
@@ -184,7 +184,7 @@
   `puppetlabs.trapperkeeper.core/-main` if you use `puppetlabs.trapperkeeper.core`
   as the `:main` namespace in your leinengen project."
   [& args]
-  {:pre [(seq? args)
+  {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
   (try+
     (-> args
@@ -192,6 +192,6 @@
         (run))
     (catch map? m
       (println (:message m))
-      (case (:type m)
-        :error (System/exit 1)
-        :help  (System/exit 0)))))
+      (case (without-ns (:type m))
+        :cli-error (System/exit 1)
+        :cli-help  (System/exit 0)))))

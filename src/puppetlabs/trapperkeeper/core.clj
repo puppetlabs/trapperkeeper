@@ -184,7 +184,7 @@
   `puppetlabs.trapperkeeper.core/-main` if you use `puppetlabs.trapperkeeper.core`
   as the `:main` namespace in your leinengen project."
   [& args]
-  {:pre [((some-fn seq? nil?) args)
+  {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
   (try+
     (-> args

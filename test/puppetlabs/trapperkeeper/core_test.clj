@@ -9,6 +9,7 @@
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
+            [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]))
 
 (deftest test-bootstrapping
@@ -220,7 +221,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
         (trapperkeeper/parse-cli-args! [])
         (catch map? m
           (is (contains? m :type))
-          (is (= :error (:type m)))
+          (is (= :cli-error (without-ns (:type m))))
+          (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
           (is (contains? m :message))
           (is (re-matches
                 #"(?s)^.*Missing required argument '--config'.*$"

@@ -142,10 +142,10 @@ This is not a legit line.
   (testing "comments allowed in bootstrap config file"
     (let [bootstrap-config "
  # commented out line
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service # comment
+puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service # comment ; comment
 ; another commented out line
  ;puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ; comment"
+puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ; comment # comment"
           services        (parse-bootstrap-config! (StringReader. bootstrap-config))]
       (is (= (count services) 2))
       (is (contains? (first services) :hello-world-service))

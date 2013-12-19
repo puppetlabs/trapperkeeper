@@ -8,7 +8,8 @@
    {:depends [[:config-service get-in-config get-config]]
     :provides []}
    {:test-fn (fn [ks] (get-in-config ks))
-    :test-fn-2 (fn [] (get-config))})
+    :test-fn-2 (fn [] (get-config))
+    :get-in-config get-in-config})
 
 (deftest test-config-service
   (testing "Fails if config path doesn't exist"
@@ -33,4 +34,9 @@
           test-fn (get-service-fn app :test-service :test-fn)]
       (is (= (test-fn [:baz :setting1]) "baz1"))
       (is (= (test-fn [:baz :setting2]) "baz2"))
-      (is (= (test-fn [:bam :setting1]) "bam1")))))
+      (is (= (test-fn [:bam :setting1]) "bam1"))))
+
+  (testing "A proper default value is returned if a key can't be found"
+    (let [app     (bootstrap* [(test-service)] {:config "./test-resources/config/dir"})
+          test-fn (get-service-fn app :test-service :get-in-config)]
+      (is (= (test-fn [:doesnt :exist] "foo") "foo")))))

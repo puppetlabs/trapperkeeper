@@ -1,7 +1,7 @@
 (ns puppetlabs.trapperkeeper.bootstrap
   (:import (java.io Reader FileNotFoundException))
   (:require [clojure.java.io :refer [IOFactory]]
-            [clojure.string :refer [trim]]
+            [clojure.string :as string]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.app :refer [validate-service-graph! service-graph?]]))
@@ -49,6 +49,17 @@
              (str "Unable to load service: "
                   fn-ns "/" fn-name)))))
 
+(defn- remove-comments
+  "Given a line of text from the bootstrap config file, remove
+  anything that is commented out with either a '#' or ';'. If
+  the entire line is commented out, an empty string is returned."
+  [line]
+  {:pre  [(string? line)]
+   :post [(string? %)]}
+  (-> line
+      (string/replace #"(?:#|;).*$" "")
+      (string/trim)))
+
 (defn parse-bootstrap-config!
   "Parse the trapperkeeper bootstrap configuration and return the service graph
   that is the result of merging the graphs of all of the services specified in
@@ -59,7 +70,7 @@
           (every? service-graph? %)]}
   (let [lines (line-seq (reader config))]
     (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
-    (for [line (map trim lines)
+    (for [line (map remove-comments lines)
           :when (not (empty? line))]
       (let [[service-fn-namespace service-fn-name] (parse-bootstrap-line! line)]
         (call-service-fn! service-fn-namespace service-fn-name)))))

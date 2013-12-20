@@ -47,7 +47,8 @@
 
              :testutils {:source-paths ^:replace ["test/clj"]
                          :java-source-paths ^:replace ["test/java"]}
-             :uberjar {:aot [puppetlabs.trapperkeeper.main]}}
+             :uberjar {:aot [puppetlabs.trapperkeeper.main]
+                       :classifiers ^:replace []}}
 
   :main puppetlabs.trapperkeeper.main
   )

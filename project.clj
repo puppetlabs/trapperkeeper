@@ -34,8 +34,10 @@
   :profiles {:dev {:test-paths ["test-resources"]
                    :source-paths ["examples/shutdown_app/src"
                                   "examples/ring_app/src"
-                                  "examples/servlet_app/src/clj"]
-                   :java-source-paths ["examples/servlet_app/src/java"]}
+                                  "examples/servlet_app/src/clj"
+                                  "examples/java_service/src/clj"]
+                   :java-source-paths ["examples/servlet_app/src/java"
+                                       "examples/java_service/src/java"]}
 
              :test {:dependencies [[clj-http "0.5.3"]
                                    [org.slf4j/slf4j-log4j12 "1.7.5"]

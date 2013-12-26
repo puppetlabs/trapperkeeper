@@ -31,6 +31,8 @@
   ;; code that we have.
   :classifiers [["test" :testutils]]
 
+  :test-paths ["test/clj"]
+
   :profiles {:dev {:test-paths ["test-resources"]
                    :source-paths ["examples/shutdown_app/src"
                                   "examples/ring_app/src"
@@ -42,7 +44,6 @@
              :test {:dependencies [[clj-http "0.5.3"]
                                    [org.slf4j/slf4j-log4j12 "1.7.5"]
                                    [puppetlabs/kitchensink "0.4.0" :classifier "test"]]
-                    :test-paths ["test/clj"]
                     :java-source-paths ["test/java"]}
 
              :testutils {:source-paths ^:replace ["test/clj"]

@@ -88,9 +88,9 @@
   (testing "debug mode is off by default"
     (let [app           (bootstrap-services-with-empty-config [])
           get-in-config (get-service-fn app :config-service :get-in-config)]
-      (is (false? (get-in-config [:debug]))))))
+      (is (false? (get-in-config [:debug])))))
 
   (testing "--debug puts TK in debug mode"
     (let [app           (bootstrap-services-with-empty-config [] ["--debug"])
           get-in-config (get-service-fn app :config-service :get-in-config)]
-      (is (true? (get-in-config [:debug])))))
+      (is (true? (get-in-config [:debug]))))))

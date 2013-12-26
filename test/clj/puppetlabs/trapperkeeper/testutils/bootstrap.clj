@@ -5,8 +5,12 @@
 (def empty-config "./test-resources/config/empty.ini")
 
 (defn bootstrap-services-with-empty-config
-  [services]
-  (trapperkeeper/bootstrap* services {:config empty-config}))
+  ([services]
+    (bootstrap/bootstrap-services services {:config empty-config}))
+  ([services other-args]
+    (->> (conj other-args "--config" empty-config)
+         (trapperkeeper/parse-cli-args!)
+         (bootstrap/bootstrap-services services))))
 
 (defn bootstrap-with-empty-config
   ([]
@@ -15,23 +19,12 @@
    (-> other-args
        (conj "--config" empty-config )
        (trapperkeeper/parse-cli-args!)
-       (trapperkeeper/bootstrap))))
-
-(defn bootstrap*-with-empty-config
-  [services other-args]
-  (let [cli-data (->
-                   (conj other-args "--config" empty-config)
-                   (trapperkeeper/parse-cli-args!))]
-    (trapperkeeper/bootstrap* services cli-data)))
+       (bootstrap/bootstrap))))
 
 (defn parse-and-bootstrap
   ([bootstrap-config]
    (parse-and-bootstrap bootstrap-config {:config empty-config}))
   ([bootstrap-config cli-data]
    (-> bootstrap-config
-       bootstrap/parse-bootstrap-config!
-       (trapperkeeper/bootstrap* cli-data))))
-
-(defn bootstrap-framework-with-no-services
-  []
-  (trapperkeeper/bootstrap* [] {:config empty-config}))
+       (bootstrap/parse-bootstrap-config!)
+       (bootstrap/bootstrap-services cli-data))))

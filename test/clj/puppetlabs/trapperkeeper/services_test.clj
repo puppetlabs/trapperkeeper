@@ -4,7 +4,7 @@
             [puppetlabs.trapperkeeper.services :refer :all]
             [puppetlabs.trapperkeeper.app :refer [service-graph?]]
             [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [hello-world-service]]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config bootstrap-framework-with-no-services]]))
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]))
 
 (deftest defservice-macro
   (def logging-service
@@ -66,17 +66,15 @@
                       {:depends []}
                       {})"))))))
 
-(deftest missing-service
-  (testing "`get-service-fn` throws a useful error message if the service or service fn does not exist"
+(deftest get-service-fn-test
+  (testing "throws a useful error message if the service or service fn does not exist"
     (is (thrown-with-msg?
           IllegalArgumentException
           #"(?s)^.*Service .* not found in graph.*$"
-          (->
-            (bootstrap-framework-with-no-services)
-            (get-service-fn :service :service-fn))))
+          (-> (bootstrap-services-with-empty-config [])
+              (get-service-fn :service :service-fn))))
     (is (thrown-with-msg?
           IllegalArgumentException
           #"(?s)^.*service function.* not found in graph.*$"
-          (->
-            (bootstrap-services-with-empty-config [(hello-world-service)])
-            (get-service-fn :simple-service :invalid-service-fn))))))
+          (-> (bootstrap-services-with-empty-config [(hello-world-service)])
+              (get-service-fn :simple-service :invalid-service-fn))))))

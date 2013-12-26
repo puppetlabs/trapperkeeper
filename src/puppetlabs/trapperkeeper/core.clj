@@ -1,17 +1,13 @@
 (ns puppetlabs.trapperkeeper.core
-  (:require [plumbing.graph :as graph]
-            [clojure.java.io :refer [file]]
+  (:require puppetlabs.trapperkeeper.app
             [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
-            [puppetlabs.kitchensink.core :refer [inis-to-map cli! without-ns]]
+            [puppetlabs.kitchensink.core :refer [cli! without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
-            [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
-            [puppetlabs.trapperkeeper.app :refer [service-graph?]]
-            [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks! wait-for-shutdown
-                                                       shutdown! initiated-internally? call-error-handler!]])
-  (:import (java.io FileNotFoundException)
-           (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
+            [puppetlabs.trapperkeeper.shutdown :refer [wait-for-shutdown shutdown!
+                                                       initiated-internally? call-error-handler!]])
+  (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
@@ -25,89 +21,18 @@
              rest of the API."}
   defservice #'services/defservice)
 
-(defn config-service
-  "A simple configuration service based on .ini config files.  Expects
-   to find a command-line argument value for `:config`; the value of this
-   parameter should be the path to an .ini file or a directory of .ini
-   files.
-
-   Provides a function, `get-in-config`, which can be used to
-   retrieve the config data read from the ini files.  For example,
-   given an ini file with the following contents:
-
-       [foo]
-       bar = baz
-
-   The value of `(get-in-config [:foo :bar])` would be `\"baz\"`.
-
-   Also provides a second function, `get-config`, which simply returns
-   the entire configuration map."
-  [config]
-  ((services/service :config-service
-    {:depends  []
-     :provides [get-in-config get-config]}
-    {:get-in-config (partial get-in config)
-     :get-config    (fn [] config)})))
-
-(defn- parse-config-file
-  [config-file-path]
-  {:pre  [(not (nil? config-file-path))]
-   :post [(map? %)]}
-  (when-not (.canRead (file config-file-path))
-    (throw (FileNotFoundException.
-             (format
-               "Configuration path '%s' must exist and must be readable."
-               config-file-path))))
-  (inis-to-map config-file-path))
-
-(defn- compile-graph
-  "Given the merged map of services, compile it into a function suitable for instantiation.
-  Throws an exception if there is a dependency on a service that is not found in the map."
-  [graph-map]
-  {:pre  [(service-graph? graph-map)]
-   :post [(ifn? %)]}
-  (try
-    (graph/eager-compile graph-map)
-    (catch IllegalArgumentException e
-      (let [match (re-matches #"(?s)^Failed on keyseq: \[:(.*)\]\. Value is missing\. .*$" (.getMessage e))]
-        (if match
-          (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
-          (throw e))))))
-
-(defn- instantiate
-  "Given the compiled graph function, instantiate the application. Throws an exception
-  if there is a dependency on a service function that is not found in the graph."
-  [graph-fn]
-  {:pre  [(ifn? graph-fn)]
-   :post [(service-graph? %)]}
-  (try
-    (graph-fn {})
-    (catch RuntimeException e
-      (if-let [match (re-matches #"^Key (:.*) not found in null$" (.getMessage e))]
-        (throw (RuntimeException. (format "Service '%s' not found" (second match))))
-        (if-let [match (re-matches #"^Key :(.*) not found in .*$" (.getMessage e))]
-          (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
-          (throw e))))))
-
-(defn bootstrap*
-  "Bootstraps a trapperkeeper application given a sequence of service graphs and
-  the parsed CLI data. This is just a helper function for `bootstrap` and is
-  only public for testing purposes."
-  [services cli-data]
-  {:pre  [(sequential? services)
-          (every? service-graph? services)
-          (map? cli-data)]
-   :post [(instance? TrapperKeeperApp %)]}
-  (let [debug           (or (cli-data :debug) false)
-        config-data     (-> (parse-config-file (cli-data :config))
-                            (assoc :debug debug))
-        config-service  (config-service config-data)
-        _               (configure-logging! (get-in config-data [:global :logging-config]) (cli-data :debug))
-        graph-map       (-> (apply merge config-service services)
-                            (register-shutdown-hooks!))
-        graph-fn        (compile-graph graph-map)
-        graph-instance  (instantiate graph-fn)]
-    (TrapperKeeperApp. graph-instance)))
+(defn run-app
+  "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
+  which may be triggered by one of several different ways. In all cases, services
+  will be shut down and any exceptions they might throw will be caught and logged."
+  [^TrapperKeeperApp app]
+  {:pre [(instance? TrapperKeeperApp app)]}
+  (let [shutdown-reason (wait-for-shutdown app)]
+    (when (initiated-internally? shutdown-reason)
+      (call-error-handler! shutdown-reason)
+      (shutdown!)
+      (when-let [error (:error shutdown-reason)]
+        (throw error)))))
 
 (defn bootstrap
   "Bootstrap a trapperkeeper application.  This is accomplished by reading a
@@ -130,42 +55,10 @@
   Their must be a `:config` key in this map which defines the .ini file
   (or directory of files) used by the configuration service."
   [cli-data]
-  {:pre [(map? cli-data)
-         (contains? cli-data :config)]
-  :post [(instance? TrapperKeeperApp %)]}
-  (if-let [bootstrap-config (or (bootstrap/config-from-cli! cli-data)
-                                (bootstrap/config-from-cwd)
-                                (bootstrap/config-from-classpath))]
-    (-> bootstrap-config
-        (bootstrap/parse-bootstrap-config!)
-        (bootstrap* cli-data))
-    (throw (IllegalStateException.
-             "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"))))
-
-(defn parse-cli-args!
-  "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
-    Hard-codes the command-line arguments expected by trapperkeeper to be:
-        --debug
-        --bootstrap-config <bootstrap file>
-        --config <.ini file or directory>"
-  [cli-args]
-  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
-                     ["-b" "--bootstrap-config" "Path to bootstrap config file"]
-                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]]
-        required    [:config]]
-    (first (cli! cli-args specs required))))
-
-(defn run-app
-  "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
-  which may be triggered by one of several different ways. In all cases, services
-  will be shut down and any exceptions they might throw will be caught and logged."
-  [^TrapperKeeperApp app]
-  (let [shutdown-reason (wait-for-shutdown app)]
-    (when (initiated-internally? shutdown-reason)
-      (call-error-handler! shutdown-reason)
-      (shutdown!)
-      (when-let [error (:error shutdown-reason)]
-        (throw error)))))
+  {:pre  [(map? cli-data)
+          (contains? cli-data :config)]
+   :post [(instance? TrapperKeeperApp %)]}
+  (bootstrap/bootstrap cli-data))
 
 (defn run
   "Bootstraps a trapperkeeper application and runs it.
@@ -177,6 +70,21 @@
   (-> cli-data
       (bootstrap)
       (run-app)))
+
+(defn parse-cli-args!
+  "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
+  Hard-codes the command-line arguments expected by trapperkeeper to be:
+      --debug
+      --bootstrap-config <bootstrap file>
+      --config <.ini file or directory>"
+  [cli-args]
+  {:pre  [(sequential? cli-args)]
+   :post [(map? %)]}
+  (let [specs    [["-d" "--debug" "Turns on debug mode" :flag true]
+                  ["-b" "--bootstrap-config" "Path to bootstrap config file"]
+                  ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]]
+        required [:config]]
+    (first (cli! cli-args specs required))))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until

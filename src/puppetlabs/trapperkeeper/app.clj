@@ -1,5 +1,6 @@
 (ns puppetlabs.trapperkeeper.app
-  (:require [plumbing.map]))
+  (:require [plumbing.map]
+            [plumbing.graph :refer [eager-compile]]))
 
 ;  A type representing a trapperkeeper application.  This is intended to provide
 ;  an abstraction so that users don't need to worry about the implementation
@@ -32,3 +33,32 @@
     (throw (IllegalArgumentException. (str "Invalid service graph; service graphs must "
                                            "be nested maps of keywords to functions.  Found: "
                                            service-graph)))))
+
+(defn compile-graph
+  "Given the merged map of services, compile it into a function suitable for instantiation.
+  Throws an exception if there is a dependency on a service that is not found in the map."
+  [graph-map]
+  {:pre  [(service-graph? graph-map)]
+   :post [(ifn? %)]}
+  (try
+    (eager-compile graph-map)
+    (catch IllegalArgumentException e
+      (let [match (re-matches #"(?s)^Failed on keyseq: \[:(.*)\]\. Value is missing\. .*$" (.getMessage e))]
+        (if match
+          (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
+          (throw e))))))
+
+(defn instantiate
+  "Given the compiled graph function, instantiate the application. Throws an exception
+  if there is a dependency on a service function that is not found in the graph."
+  [graph-fn]
+  {:pre  [(ifn? graph-fn)]
+   :post [(service-graph? %)]}
+  (try
+    (graph-fn {})
+    (catch RuntimeException e
+      (if-let [match (re-matches #"^Key (:.*) not found in null$" (.getMessage e))]
+        (throw (RuntimeException. (format "Service '%s' not found" (second match))))
+        (if-let [match (re-matches #"^Key :(.*) not found in .*$" (.getMessage e))]
+          (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
+          (throw e))))))

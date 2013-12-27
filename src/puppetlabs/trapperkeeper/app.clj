@@ -43,6 +43,8 @@
   (try
     (eager-compile graph-map)
     (catch IllegalArgumentException e
+      ;; TODO: when prismatic releases version 0.2.0 of plumbing, we should clean this
+      ;; up.  See: https://tickets.puppetlabs.com/browse/PE-2281
       (let [match (re-matches #"(?s)^Failed on keyseq: \[:(.*)\]\. Value is missing\. .*$" (.getMessage e))]
         (if match
           (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
@@ -57,6 +59,8 @@
   (try
     (graph-fn {})
     (catch RuntimeException e
+      ;; TODO: when prismatic releases version 0.2.0 of plumbing, we should clean this
+      ;; up.  See: https://tickets.puppetlabs.com/browse/PE-2281
       (if-let [match (re-matches #"^Key (:.*) not found in null$" (.getMessage e))]
         (throw (RuntimeException. (format "Service '%s' not found" (second match))))
         (if-let [match (re-matches #"^Key :(.*) not found in .*$" (.getMessage e))]

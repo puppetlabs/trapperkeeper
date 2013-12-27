@@ -11,6 +11,7 @@
                  [puppetlabs/kitchensink ~ks-version]
                  [prismatic/plumbing "0.1.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
+                 [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.0.13"]]
 
   :repositories [["releases" "http://nexus.delivery.puppetlabs.net/content/repositories/releases/"]

@@ -9,14 +9,17 @@
                  [puppetlabs/kitchensink "0.4.1-SNAPSHOT"]
                  [prismatic/plumbing "0.1.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
-                 [log4j "1.2.17" :exclusions [javax.mail/mail
-                                              javax.jms/jms
-                                              com.sun.jdmk/jmxtools
-                                              com.sun.jmx/jmxri]]
+                 [log4j "1.2.17"
+                  :exclusions [javax.mail/mail
+                               javax.jms/jms
+                               com.sun.jdmk/jmxtools
+                               com.sun.jmx/jmxri]]
 
                  ;; Jetty Webserver
-                 [org.eclipse.jetty/jetty-server "7.6.1.v20120215"]
                  [org.eclipse.jetty/jetty-servlet "7.6.1.v20120215"]
+                 [org.eclipse.jetty/jetty-server "7.6.1.v20120215"
+                  :exclusions [org.eclipse.jetty.orbit/javax.servlet]]
+
                  [ring/ring-servlet "1.1.8"]]
 
   :repositories [["releases" "http://nexus.delivery.puppetlabs.net/content/repositories/releases/"]

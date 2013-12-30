@@ -10,9 +10,9 @@
   code should process a file with the given name."
   [name]
   (and
-    ;; we only care about .class and .clj files
-    (or (.endsWith name ".class")
-        (.endsWith name ".clj"))
+    ;; ignore directories
+    (not (or (.isDirectory (file name))
+             (.endsWith name "/"))) ; necessary for directories in .jars
 
     ;; don't care about anything in META-INF
     (not (.startsWith name "META-INF"))
@@ -26,9 +26,19 @@
   [container-filename acc filename]
   (if (should-process? filename)
     (if (contains? acc filename)
-      (throw (IllegalArgumentException. (str "Class or namespace " filename
-                                             " found in both " container-filename
-                                             " and " (acc filename))))
+      (let [error-msg (str "Class or namespace " filename " found in both "
+                           container-filename " and " (acc filename))]
+        (if (or (.endsWith filename ".class") (.endsWith filename ".clj"))
+          (throw (IllegalArgumentException. error-msg))
+
+          ;; It is common to have other conflicts (besides classes and clojure
+          ;; namespaces), especially during development (for example,
+          ;; jetty-servlet and jetty-http both contain an `about.html` -
+          ;; these conflicts don't exist in the uberjar anyway,
+          ;; and likely aren't important, so just warn instead of throwing
+          (do
+            (log/warn error-msg)
+            acc)))
       (assoc acc filename container-filename))
     acc))
 

@@ -2,17 +2,17 @@
   (:import  [servlet SimpleServlet])
   (:require [clojure.test :refer :all]
             [clj-http.client :as http-client]
-            [puppetlabs.trapperkeeper.bootstrap :refer [bootstrap-services]]
             [puppetlabs.trapperkeeper.services :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.services.jetty.jetty-service :refer :all]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config
+                                                                  bootstrap-services-with-cli-data]]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
 
 (use-fixtures :once with-no-jvm-shutdown-hooks)
 
 (deftest jetty-webserver-service
   (testing "ring support"
-    (let [app              (bootstrap-services [(webserver-service)] {:config "./test-resources/config/jetty/jetty.ini"})
+    (let [app              (bootstrap-services-with-cli-data [(webserver-service)] {:config "./test-resources/config/jetty/jetty.ini"})
           add-ring-handler (get-service-fn app :webserver-service :add-ring-handler)
           join             (get-service-fn app :webserver-service :join)
           shutdown         (get-service-fn app :webserver-service :shutdown)
@@ -50,7 +50,7 @@
   (testing "SSL initialization is supported for both .jks and .pem implementations"
     (doseq [config ["./test-resources/config/jetty/jetty-ssl-jks.ini"
                     "./test-resources/config/jetty/jetty-ssl-pem.ini"]]
-      (let [app               (bootstrap-services [(webserver-service)] {:config config})
+      (let [app               (bootstrap-services-with-cli-data [(webserver-service)] {:config config})
             add-ring-handler  (get-service-fn app :webserver-service :add-ring-handler)
             join              (get-service-fn app :webserver-service :join)
             shutdown          (get-service-fn app :webserver-service :shutdown)

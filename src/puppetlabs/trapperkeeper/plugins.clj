@@ -5,31 +5,32 @@
             [clojure.tools.logging :as log]
             [puppetlabs.kitchensink.classpath :as kitchensink]))
 
+(defn- should-process?
+  "Helper for `process-file`.  Answers whether or not the duplicate detection
+  code should process a file with the given name."
+  [name]
+  (and
+    ;; we only care about .class and .clj files
+    (or (.endsWith name ".class")
+        (.endsWith name ".clj"))
+
+    ;; don't care about anything in META-INF
+    (not (.startsWith name "META-INF"))
+
+    ;; lein includes project.clj ... no thank you
+    (not (= name "project.clj"))))
+
 (defn- process-file
   "Helper for `process-container`.  Processes a file and adds it to the
   accumulator if it is a .class or .clj file we care about."
   [container-filename acc filename]
-  (letfn [(should-process? [name]
-                           (and
-                             ;; Fliter out clojure stdlib - it's really big
-                             (not (.startsWith name "clojure/"))
-
-                             ;; we only care about .class and .clj files
-                             (or (.endsWith name ".class")
-                                 (.endsWith name ".clj"))
-
-                             ;; don't care about anything in META-INF
-                             (not (.startsWith name "META-INF"))
-
-                             ;; lein includes project.clj ... no thank you
-                             (not (= name "project.clj"))))]
-    (if (should-process? filename)
-      (if (contains? acc filename)
-        (throw (Exception. (str "Class or namespace " filename
-                                " found in both " container-filename
-                                " and " (acc filename))))
-        (assoc acc filename container-filename))
-      acc)))
+  (if (should-process? filename)
+    (if (contains? acc filename)
+      (throw (Exception. (str "Class or namespace " filename
+                              " found in both " container-filename
+                              " and " (acc filename))))
+      (assoc acc filename container-filename))
+    acc))
 
 (defn- process-container
   "Helper for `verify-no-duplicate-resources`.
@@ -80,8 +81,7 @@
         (do
           (verify-no-duplicate-resources plugins)
           (doseq [jar (jars-in-dir plugins)]
-            (do
-              (log/info "Adding plugin .jar " (.getAbsolutePath jar) " to classpath.")
-              (kitchensink/add-classpath jar))))
+            (log/info "Adding plugin .jar " (.getAbsolutePath jar) " to classpath.")
+            (kitchensink/add-classpath jar)))
         (throw (IllegalArgumentException.
                  (str "Plugins directory " plugins-path " does not exist")))))))

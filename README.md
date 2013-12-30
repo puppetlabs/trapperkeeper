@@ -40,6 +40,7 @@ Prismatic for sharing their code!
  * [nREPL Service](#nrepl-service)
 * [Service Interfaces](#service-interfaces)
 * [Command Line Arguments](#command-line-arguments)
+* [Plugin System](#plugin-system)
 * [Polyglot Support](#polyglot-support)
 * [Dev Practices](#dev-practices)
 * [Test Utils](#test-utils)
@@ -724,6 +725,29 @@ and this map must contain the `:config` key which trapperkeeper will use just
 as it would have used the `--config` value from the command line.  You may also
 (optionally) provide `:bootstrap-config` and `:debug` keys, to override the
 path to the bootstrap configuration file and/or enable debugging on the application.
+
+## Plugin System
+Trapperkeeper has an **extremely** simple plugin mechanism.  It allows you to
+specify (as a command-line argument) a directory of "plugin" .jars that will be
+dynamically added to the classpath at runtime.  Each .jar will also be checked
+for duplicate classes or namespaces before it is added, so as to prevent any
+unexpected behavior.
+
+This provides the ability to extend the functionality of a deployed,
+trapperkeeper-based application by simply including one or more services
+packaged into standalone "plugin" .jars, and adding the additional service(s)
+to the bootstrap configuration.
+
+Projects that wish to package themselves as "plugin" .jars should build an
+uberjar containing all of their dependencies.  However, there is one caveat
+here - trapperkeeper *and all of its depenedencies* should be excluded from the
+uberjar.  If the exclusions are not defined correctly, trapperkeeper will fail
+to start because there will be duplicate versions of classes/namespaces on the
+classpath.
+
+Plugins are specified via a command-line arugument:
+`--plugins /path/to/plugins/directory`; every .jar file in that directory will
+be added to the classpath by trapperkeeper.
 
 ## Polyglot Support
 

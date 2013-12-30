@@ -26,7 +26,7 @@
 (deftest test-duplicates
   (testing "duplicate test fails when an older version of kitchensink is included"
     (is (thrown-with-msg?
-          Exception
+          IllegalArgumentException
           #".*Class or namespace.*found in both.*"
           (verify-no-duplicate-resources
             (file "plugin-test-resources/bad-plugins"))))))

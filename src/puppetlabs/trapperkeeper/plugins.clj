@@ -26,9 +26,9 @@
   [container-filename acc filename]
   (if (should-process? filename)
     (if (contains? acc filename)
-      (throw (Exception. (str "Class or namespace " filename
-                              " found in both " container-filename
-                              " and " (acc filename))))
+      (throw (IllegalArgumentException. (str "Class or namespace " filename
+                                             " found in both " container-filename
+                                             " and " (acc filename))))
       (assoc acc filename container-filename))
     acc))
 

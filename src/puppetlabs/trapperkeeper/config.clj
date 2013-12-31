@@ -1,3 +1,20 @@
+;;;;
+;;;; This namespace contains trapperkeeper's built-in configuration service,
+;;;; which is based on .ini config files.
+;;;;
+;;;; This service provides a function, `get-in-config`, which can be used to
+;;;; retrieve the config data read from the ini files.  For example,
+;;;; given an .ini file with the following contents:
+;;;;
+;;;;   [foo]
+;;;;   bar = baz
+;;;;
+;;;; The value of `(get-in-config [:foo :bar])` would be `"baz"`.
+;;;;
+;;;; Also provides a second function, `get-config`, which simply returns
+;;;; the entire map of configuration data.
+;;;;
+
 (ns puppetlabs.trapperkeeper.config
   (:import  (java.io FileNotFoundException))
   (:require [clojure.java.io :refer [file]]
@@ -6,22 +23,9 @@
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
 
 (defn config-service
-  "A simple configuration service based on .ini config files.  Expects
+  "Returns trapperkeeper's configuration service.  Expects
    to find a command-line argument value for `:config`; the value of this
-   parameter should be the path to an .ini file or a directory of .ini
-   files.
-
-   Provides a function, `get-in-config`, which can be used to
-   retrieve the config data read from the ini files.  For example,
-   given an ini file with the following contents:
-
-       [foo]
-       bar = baz
-
-   The value of `(get-in-config [:foo :bar])` would be `\"baz\"`.
-
-   Also provides a second function, `get-config`, which simply returns
-   the entire configuration map."
+   parameter should be the path to an .ini file or a directory of .ini files."
   [config]
   ((service :config-service
     {:depends  []

@@ -1,8 +1,9 @@
 (ns puppetlabs.trapperkeeper.bootstrap
-  (:import (java.io Reader FileNotFoundException))
+  (:import (java.io Reader FileNotFoundException)
+           (java.net URI))
   (:require [clojure.java.io :refer [IOFactory]]
             [clojure.string :as string]
-            [clojure.java.io :refer [reader resource file]]
+            [clojure.java.io :refer [reader resource file input-stream]]
             [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.config :refer [configure!]]
             [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks!]]
@@ -61,6 +62,18 @@
       (string/replace #"(?:#|;).*$" "")
       (string/trim)))
 
+(defn- config-path-readable?
+  "Answers whether or not the given config path contains a readable file.
+   Supports specifying the config file via URI, so it can be inside a .jar."
+  [path]
+  (or
+    (.exists (file path))
+    (try
+      (input-stream (URI. path))
+      true
+      (catch Exception e
+        false))))
+
 (defn- config-from-cli
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),
   check to see if the caller explicitly specified the location of the bootstrap
@@ -72,7 +85,7 @@
               (satisfies? IOFactory %))]}
   (when (contains? cli-data :bootstrap-config)
     (when-let [config-path (cli-data :bootstrap-config)]
-      (if (.exists (file config-path))
+      (if (config-path-readable? config-path)
         (do
           (log/debug (str "Loading bootstrap config from specified path: '" config-path "'"))
           config-path)

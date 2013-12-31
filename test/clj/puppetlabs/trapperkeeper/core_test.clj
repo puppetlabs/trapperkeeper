@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
-            [puppetlabs.trapperkeeper.services :refer [service get-service-fn]]
+            [puppetlabs.trapperkeeper.services :refer [service ]]
+            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]))
 

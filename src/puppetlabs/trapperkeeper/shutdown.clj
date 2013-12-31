@@ -24,8 +24,8 @@
 (ns puppetlabs.trapperkeeper.shutdown
   (:require [clojure.tools.logging :as log]
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean?]]
-            [puppetlabs.trapperkeeper.app :refer [walk-leaves-and-path]]
-            [puppetlabs.trapperkeeper.services :refer [service get-service-fn]]
+            [puppetlabs.trapperkeeper.app :refer [walk-leaves-and-path get-service-fn]]
+            [puppetlabs.trapperkeeper.services :refer [service]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]])
   (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 

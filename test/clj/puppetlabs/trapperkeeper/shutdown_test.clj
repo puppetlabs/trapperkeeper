@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.shutdown :refer :all]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.services :refer [service get-service-fn]]
+            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))

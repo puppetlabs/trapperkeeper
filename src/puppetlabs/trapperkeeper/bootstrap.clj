@@ -4,10 +4,15 @@
             [clojure.string :as string]
             [clojure.java.io :refer [reader resource file]]
             [clojure.tools.logging :as log]
-            [puppetlabs.trapperkeeper.config :refer [configure!]]
+            [puppetlabs.trapperkeeper.plugins :as plugins]
+            [puppetlabs.trapperkeeper.config :refer [parse-config-data
+                                                     initialize-logging!
+                                                     config-service]]
             [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks!]]
-            [puppetlabs.trapperkeeper.app :refer [validate-service-graph! service-graph?
-                                                  compile-graph instantiate]])
+            [puppetlabs.trapperkeeper.app :refer [validate-service-graph!
+                                                  service-graph?
+                                                  compile-graph
+                                                  instantiate]])
   (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
 (def bootstrap-config-file-name "bootstrap.cfg")
@@ -138,14 +143,12 @@
 
 (defn bootstrap-services
   "Given the services to run and command-line arguments,
-  bootstrap and return the trapperkeeper application."
-  [services cli-data]
+   bootstrap and return the trapperkeeper application."
+  [services config-data]
   {:pre  [(sequential? services)
-          (every? service-graph? services)
-          (map? cli-data)]
+          (every? service-graph? services)]
    :post [(instance? TrapperKeeperApp %)]}
-  (-> cli-data
-      (configure! services)
+  (-> (apply merge (config-service config-data) services)
       (register-shutdown-hooks!)
       (compile-graph)
       (instantiate)
@@ -154,12 +157,20 @@
 (defn bootstrap
   "Get the services out of the bootstrap config file
   provided in `cli-data` and bootstrap the application.
-  See `puppetlabs.trapperkeeper.core/bootstrap` for information."
+  See `puppetlabs.trapperkeeper.core/bootstrap` for more information."
   [cli-data]
   {:pre  [(map? cli-data)
           (contains? cli-data :config)]
    :post [(instance? TrapperKeeperApp %)]}
-  (-> cli-data
-      (find-bootstrap-config)
-      (parse-bootstrap-config!)
-      (bootstrap-services cli-data)))
+  ;; There is a strict order of operations that need to happen here:
+  ;; 1. parse config files
+  ;; 2. initialize logging
+  ;; 3. initialize plugin system
+  ;; 4. bootstrap rest of framework
+  (let [config-data (parse-config-data cli-data)]
+    (initialize-logging! config-data)
+    (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
+    (-> cli-data
+        (find-bootstrap-config)
+        (parse-bootstrap-config!)
+        (bootstrap-services config-data))))

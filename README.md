@@ -31,15 +31,16 @@ Prismatic for sharing their code!
 ## Table of Contents
 
 * [tl;dr: Quick Start](#tldr-quick-start)
+* [Bootstrapping](#bootstrapping)
 * [Defining Services](#defining-services)
-* [Service Interfaces](#service-interfaces)
 * [Built-in Services](#built-in-services)
  * [Configuration Service](#configuration-service)
  * [Shutdown Service](#shutdown-service)
  * [Webserver Service](#webserver-service)
  * [nREPL Service](#nrepl-service)
+* [Service Interfaces](#service-interfaces)
 * [Command Line Arguments](#command-line-arguments)
-* [Bootstrapping](#bootstrapping)
+* [Plugin System](#plugin-system)
 * [Polyglot Support](#polyglot-support)
 * [Dev Practices](#dev-practices)
 * [Test Utils](#test-utils)
@@ -94,6 +95,41 @@ Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
 And now you should be able to run the app via `lein run`.  This example doesn't
 do much; for a more interesting example that shows how you can use trapperkeeper
 to create a web application, see [Example Web Service](doc/example-web-service.md).
+
+## Bootstrapping
+
+As mentioned briefly in the tl;dr section, trapperkeeper relies on a `bootstrap.cfg`
+file to determine the list of services that it should load at startup.  The other
+piece of the bootstrapping equation is setting up a `main` that calls
+trapperkeeper's bootstrap code.  Here we'll go into a bit more detail about both
+of these topics.
+
+### `bootstrap.cfg`
+
+The `bootstrap.cfg` file is a simple text file, in which each line contains the
+fully qualified namespace and name of a service.  Here's an example `bootstrap.cfg`
+that enables the jetty web server service and a custom `foo-service`:
+
+```
+puppetlabs.trapperkeeper.services.jetty.jetty-service/webserver-service
+my.custom.namespace/foo-service
+```
+
+Note that it does not matter what order the services are specified in; trapperkeeper
+will resolve the dependencies between them, and start and stop them in the
+correct order based on their dependency relationships.
+
+In normal use cases, you'll want to simply put `bootstrap.cfg` in your `resources`
+directory and bundle it as part of your application (e.g. in an uberjar).  However,
+there are cases where you may want to override the list of services (for development,
+customizations, etc.).  To accommodate this, trapperkeeper will actually search
+in three different places for the `bootstrap.cfg` file; the first one it finds
+will be used.  Here they are, listed in order of precedence:
+
+* a location specified via the optional `--bootstrap-config` parameter on the
+  command line when the application is launched
+* in the current working directory
+* on the classpath
 
 ## Defining Services
 
@@ -173,98 +209,6 @@ a keyword value to name the service instead of the var name that you use with
    ;; initialization code goes here, then we return our service function map
    {:bar (fn [] "bar")})
 ```
-
-## Service Interfaces
-
-One of the goals of trapperkeeper's "service" model is that a service should
-be thought of as simply an interface; any given service provides a
-well-known set of functions as its "contract", and the implementation details
-of these functions are not important to consumers.  (Again, this borrows heavily
-from OSGi's concept of a "service".)  This means that you can
-write multiple implementations of a given service and swap them in and out of
-your application by simply modifying your configuration, without having to change
-any of the consuming code.  Trapperkeeper's built-in `webserver` service is
-intended to be an example of this pattern.  (More details in the
-[built-in services](#built-in-services) section below.)
-
-(In the future, we'd like to move to a more concrete mechanism for specifying
-a service "interface"; most likely by using a Clojure protocol.  For more info,
-see the [Hopes and Dreams](#hopes-and-dreams) section below.)
-
-One of the motivations behind this approach is to make it easier to ship
-"on-premise" or "shrink-wrapped" software written in Clojure.  In SaaS
-environments, the developers and administrators have tight control over what
-components are used in an application, and can afford to be fairly rigid about
-how things are deployed.  For on-premise software, the end user may need to
-have a great deal more control over how components are mixed and matched to
-provide a solution that scales to meet their needs; for example, a small shop
-may be able to run 10 services on a single machine without approaching the
-load capacity of the hardware, but a slightly larger shop might need to separate
-those services out onto multiple machines.  Trapperkeeper provides an easy way
-to do this at packaging time or configuration time, and the administrator does not
-necessarily have to be familiar with clojure or EDN in order to effectively
-configure their system.
-
-Here's a concrete example of how this might work:
-
-```clj
-(ns services.foo.lowercase-foo)
-
-(defservice foo-service
-   "A lower-case implementation of the `foo-service`"
-   ;; metadata
-   {:depends []
-    :provides [foo]}
-   ;; now return our service function map:
-   {:foo (fn [] "foo")})
-
-(ns services.foo.uppercase-foo)
-
-(defservice foo-service
-   "An upper-case implementation of the `foo-service`"
-   ;; metadata
-   {:depends []
-    :provides [foo]}
-   ;; now return our service function map:
-   {:foo (fn [] "FOO")})
-
-(ns services.foo-consumer)
-
-(defservice foo-consumer
-   "A service that consumes the `foo-service`"
-   ;; metadata
-   {:depends [[:foo-service foo]]
-    :provides [bar]}
-   ;; now return our service function map:
-   {:bar (fn [] (format "Foo service returned: '%s'" (foo)))})
-```
-
-Given this combination of services, you might have a `bootstrap.cfg` file
-that looks like:
-
-<pre>
-services.foo-consumer/foo-consumer
-services.foo.<strong>lowercase-foo</strong>/foo-service
-</pre>
-
-If you then ran your app, calling the function `bar` provided by the `foo-consumer`
-service would yield: `"Foo service returned 'foo'"`.  If you then modified your
-`bootstrap.cfg` file to look like:
-
-<pre>
-services.foo-consumer/foo-consumer
-services.foo.<strong>uppercase-foo</strong>/foo-service
-</pre>
-
-Then the `bar` function would return `"Foo service returned 'bar'"`.  This allows
-you to swap out a service implementation without making any code changes; you
-need only modify your `bootstrap.cfg` file.
-
-This is obviously a trivial example, but the same approach could be used to
-swap out the implementation of something more interesting; a webserver, a message
-queue, a persistence layer, etc.  This also has the added benefit of helping to
-keep code more modular; a downstream service should only interact with a service
-that it depends on through a well-known interface.
 
 ## Built-in Services
 
@@ -593,6 +537,98 @@ To assist in debugging applications, _trapperkeeper_ comes with a service that a
 up a network REPL (`nREPL`) inside of the running _trapperkeeper_ process. See
 [Configuring the nREPL service](doc/nrepl-config.md) for more information.
 
+## Service Interfaces
+
+One of the goals of trapperkeeper's "service" model is that a service should
+be thought of as simply an interface; any given service provides a
+well-known set of functions as its "contract", and the implementation details
+of these functions are not important to consumers.  (Again, this borrows heavily
+from OSGi's concept of a "service".)  This means that you can
+write multiple implementations of a given service and swap them in and out of
+your application by simply modifying your configuration, without having to change
+any of the consuming code.  Trapperkeeper's built-in `webserver` service is
+intended to be an example of this pattern.  (More details in the
+[built-in services](#built-in-services) section below.)
+
+(In the future, we'd like to move to a more concrete mechanism for specifying
+a service "interface"; most likely by using a Clojure protocol.  For more info,
+see the [Hopes and Dreams](#hopes-and-dreams) section below.)
+
+One of the motivations behind this approach is to make it easier to ship
+"on-premise" or "shrink-wrapped" software written in Clojure.  In SaaS
+environments, the developers and administrators have tight control over what
+components are used in an application, and can afford to be fairly rigid about
+how things are deployed.  For on-premise software, the end user may need to
+have a great deal more control over how components are mixed and matched to
+provide a solution that scales to meet their needs; for example, a small shop
+may be able to run 10 services on a single machine without approaching the
+load capacity of the hardware, but a slightly larger shop might need to separate
+those services out onto multiple machines.  Trapperkeeper provides an easy way
+to do this at packaging time or configuration time, and the administrator does not
+necessarily have to be familiar with clojure or EDN in order to effectively
+configure their system.
+
+Here's a concrete example of how this might work:
+
+```clj
+(ns services.foo.lowercase-foo)
+
+(defservice foo-service
+   "A lower-case implementation of the `foo-service`"
+   ;; metadata
+   {:depends []
+    :provides [foo]}
+   ;; now return our service function map:
+   {:foo (fn [] "foo")})
+
+(ns services.foo.uppercase-foo)
+
+(defservice foo-service
+   "An upper-case implementation of the `foo-service`"
+   ;; metadata
+   {:depends []
+    :provides [foo]}
+   ;; now return our service function map:
+   {:foo (fn [] "FOO")})
+
+(ns services.foo-consumer)
+
+(defservice foo-consumer
+   "A service that consumes the `foo-service`"
+   ;; metadata
+   {:depends [[:foo-service foo]]
+    :provides [bar]}
+   ;; now return our service function map:
+   {:bar (fn [] (format "Foo service returned: '%s'" (foo)))})
+```
+
+Given this combination of services, you might have a `bootstrap.cfg` file
+that looks like:
+
+<pre>
+services.foo-consumer/foo-consumer
+services.foo.<strong>lowercase-foo</strong>/foo-service
+</pre>
+
+If you then ran your app, calling the function `bar` provided by the `foo-consumer`
+service would yield: `"Foo service returned 'foo'"`.  If you then modified your
+`bootstrap.cfg` file to look like:
+
+<pre>
+services.foo-consumer/foo-consumer
+services.foo.<strong>uppercase-foo</strong>/foo-service
+</pre>
+
+Then the `bar` function would return `"Foo service returned 'bar'"`.  This allows
+you to swap out a service implementation without making any code changes; you
+need only modify your `bootstrap.cfg` file.
+
+This is obviously a trivial example, but the same approach could be used to
+swap out the implementation of something more interesting; a webserver, a message
+queue, a persistence layer, etc.  This also has the added benefit of helping to
+keep code more modular; a downstream service should only interact with a service
+that it depends on through a well-known interface.
+
 ## Command Line Arguments
 
 Trapperkeeper's default mode of operation is to handle the processing of application
@@ -620,41 +656,6 @@ Trapperkeeper supports three command-line arguments:
 * `--debug/-d`: This option is not required; it's a flag, so it will evaluate
   to a boolean.  If `true`, sets the logging level to DEBUG, and also sets the
   `:debug` key in the configuration map provided by the configuration-service.
-
-## Bootstrapping
-
-As mentioned briefly in the tl;dr section, trapperkeeper relies on a `bootstrap.cfg`
-file to determine the list of services that it should load at startup.  The other
-piece of the bootstrapping equation is setting up a `main` that calls
-trapperkeeper's bootstrap code.  Here we'll go into a bit more detail about both
-of these topics.
-
-### `bootstrap.cfg`
-
-The `bootstrap.cfg` file is a simple text file, in which each line contains the
-fully qualified namespace and name of a service.  Here's an example `bootstrap.cfg`
-that enables the jetty web server service and a custom `foo-service`:
-
-```
-puppetlabs.trapperkeeper.services.jetty.jetty-service/webserver-service
-my.custom.namespace/foo-service
-```
-
-Note that it does not matter what order the services are specified in; trapperkeeper
-will resolve the dependencies between them, and start and stop them in the
-correct order based on their dependency relationships.
-
-In normal use cases, you'll want to simply put `bootstrap.cfg` in your `resources`
-directory and bundle it as part of your application (e.g. in an uberjar).  However,
-there are cases where you may want to override the list of services (for development,
-customizations, etc.).  To accommodate this, trapperkeeper will actually search
-in three different places for the `bootstrap.cfg` file; the first one it finds
-will be used.  Here they are, listed in order of precedence:
-
-* a location specified via the optional `--bootstrap-config` parameter on the
-  command line when the application is launched
-* in the current working directory
-* on the classpath
 
 ### `main` and trapperkeeper
 
@@ -724,6 +725,29 @@ and this map must contain the `:config` key which trapperkeeper will use just
 as it would have used the `--config` value from the command line.  You may also
 (optionally) provide `:bootstrap-config` and `:debug` keys, to override the
 path to the bootstrap configuration file and/or enable debugging on the application.
+
+## Plugin System
+Trapperkeeper has an **extremely** simple plugin mechanism.  It allows you to
+specify (as a command-line argument) a directory of "plugin" .jars that will be
+dynamically added to the classpath at runtime.  Each .jar will also be checked
+for duplicate classes or namespaces before it is added, so as to prevent any
+unexpected behavior.
+
+This provides the ability to extend the functionality of a deployed,
+trapperkeeper-based application by simply including one or more services
+packaged into standalone "plugin" .jars, and adding the additional service(s)
+to the bootstrap configuration.
+
+Projects that wish to package themselves as "plugin" .jars should build an
+uberjar containing all of their dependencies.  However, there is one caveat
+here - trapperkeeper *and all of its depenedencies* should be excluded from the
+uberjar.  If the exclusions are not defined correctly, trapperkeeper will fail
+to start because there will be duplicate versions of classes/namespaces on the
+classpath.
+
+Plugins are specified via a command-line arugument:
+`--plugins /path/to/plugins/directory`; every .jar file in that directory will
+be added to the classpath by trapperkeeper.
 
 ## Polyglot Support
 

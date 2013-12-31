@@ -5,7 +5,7 @@
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
 
-(defn- config-service
+(defn config-service
   "A simple configuration service based on .ini config files.  Expects
    to find a command-line argument value for `:config`; the value of this
    parameter should be the path to an .ini file or a directory of .ini
@@ -35,15 +35,22 @@
    :post [(map? %)]}
   (when-not (.canRead (file config-file-path))
     (throw (FileNotFoundException.
-             (format "Configuration path '%s' must exist and must be readable." config-file-path))))
+             (format "Configuration path '%s' must exist and must be readable."
+                     config-file-path))))
   (inis-to-map config-file-path))
 
-(defn configure!
-  [cli-data services]
-  (let [debug?      (or (:debug cli-data) false)
-        config-data (-> (:config cli-data)
-                        (parse-config-file)
-                        (assoc :debug debug?))
-        log-config  (get-in config-data [:global :logging-config])]
-    (configure-logging! log-config debug?)
-    (apply merge (config-service config-data) services)))
+(defn parse-config-data
+  "Parses the .ini configuration file(s) and returns a map of configuration data."
+  [cli-data]
+  {:post [(map? %)]}
+  (let [debug? (or (:debug cli-data) false)]
+    (-> (:config cli-data)
+        (parse-config-file)
+        (assoc :debug debug?))))
+
+(defn initialize-logging!
+  "Initializes the logging system based on the configuration data."
+  [config-data]
+  (let [debug?        (get-in config-data [:debug])
+        log-config    (get-in config-data [:global :logging-config])]
+    (configure-logging! log-config debug?)))

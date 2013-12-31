@@ -62,7 +62,7 @@
       (string/replace #"(?:#|;).*$" "")
       (string/trim)))
 
-(defn- open-config-file
+(defn- get-config-source
   [config-path]
   (let [config-file (file config-path)]
     (if (.exists config-file)
@@ -93,7 +93,7 @@
               (satisfies? IOFactory %))]}
   (when (contains? cli-data :bootstrap-config)
     (when-let [config-path (cli-data :bootstrap-config)]
-      (let [config-file (open-config-file config-path)]
+      (let [config-file (get-config-source config-path)]
         (log/debug (str "Loading bootstrap config from specified path: '"
                         config-path "'"))
         config-file))))

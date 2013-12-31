@@ -1,8 +1,9 @@
 (ns puppetlabs.trapperkeeper.bootstrap
-  (:import (java.io Reader FileNotFoundException))
+  (:import (java.io Reader FileNotFoundException)
+           (java.net URI))
   (:require [clojure.java.io :refer [IOFactory]]
             [clojure.string :as string]
-            [clojure.java.io :refer [reader resource file]]
+            [clojure.java.io :refer [reader resource file input-stream]]
             [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.plugins :as plugins]
             [puppetlabs.trapperkeeper.config :refer [parse-config-data
@@ -66,10 +67,30 @@
       (string/replace #"(?:#|;).*$" "")
       (string/trim)))
 
+(defn- get-config-source
+  [config-path]
+  (let [config-file (file config-path)]
+    (if (.exists config-file)
+      config-file
+
+      ;; if that didn't work (won't for a URI of a file inside a .jar),
+      ;; get a bigger hammer
+      (try
+        (input-stream (URI. config-path))
+        (catch Exception ignored
+          ;; If that didn't work either, we can't read it.  Don't wrap and
+          ;; re-throw here, as `ignored` may be misleading (in the case of a
+          ;; normal path, it is useless - there is no reason to mess with URIs)
+          (throw (IllegalArgumentException.
+                   (str "Specified bootstrap config file does not exist: '"
+                        config-path "'"))))))))
+
 (defn- config-from-cli
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),
   check to see if the caller explicitly specified the location of the bootstrap
-  config file.  If so, return it.  Throws an IllegalArgumentException if a
+  config file.  If so, return an object that can be read via `reader` (will
+  normally be a `file`, but in the case of a config file inside of a .jar, it
+  will be an `input-stream`).  Throws an IllegalArgumentException if a
   location was specified but the file doesn't actually exist."
   [cli-data]
   {:pre  [(map? cli-data)]
@@ -77,12 +98,11 @@
               (satisfies? IOFactory %))]}
   (when (contains? cli-data :bootstrap-config)
     (when-let [config-path (cli-data :bootstrap-config)]
-      (if (.exists (file config-path))
-        (do
-          (log/debug (str "Loading bootstrap config from specified path: '" config-path "'"))
-          config-path)
-        (throw (IllegalArgumentException.
-                 (str "Specified bootstrap config file does not exist: '" config-path "'")))))))
+      (let [config-file (get-config-source config-path)]
+        (log/debug (str "Loading bootstrap config from specified path: '"
+                        config-path "'"))
+        config-file))))
+
 
 (defn- config-from-cwd
   "Check to see if there is a bootstrap config file in the current working

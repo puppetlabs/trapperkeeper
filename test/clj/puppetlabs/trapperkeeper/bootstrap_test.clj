@@ -62,19 +62,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
                     #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/bootstrap.cfg'"
                     :debug))
               (is (= (test-fn) :cli))
-              (is (= (hello-world-fn) "hello world")))))
-
-      ;; TODO this test should not be in here
-      (testing "Ensure that a bootstrap config can be loaded with a path that contains spaces"
-        (with-test-logging
-          (let [app                 (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
-                test-fn             (get-service-fn app :cli-test-service :test-fn)
-                hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
-            (is (logged?
-                  #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
-                  :debug))
-            (is (= (test-fn) :cli))
-            (is (= (hello-world-fn) "hello world")))))))
+              (is (= (hello-world-fn) "hello world")))))))
 
   (testing "Invalid bootstrap configurations"
     (testing "Bootstrap config path specified on CLI does not exist"
@@ -148,6 +136,18 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
       (is (= (count services) 2))
       (is (contains? (first services) :hello-world-service))
       (is (contains? (second services) :foo-test-service)))))
+
+(deftest bootstrap-path-with-spaces
+  (testing "Ensure that a bootstrap config can be loaded with a path that contains spaces"
+    (with-test-logging
+      (let [app                 (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
+            test-fn             (get-service-fn app :cli-test-service :test-fn)
+            hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
+        (is (logged?
+              #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
+              :debug))
+        (is (= (test-fn) :cli))
+        (is (= (hello-world-fn) "hello world"))))))
 
 (deftest config-file-in-jar
   (testing "Bootstrapping via a config file contained in a .jar"

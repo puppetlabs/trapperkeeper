@@ -20,25 +20,31 @@
     ;; lein includes project.clj ... no thank you
     (not (= name "project.clj"))))
 
+(defn- handle-duplicate!
+  "Helper for `process-file`; handles a found duplicate.  Throws an exception
+  if the duplicate is a .class or .clj file.  Otherwise, logs a warning and
+  returns the accumulator."
+  [container-filename acc filename]
+  (let [error-msg (str "Class or namespace " filename " found in both "
+                       container-filename " and " (acc filename))]
+    (if (or (.endsWith filename ".class") (.endsWith filename ".clj"))
+      (throw (IllegalArgumentException. error-msg))
+
+      ;; It is common to have other conflicts (besides classes and clojure
+      ;; namespaces), especially during development (for example,
+      ;; jetty-servlet and jetty-http both contain an `about.html` -
+      ;; these conflicts don't exist in the uberjar anyway,
+      ;; and likely aren't important.
+      (log/warn error-msg)))
+  acc)
+
 (defn- process-file
   "Helper for `process-container`.  Processes a file and adds it to the
   accumulator if it is a .class or .clj file we care about."
   [container-filename acc filename]
   (if (should-process? filename)
     (if (contains? acc filename)
-      (let [error-msg (str "Class or namespace " filename " found in both "
-                           container-filename " and " (acc filename))]
-        (if (or (.endsWith filename ".class") (.endsWith filename ".clj"))
-          (throw (IllegalArgumentException. error-msg))
-
-          ;; It is common to have other conflicts (besides classes and clojure
-          ;; namespaces), especially during development (for example,
-          ;; jetty-servlet and jetty-http both contain an `about.html` -
-          ;; these conflicts don't exist in the uberjar anyway,
-          ;; and likely aren't important, so just warn instead of throwing
-          (do
-            (log/warn error-msg)
-            acc)))
+      (handle-duplicate! container-filename acc filename)
       (assoc acc filename container-filename))
     acc))
 

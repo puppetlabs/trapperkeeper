@@ -35,7 +35,7 @@
 
 (defn- parse-config-file
   [config-file-path]
-  {:pre  [(not (nil? config-file-path))]
+  {:pre  [(string? config-file-path)]
    :post [(map? %)]}
   (when-not (.canRead (file config-file-path))
     (throw (FileNotFoundException.

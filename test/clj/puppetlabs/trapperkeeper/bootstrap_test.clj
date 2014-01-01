@@ -3,7 +3,7 @@
   (:require [clojure.test :refer :all]
             [clojure.java.io :refer [file]]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
-            [puppetlabs.trapperkeeper.services :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.bootstrap :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]))

@@ -3,7 +3,7 @@
             [clojure.java.io :refer [file]]
             [puppetlabs.trapperkeeper.plugins :refer :all]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.services :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config]]))
 
 (deftest test-jars-in-dir

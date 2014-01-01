@@ -175,9 +175,25 @@
       (TrapperKeeperApp.)))
 
 (defn bootstrap
-  "Get the services out of the bootstrap config file
-  provided in `cli-data` and bootstrap the application.
-  See `puppetlabs.trapperkeeper.core/bootstrap` for more information."
+  "Bootstrap a trapperkeeper application.  This is accomplished by reading a
+  bootstrap configuration file containing a list of (namespace-qualified)
+  service functions.  These functions will be called to generate a service
+  graph for the application; dependency resolution between the services will
+  be handled automatically to ensure that they are started in the correct order.
+  Functions that a service expresses dependencies on will be injected prior to
+  instantiation of a service.
+
+  The bootstrap config file will be searched for in this order:
+
+  * At a path specified by the optional command-line argument `--bootstrap-config`
+  * In the current working directory, in a file named `bootstrap.cfg`
+  * On the classpath, in a file named `bootstrap.cfg`.
+
+  `cli-data` is a map of the command-line arguments and their values.
+  `puppetlabs.kitchensink/cli!` can handle the parsing for you.
+
+  Their must be a `:config` key in this map which defines the .ini file
+  (or directory of files) used by the configuration service."
   [cli-data]
   {:pre  [(map? cli-data)
           (contains? cli-data :config)]

@@ -1,7 +1,5 @@
 (ns puppetlabs.trapperkeeper.services
-  (:require [plumbing.core :refer [fnk]]
-            [puppetlabs.trapperkeeper.app])
-  (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
+  (:require [plumbing.core :refer [fnk]]))
 
 (defn- io->fnk-binding-form
   "Converts a service's input-output map into a binding-form suitable for
@@ -92,20 +90,3 @@
     `(def ~svc-name
        ~svc-doc
        (service ~(keyword svc-name) ~io-map ~@body))))
-
-(defn get-service-fn
-  "Given a trapperkeeper application, a service name, and a sequence of keys,
-  returns the function provided by the service at that path.
-
-  Example:
-
-    (get-service-fn app :logging-service :info)"
-  [^TrapperKeeperApp app service service-fn]
-  {:pre [(keyword? service)
-         (keyword? service-fn)]
-   :post [(not (nil? %))
-          (ifn? %)]}
-  (or
-    (get-in (:graph-instance app) [service service-fn])
-    (throw (IllegalArgumentException.
-                   (str "Service " service " or service function " service-fn " not found in graph.")))))

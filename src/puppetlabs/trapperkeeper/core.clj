@@ -1,11 +1,10 @@
 (ns puppetlabs.trapperkeeper.core
-  (:require puppetlabs.trapperkeeper.app
-            [clojure.tools.logging :as log]
+  (:require [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
-            [puppetlabs.trapperkeeper.app :refer [parse-cli-args! run-app]]))
+            [puppetlabs.trapperkeeper.internal :refer [parse-cli-args! run-app]]))
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro

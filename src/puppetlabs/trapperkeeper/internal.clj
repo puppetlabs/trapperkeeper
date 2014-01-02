@@ -1,4 +1,4 @@
-(ns puppetlabs.trapperkeeper.app
+(ns puppetlabs.trapperkeeper.internal
   (:require [clojure.tools.logging :as log]
             [plumbing.map]
             [plumbing.graph :refer [eager-compile]]

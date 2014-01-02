@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [plumbing.fnk.pfnk :as pfnk]
             [puppetlabs.trapperkeeper.services :refer :all]
-            [puppetlabs.trapperkeeper.app :refer [service-graph? get-service-fn]]
+            [puppetlabs.trapperkeeper.internal :refer [service-graph? get-service-fn]]
             [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [hello-world-service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]))
 

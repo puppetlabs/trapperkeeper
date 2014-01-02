@@ -1,8 +1,7 @@
 (ns puppetlabs.trapperkeeper.shutdown-test
   (:require [clojure.test :refer :all]
-            [puppetlabs.trapperkeeper.shutdown :refer :all]
+            [puppetlabs.trapperkeeper.app :refer :all]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]

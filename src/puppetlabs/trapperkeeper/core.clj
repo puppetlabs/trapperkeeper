@@ -5,8 +5,10 @@
             [puppetlabs.kitchensink.core :refer [cli! without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
-            [puppetlabs.trapperkeeper.shutdown :refer [wait-for-shutdown shutdown!
-                                                       initiated-internally? call-error-handler!]])
+            [puppetlabs.trapperkeeper.app :refer [wait-for-shutdown
+                                                  shutdown!
+                                                  initiated-internally?
+                                                  call-error-handler!]])
   (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
 (def #^{:macro true

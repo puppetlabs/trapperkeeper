@@ -9,11 +9,11 @@
             [puppetlabs.trapperkeeper.config :refer [parse-config-data
                                                      initialize-logging!
                                                      config-service]]
-            [puppetlabs.trapperkeeper.shutdown :refer [register-shutdown-hooks!]]
             [puppetlabs.trapperkeeper.app :refer [validate-service-graph!
                                                   service-graph?
                                                   compile-graph
-                                                  instantiate]])
+                                                  instantiate
+                                                  register-shutdown-hooks!]])
   (:import (puppetlabs.trapperkeeper.app TrapperKeeperApp)))
 
 (def bootstrap-config-file-name "bootstrap.cfg")

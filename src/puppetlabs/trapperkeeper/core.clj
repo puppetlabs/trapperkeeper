@@ -5,12 +5,7 @@
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
-            [puppetlabs.trapperkeeper.app :refer [wait-for-shutdown
-                                                  shutdown!
-                                                  initiated-internally?
-                                                  call-error-handler!
-                                                  parse-cli-args!
-                                                  run-app]]))
+            [puppetlabs.trapperkeeper.app :refer [parse-cli-args! run-app]]))
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro

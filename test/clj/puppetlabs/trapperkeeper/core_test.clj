@@ -3,7 +3,7 @@
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.trapperkeeper.services :refer [service ]]
-            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.app :refer [get-service-fn parse-cli-args!]]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]))
 
@@ -55,7 +55,7 @@
   (testing "Parsed CLI data"
     (let [bootstrap-file "/fake/path/bootstrap.cfg"
           config-dir     "/fake/config/dir"
-          cli-data         (trapperkeeper/parse-cli-args!
+          cli-data         (parse-cli-args!
                              ["--debug"
                               "--bootstrap-config" bootstrap-file
                               "--config" config-dir])]
@@ -67,13 +67,13 @@
     (is (thrown-with-msg?
           Exception
           #"not a valid argument"
-          (trapperkeeper/parse-cli-args! ["--invalid-argument"]))))
+          (parse-cli-args! ["--invalid-argument"]))))
 
   (testing "Fails if config CLI arg is not specified"
     ;; looks like `thrown-with-msg?` can't be used with slingshot. :(
     (let [got-expected-exception (atom false)]
       (try+
-        (trapperkeeper/parse-cli-args! [])
+        (parse-cli-args! [])
         (catch map? m
           (is (contains? m :type))
           (is (= :cli-error (without-ns (:type m))))
@@ -98,5 +98,5 @@
 
   (testing "TK should accept --plugins arg"
     ;; Make sure --plugins is allowed; will throw an exception if not.
-    (trapperkeeper/parse-cli-args! ["--config" "yo mama"
+    (parse-cli-args! ["--config" "yo mama"
                                     "--plugins" "some/plugin/directory"])))

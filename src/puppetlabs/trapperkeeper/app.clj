@@ -3,7 +3,7 @@
             [plumbing.map]
             [plumbing.graph :refer [eager-compile]]
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
-            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean?]]
+            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.services :refer [service]]))
 
 ;  A type representing a trapperkeeper application.  This is intended to provide
@@ -248,3 +248,33 @@
       (on-error-fn)
       (catch Exception e
         (log/error e "Error occurred during shutdown")))))
+
+(defn run-app
+  "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
+  which may be triggered by one of several different ways. In all cases, services
+  will be shut down and any exceptions they might throw will be caught and logged."
+  [^TrapperKeeperApp app]
+  {:pre [(instance? TrapperKeeperApp app)]}
+  (let [shutdown-reason (wait-for-shutdown app)]
+    (when (initiated-internally? shutdown-reason)
+      (call-error-handler! shutdown-reason)
+      (shutdown!)
+      (when-let [error (:error shutdown-reason)]
+        (throw error)))))
+
+(defn parse-cli-args!
+  "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
+  Hard-codes the command-line arguments expected by trapperkeeper to be:
+      --debug
+      --bootstrap-config <bootstrap file>
+      --config <.ini file or directory>
+      --plugins <plugins directory>"
+  [cli-args]
+  {:pre  [(sequential? cli-args)]
+   :post [(map? %)]}
+  (let [specs       [["-d" "--debug" "Turns on debug mode" :flag true]
+                     ["-b" "--bootstrap-config" "Path to bootstrap config file"]
+                     ["-c" "--config" "Path to .ini file or directory of .ini files to be read and consumed by services"]
+                     ["-p" "--plugins" "Path to directory plugin .jars"]]
+        required    [:config]]
+    (first (cli! cli-args specs required))))

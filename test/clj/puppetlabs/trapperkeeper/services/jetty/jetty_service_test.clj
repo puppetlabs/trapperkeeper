@@ -2,7 +2,7 @@
   (:import  [servlet SimpleServlet])
   (:require [clojure.test :refer :all]
             [clj-http.client :as http-client]
-            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.internal :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.services.jetty.jetty-service :refer :all]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config
                                                                   bootstrap-services-with-cli-data]]

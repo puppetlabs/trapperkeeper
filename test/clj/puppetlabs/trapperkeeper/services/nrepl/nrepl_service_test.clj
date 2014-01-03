@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.tools.nrepl :as repl]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data]]
-            [puppetlabs.trapperkeeper.app :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.internal :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]))
 
 (deftest test-nrepl-service

@@ -290,19 +290,22 @@ common logging configuration.  The built-in logging configuration
 is compatible with `clojure.tools/logging`, so services can just call the
 `clojure.tools/logging` functions and logging will work out of the box.
 
-The current implementation of the logging initialization is based on `log4j`
-(though we plan to make this more flexible in the future; see the
-[Hopes and Dreams](#hopes-and-dreams) section below).  This means that
-trapperkeeper will look for a `log4j.properties` file on the classpath.  You can
-override the location of this file via configuration, though; this is done
-using the configuration setting `logging-config` in a `global` section of your
-ini files.
+The logging implementation is based on [`logback`](http://logback.qos.ch/).
+This means that trapperkeeper will look for a `logback.xml` file on the
+classpath, but you can override the location of this file via configuration.
+This is done using the configuration setting `logging-config` in a `global`
+section of your ini files.
+
+`logback` is based on [`slf4j`](http://www.slf4j.org/), so it should be compatible
+with the built-in logging of just about any existing Java libraries that your project
+may depend on.  For more information on configuring logback, have a look at
+[their documentation](http://logback.qos.ch/manual/configuration.html).
 
 For example:
 
 ```INI
 [global]
-logging-config = /path/to/log4j.properties
+logging-config = /path/to/logback.xml
 ```
 
 ### Shutdown Service
@@ -836,7 +839,7 @@ like.
 
 The current configuration service is hard-coded to use `ini` files as its back
 end, requires a `--config` argument on the CLI, and is hard-coded to use
-`log4j` to initialize logging.  We'd like to make all of those more flexible;
+`logback` to initialize logging.  We'd like to make all of those more flexible;
 e.g., to support other persistence mechanisms / formats for the configuration data,
 perhaps allow dynamic modifications to configuration values, support other
 logging frameworks, etc.  These changes will probably require us to make the
@@ -850,12 +853,6 @@ to leverage some performance gains and bug fixes that have landed in more
 recent versions of Jetty.
 
 We may also experiment with some other options such as Netty.
-
-### Move default logging initialization from `log4j` to `logback`
-
-We plan to switch the built-in logging initialization off of `log4j` and on to
-`logback` at some point soon.  Services should not be affected by this, as
-`clojure.tools/logging` should work transparently with either.
 
 ### Add support for other types of web applications
 
@@ -877,7 +874,7 @@ In addition to providing a bit more granularity for service initialization, it'd
 also allow a more REPL-friendly workflow since the context object could be used
 to introspect or restart subsystems of the application.  It should also make
 it a lot easier for us to make the current hard-coded configuration service and
-logging initilization pluggable.
+logging initialization pluggable.
 
 We decided that this introduced too much complexity for our initial release, but
 it's something we're likely to revisit soon.

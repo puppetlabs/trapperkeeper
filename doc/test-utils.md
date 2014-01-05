@@ -37,32 +37,3 @@ this regex matches any line that has been logged within the body of a `with-test
 
 The optional second parameter is a keyword describing a log level to specifically search in. It currently can be one of
 `:trace`, `:debug`, `:info`, `:warn`, `:error` or `:fatal`.
-
-## Jetty
-
-_Trapperkeeper_'s test jar also contains a macro to assist in testing the functionality of a ring application which is
-defined in [jetty.clj](../test/puppetlabs/trapperkeeper/testutils/jetty.clj).
-
-### with-test-jetty
-
-The `with-test-jetty` macro starts up a new Jetty server which is bound to a random unused port, and attaches a
-provided Ring handler function. When the test is completed `with-test-jetty` also handles shutting down the Jetty
-server.
-
-The first parameter provided to the `with-test-jetty` macro is a ring handler function (see
-[ring concepts](https://github.com/ring-clojure/ring/wiki/Concepts)) which will generally by a handler that exists in
-your _trapperkeeper_ application somewhere. The second parameter is an identifier which will contain the port number
-that the Jetty server was started on.
-
-Generally, inside the body of the `with-test-jetty` macro a number of web requests are made and their responses are
-examined for correctness. For example:
-
-```clojure
-(with-test-jetty app port
-  (testing "a gzipped response when requests"
-    ;; The client/get function asks for compression by default
-    (let [resp (http-client/get (format "http://localhost:%d/" port))]
-      (is (= (resp :body) body))
-      (is (= (get-in resp [:headers "content-encoding"]) "gzip")
-          (format "Expected gzipped response, got this response: %s" resp))))
-```

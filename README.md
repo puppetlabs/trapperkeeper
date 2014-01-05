@@ -16,9 +16,10 @@ the dependency functions into each service and starts them all up in the correct
 order.
 
 Trapperkeeper provides a few built-in services such as a configuration service,
-a shutdown service, and a webserver service.  Your custom services can specify
+a shutdown service, and an nREPL service.  Your custom services can specify
 dependencies on these and leverage the functions that they provide.  For more
-details, see the section on [built-in services](#built-in-services) later in this document.
+details, see the section on [built-in services](#built-in-services) later in this
+document.
 
 ## Credits
 
@@ -36,7 +37,6 @@ Prismatic for sharing their code!
 * [Built-in Services](#built-in-services)
  * [Configuration Service](#configuration-service)
  * [Shutdown Service](#shutdown-service)
- * [Webserver Service](#webserver-service)
  * [nREPL Service](#nrepl-service)
 * [Service Interfaces](#service-interfaces)
 * [Command Line Arguments](#command-line-arguments)
@@ -94,7 +94,9 @@ Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
 
 And now you should be able to run the app via `lein run`.  This example doesn't
 do much; for a more interesting example that shows how you can use trapperkeeper
-to create a web application, see [Example Web Service](doc/example-web-service.md).
+to create a web application, check out the
+[Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7/blob/master/doc/example-web-service.md)
+included in the trapperkeeper webserver service project.
 
 ## Bootstrapping
 
@@ -108,10 +110,10 @@ of these topics.
 
 The `bootstrap.cfg` file is a simple text file, in which each line contains the
 fully qualified namespace and name of a service.  Here's an example `bootstrap.cfg`
-that enables the jetty web server service and a custom `foo-service`:
+that enables the nREPL service and a custom `foo-service`:
 
 ```
-puppetlabs.trapperkeeper.services.jetty.jetty-service/webserver-service
+puppetlabs.trapperkeeper.services.nrepl.nrepl-service/nrepl-service
 my.custom.namespace/foo-service
 ```
 
@@ -217,8 +219,16 @@ remove some of the tedium of tasks that are common to most applications.  There
 is a configuration service (which is responsible for loading the application
 configuration and exposing it as data to other services), a shutdown service
 (which provides some means for shutting down the container and allows other
-services to register shutdown hooks), and an optional web server service (which
-can be used to register one or more web handlers).  Read on for more details.
+services to register shutdown hooks), and an optional nREPL service (which
+can be used to run an embedded REPL in your application, so that you can
+connect to it from a remote process while it is running).
+
+There are some other basic services available that don't ship with the
+trapperkeeper core, in order to keep the dependency tree to a minimum.  Of
+particular interest is the [webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7),
+which you can use to run clojure Ring applications or java servlets.
+
+Read on for more details about the built-in services.
 
 ### Configuration Service
 
@@ -417,123 +427,6 @@ exception would be thrown.  Trapperkeeper would then call `my-error-cleanup-fn`,
 and then attempt to call all of the normal shutdown hooks in the correct order
 (including `my-normal-shutdown-fn`).
 
-### Webserver Service
-
-The webserver service is built-in to trapperkeeper, but is optional.  It is not
-loaded into your trapperkeeper application unless you specifically reference it
-in your `bootstrap.cfg` file, via:
-
-    puppetlabs.trapperkeeper.services.jetty.jetty-service/webserver-service
-
-Note that trapperkeeper currently only provides one implementation of the
-`webserver-service` interface, which is based on Jetty 7.  However, the interface
-is intended to be agnostic to the underlying web server implementation, which
-will allow us to provide alternate implementations in the future.  Trapperkeeper
-applications will then be able to switch to a different web server implementation
-by changing only their `bootstrap.cfg` file--no code changes.  (For more info,
-see the [Hopes and Dreams](#hopes-and-dreams) section below).
-
-The web server is configured via the configuration service; so, you can control
-various properties of the server (ports, SSL, etc.) by adding a `[webserver]`
-section to one of your configuration ini files, and setting various properties
-therein.  For more info, see [Configuring the Webserver](doc/jetty-config.md).
-
-The `webserver-service` currently supports web applications built using
-Clojure's [Ring](https://github.com/ring-clojure/ring) library and Java's Servlet
-API.  We hope to add support for different types of web applications in the future;
-see the [Hopes and Dreams](#hopes-and-dreams) section for more info.
-
-The current implementation of the `webserver-service` provides three functions:
-`add-ring-handler`, `add-servlet-handler`, and `join`.
-
-#### `add-ring-handler`
-
-`add-ring-handler` takes two arguments: `[handler path]`.  The `handler` argument
-is just a normal Ring application (the same as what you would pass to `run-jetty`
-if you were using the `ring-jetty-adapter`).  The `path` is a URL prefix / context
-string that will be prepended to all your handler's URLs; this is key to allowing
-the registration of multiple handlers in the same web server without the possibility
-of URL collisions.  So, for example, if your ring handler has routes `/foo` and
-`/bar`, and you call:
-
-```clj
-(add-ring-handler my-app "/my-app")
-```
-
-Then your routes will be served at `/my-app/foo` and `my-app/bar`.
-
-You may specify `""` as the value for `path` if you are only registering a single
-handler and do not need to prefix the URL.
-
-Here's an example of how to use the `:webserver-service`:
-
-```clj
-(defservice my-web-service
-   {:depends [[:webserver-service add-ring-handler]]
-    :provides []}
-   ;; initialization
-   (add-ring-handler my-app "/my-app")
-   ;; return service function map
-   {})
-```
-
-*NOTE FOR COMPOJURE APPS*: If you are using compojure, it's important to note
-that compojure requires use of the [`context` macro](https://github.com/weavejester/compojure/wiki/Nesting-routes)
-in order to support nested routes.  So, if you're not already using `context`,
-you will need to do something like this:
-
-```clj
-(ns foo
-   (:require [compojure.core :refer [context]]
-   ;;...
-   ))
-
-(defservice my-web-service
-   {:depends [[:webserver-service add-ring-handler]]
-    :provides []}
-   ;; initialization
-   (let [context-path "/my-app"
-         context-app  (context context-path [] my-compojure-app)]
-     (add-ring-handler context-app context-path))
-   ;; return service function map
-   {})
-```
-
-#### `add-servlet-handler`
-
-`add-servlet-handler` takes two arguments: `[servlet path]`.  The `servlet` argument
-is a normal Java [Servlet](http://docs.oracle.com/javaee/7/api/javax/servlet/Servlet.html).
-The `path` is the URL prefix at which the servlet will be registered.
-
-For example, to host a servlet at `/my-app`:
-
-```clj
-(ns foo
-    ;; ...
-    (:import [bar.baz SomeServlet]))
-
-(defservice my-web-service
-  {:depends [[:webserver-service add-servlet-handler]]
-   :provides []}
-  ;; initialization
-  (add-servlet-handler (SomeServlet. "some config") "/my-app")
-  ;; return service function map
-  {})
-```
-
-For more information see the [example servlet app](examples/servlet_app).
-
-#### `join`
-
-This function is not recommended for normal use, but is provided for compatibility
-with the `ring-jetty-adapter`.  `ring-jetty-adapter/run-jetty`, by default,
-calls `join` on the underlying Jetty server instance.  This allows your thread
-to block until Jetty shuts down.  This should not be necessary for normal
-trapperkeeper usage, because trapperkeeper already blocks the main thread and
-waits for a termination condition before allowing the process to exit.  However,
-if you do need this functionality for some reason, you can simply call `(join)`
-to cause your thread to wait for the Jetty server to shut down.
-
 ### nREPL Service
 
 To assist in debugging applications, _trapperkeeper_ comes with a service that allows starting
@@ -549,9 +442,9 @@ of these functions are not important to consumers.  (Again, this borrows heavily
 from OSGi's concept of a "service".)  This means that you can
 write multiple implementations of a given service and swap them in and out of
 your application by simply modifying your configuration, without having to change
-any of the consuming code.  Trapperkeeper's built-in `webserver` service is
-intended to be an example of this pattern.  (More details in the
-[built-in services](#built-in-services) section below.)
+any of the consuming code.  The trapperkeeper
+[`webserver` service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7) is
+intended to be an example of this pattern.
 
 (In the future, we'd like to move to a more concrete mechanism for specifying
 a service "interface"; most likely by using a Clojure protocol.  For more info,
@@ -748,7 +641,7 @@ uberjar.  If the exclusions are not defined correctly, trapperkeeper will fail
 to start because there will be duplicate versions of classes/namespaces on the
 classpath.
 
-Plugins are specified via a command-line arugument:
+Plugins are specified via a command-line argument:
 `--plugins /path/to/plugins/directory`; every .jar file in that directory will
 be added to the classpath by trapperkeeper.
 
@@ -759,7 +652,8 @@ code from just about any JVM language into a trapperkeeper application.  At the
 time of this writing, the only languages we've really experimented with are Java
 and Ruby (via JRuby).
 
-For Java, we mentioned earlier our [example servlet app](examples/servlet_app),
+For Java, the trapperkeeper webserver service contains an
+[example servlet app](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7/tree/master/examples/servlet_app),
 which illustrates how you can run a Java servlet in trapperkeeper's webserver.
 
 We have also included a simple example of wrapping a Java library in a trapperkeeper

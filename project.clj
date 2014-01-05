@@ -25,22 +25,15 @@
   ;; code that we have.
   :classifiers [["test" :testutils]]
 
-  :test-paths ["test/clj"]
-
   :profiles {:dev {:test-paths ["test-resources"]
                    :source-paths ["examples/shutdown_app/src"
-                                  "examples/ring_app/src"
-                                  "examples/servlet_app/src/clj"
                                   "examples/java_service/src/clj"]
-                   :java-source-paths ["examples/servlet_app/src/java"
-                                       "examples/java_service/src/java"]}
+                   :java-source-paths ["examples/java_service/src/java"]}
 
              :test {:dependencies [[clj-http "0.5.3"]
-                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]
-                    :java-source-paths ["test/java"]}
+                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]}
 
-             :testutils {:source-paths ^:replace ["test/clj"]
-                         :java-source-paths ^:replace ["test/java"]}
+             :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
 

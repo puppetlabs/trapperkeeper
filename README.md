@@ -95,7 +95,7 @@ Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
 And now you should be able to run the app via `lein run`.  This example doesn't
 do much; for a more interesting example that shows how you can use trapperkeeper
 to create a web application, check out the
-[Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7/blob/master/doc/example-web-service.md)
+[Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/blob/master/doc/example-web-service.md)
 included in the trapperkeeper webserver service project.
 
 ## Bootstrapping
@@ -225,7 +225,7 @@ connect to it from a remote process while it is running).
 
 There are some other basic services available that don't ship with the
 trapperkeeper core, in order to keep the dependency tree to a minimum.  Of
-particular interest is the [webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7),
+particular interest is the [webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9),
 which you can use to run clojure Ring applications or java servlets.
 
 Read on for more details about the built-in services.
@@ -443,8 +443,10 @@ from OSGi's concept of a "service".)  This means that you can
 write multiple implementations of a given service and swap them in and out of
 your application by simply modifying your configuration, without having to change
 any of the consuming code.  The trapperkeeper
-[`webserver` service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7) is
-intended to be an example of this pattern.
+`webserver` service is an example of this pattern; we provide both a
+[Jetty 7 webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7)
+and a [Jetty 9 webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9)
+that can be used interchangeably.
 
 (In the future, we'd like to move to a more concrete mechanism for specifying
 a service "interface"; most likely by using a Clojure protocol.  For more info,
@@ -653,7 +655,7 @@ time of this writing, the only languages we've really experimented with are Java
 and Ruby (via JRuby).
 
 For Java, the trapperkeeper webserver service contains an
-[example servlet app](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7/tree/master/examples/servlet_app),
+[example servlet app](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/servlet_app),
 which illustrates how you can run a Java servlet in trapperkeeper's webserver.
 
 We have also included a simple example of wrapping a Java library in a trapperkeeper
@@ -742,11 +744,11 @@ for the initial releases.
 
 ### Alternate implementations of the webserver service
 
-We will soon provide a jetty 9 implementation of the web server service,
-to leverage some performance gains and bug fixes that have landed in more
-recent versions of Jetty.
-
-We may also experiment with some other options such as Netty.
+We currently provide both a
+[Jetty 7](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7) and a
+[Jetty 9](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9)
+implementation of the web server service.  We may also experiment with some other
+options such as Netty.
 
 ### Add support for other types of web applications
 

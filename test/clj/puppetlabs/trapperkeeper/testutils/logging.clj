@@ -1,9 +1,11 @@
 (ns puppetlabs.trapperkeeper.testutils.logging
-  (:import [org.apache.log4j Logger AppenderSkeleton Level]
-           (java.util.regex Pattern))
+  (:import (java.util.regex Pattern)
+           (org.slf4j LoggerFactory Logger)
+           (ch.qos.logback.core AppenderBase))
   (:require [clojure.tools.logging.impl :as impl]
             [clojure.tools.logging :refer [*logger-factory*]]
-            [clojure.test :refer [assert-expr]]))
+            [clojure.test :refer [assert-expr]]
+            [puppetlabs.trapperkeeper.logging :as pl-log]))
 
 (def ^{:doc "A dynamic var that is bound to an atom containing all of the log entries
              that have occurred during a test, when using `with-test-logging`."
@@ -57,7 +59,7 @@
   "Creates a log4j appender that writes log messages to the supplied atom"
   ([output-atom] (atom-appender output-atom false))
   ([output-atom debug]
-   (proxy [AppenderSkeleton] []
+   (proxy [AppenderBase] []
      (append [logging-event]
        (let [throwable-info  (.getThrowableInformation logging-event)
              ex              (if throwable-info (.getThrowable throwable-info))
@@ -80,14 +82,14 @@
   the sequence of log messages that have been logged so far.  You can access the
   individual log messages by dereferencing the atom."
   [log-output-atom options & body]
-  `(let [root-logger#     (Logger/getRootLogger)
-         orig-appenders#  (vec (enumeration-seq (.getAllAppenders root-logger#)))
-         orig-levels#     (into {} (map #(vector % (.getThreshold %)) orig-appenders#))
+  `(let [root-logger#     (pl-log/root-logger)
+         orig-appenders#  (vec (iterator-seq (.iteratorForAppenders root-logger#)))
+         orig-started#    (into {} (map #(vector % (.isStarted %)) orig-appenders#))
          temp-appender#   (atom-appender ~log-output-atom (~options :debug))]
      (.setName temp-appender# "testutils-temp-log-appender")
      (try
        (doseq [orig-appender# orig-appenders#]
-         (.setThreshold orig-appender# Level/OFF))
+         (.stop orig-appender#))
        (.addAppender root-logger# temp-appender#)
        (binding [clojure.tools.logging/*logger-factory*
                  (atom-logger
@@ -95,11 +97,10 @@
                    (~options :debug))]
          ~@body)
        (finally
-         (.removeAppender root-logger# temp-appender#)
+         (.detachAppender root-logger# temp-appender#)
          (doseq [orig-appender# orig-appenders#]
-           (.setThreshold
-             orig-appender#
-             (orig-levels# orig-appender#)))))))
+           (if (orig-started# orig-appender#)
+             (.start orig-appender#)))))))
 
 (defmacro with-log-output
   "Sets up a temporary logger to capture all log output to a sequence, and
@@ -194,3 +195,12 @@
             :message   ~msg
             :expected  '~form
             :actual    '~form})))))
+
+(defn reset-logging-config-after-test
+  "Fixture that will reset the logging configuration after each
+  test.  Useful for tests that manipulate the logging configuration,
+  in order to ensure that they don't affect test logging for subsequent
+  tests."
+  [f]
+  (f)
+  (.reset (LoggerFactory/getILoggerFactory)))

@@ -9,11 +9,7 @@
                  [puppetlabs/kitchensink "0.4.1"]
                  [prismatic/plumbing "0.1.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
-                 [log4j "1.2.17"
-                  :exclusions [javax.mail/mail
-                               javax.jms/jms
-                               com.sun.jdmk/jmxtools
-                               com.sun.jmx/jmxri]]
+                 [ch.qos.logback/logback-classic "1.0.13"]
 
                  ;; Jetty Webserver
                  [org.eclipse.jetty/jetty-servlet "7.6.1.v20120215"]
@@ -45,7 +41,6 @@
                                        "examples/java_service/src/java"]}
 
              :test {:dependencies [[clj-http "0.5.3"]
-                                   [org.slf4j/slf4j-log4j12 "1.7.5"]
                                    [puppetlabs/kitchensink "0.4.0" :classifier "test"]]
                     :java-source-paths ["test/java"]}
 

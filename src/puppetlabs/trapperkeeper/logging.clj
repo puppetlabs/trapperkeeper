@@ -1,8 +1,14 @@
 (ns puppetlabs.trapperkeeper.logging
-  (:import [org.apache.log4j
-            PropertyConfigurator ConsoleAppender PatternLayout Logger Level])
+  (:import [ch.qos.logback.classic Level PatternLayout]
+           (ch.qos.logback.core ConsoleAppender)
+           (org.slf4j Logger LoggerFactory)
+           (ch.qos.logback.classic.joran JoranConfigurator))
   (:require [clojure.stacktrace :refer [print-cause-trace]]
             [clojure.tools.logging :as log]))
+
+(defn root-logger
+  []
+  (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME))
 
 (defn catch-all-logger
   "A logging function useful for catch-all purposes, that is, to
@@ -30,11 +36,11 @@
    (create-console-appender Level/DEBUG))
   ([level]
    {:pre [(instance? Level level)]}
-   (let [layout (PatternLayout. "%d %-5p [%t] [%c{2}] %m%n")]
+   (let [layout (PatternLayout.)]
+     (.setPattern layout "%d %-5p [%t] [%c{2}] %m%n")
      (doto (ConsoleAppender.)
        (.setLayout layout)
-       (.setThreshold level)
-       (.activateOptions)))))
+       (.start)))))
 
 (defn add-console-logger!
   "Adds a console logger to the current logging configuration, and ensures
@@ -48,25 +54,22 @@
    (add-console-logger! Level/DEBUG))
   ([level]
    {:pre [(instance? Level level)]}
-   (let [root-logger (Logger/getRootLogger)]
-     (.addAppender root-logger (create-console-appender level))
-     (if (> (.toInt (.getLevel root-logger))
+   (let [root (root-logger)]
+     (.addAppender root (create-console-appender level))
+     (if (> (.toInt (.getLevel root))
             (.toInt level))
-       (.setLevel root-logger level)))))
+       (.setLevel root level)))))
 
 (defn configure-logger-via-file!
   "Reconfigures the current logger based on the supplied configuration
-  file. You can optionally supply a delay (in millis) that governs how
-  often we'll check the config file for updates, and thus reconfigure
-  the logger live."
-  ([logging-conf-file]
-   {:pre [(string? logging-conf-file)]}
-   (configure-logger-via-file! logging-conf-file 10000))
-  ([logging-conf-file reload-interval]
-   {:pre [(string? logging-conf-file)
-          (number? reload-interval)
-          (pos? reload-interval)]}
-   (PropertyConfigurator/configureAndWatch logging-conf-file reload-interval)))
+  file."
+  [logging-conf-file]
+  {:pre [(string? logging-conf-file)]}
+  (let [configurator (JoranConfigurator.)
+        context      (LoggerFactory/getILoggerFactory)]
+    (.setContext configurator (LoggerFactory/getILoggerFactory))
+    (.reset context)
+    (.doConfigure configurator logging-conf-file)))
 
 (defn configure-logging!
   "Takes a file path which can define how to configure the logging system.

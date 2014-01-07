@@ -4,17 +4,14 @@
            (ch.qos.logback.core AppenderBase))
   (:require [clojure.tools.logging.impl :as impl]
             [clojure.tools.logging :refer [*logger-factory*]]
-            [clojure.test :refer [assert-expr]]))
+            [clojure.test :refer [assert-expr]]
+            [puppetlabs.trapperkeeper.logging :as pl-log]))
 
 (def ^{:doc "A dynamic var that is bound to an atom containing all of the log entries
              that have occurred during a test, when using `with-test-logging`."
        :dynamic true}
   *test-logs*
   nil)
-
-(defn get-root-logger
-  []
-  (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME))
 
 (defn- log-entry->map
   [log-entry]
@@ -85,7 +82,7 @@
   the sequence of log messages that have been logged so far.  You can access the
   individual log messages by dereferencing the atom."
   [log-output-atom options & body]
-  `(let [root-logger#     (get-root-logger)
+  `(let [root-logger#     (pl-log/root-logger)
          orig-appenders#  (vec (iterator-seq (.iteratorForAppenders root-logger#)))
          orig-started#    (into {} (map #(vector % (.isStarted %)) orig-appenders#))
          temp-appender#   (atom-appender ~log-output-atom (~options :debug))]

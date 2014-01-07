@@ -62,9 +62,7 @@
 
 (defn configure-logger-via-file!
   "Reconfigures the current logger based on the supplied configuration
-  file. You can optionally supply a delay (in millis) that governs how
-  often we'll check the config file for updates, and thus reconfigure
-  the logger live."
+  file."
   [logging-conf-file]
   {:pre [(string? logging-conf-file)]}
   (let [configurator (JoranConfigurator.)

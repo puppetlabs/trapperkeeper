@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper "0.1.1"
+(defproject puppetlabs/trapperkeeper "0.1.2-SNAPSHOT"
   :description "We are trapperkeeper.  We are one."
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.

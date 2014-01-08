@@ -6,7 +6,7 @@
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [puppetlabs/kitchensink "0.4.0"]
+                 [puppetlabs/kitchensink "0.4.2"]
                  [org.eclipse.jetty/jetty-server "7.6.1.v20120215"]
                  [ring/ring-servlet "1.1.8"]
                  [prismatic/plumbing "0.1.0"]

@@ -27,7 +27,7 @@
       (log/warn (format "Found settings for both keystore-based and PEM-based SSL; using PEM-based settings, ignoring %s"
                   (keys old-ssl-config)))))
   (let [truststore  (-> (ssl/keystore)
-                      (ssl/assoc-cert-file! "CA Certificate" ssl-ca-cert))
+                      (ssl/assoc-certs-from-file! "CA Certificate" ssl-ca-cert))
         keystore-pw (uuid)
         keystore    (-> (ssl/keystore)
                       (ssl/assoc-private-key-file! "Private Key" ssl-key keystore-pw ssl-cert))]

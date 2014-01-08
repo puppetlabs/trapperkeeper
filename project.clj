@@ -6,7 +6,7 @@
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [puppetlabs/kitchensink "0.4.1"]
+                 [puppetlabs/kitchensink "0.4.2"]
                  [prismatic/plumbing "0.1.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [log4j "1.2.17"

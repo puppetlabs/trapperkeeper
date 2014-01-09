@@ -2,6 +2,8 @@
   (:import (java.io StringReader))
   (:require [clojure.test :refer :all]
             [clojure.java.io :refer [file]]
+            [slingshot.slingshot :refer [try+]]
+            [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
             [puppetlabs.trapperkeeper.internal :refer [get-service-fn]]
             [puppetlabs.trapperkeeper.bootstrap :refer :all]
@@ -77,10 +79,19 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
             IllegalStateException
             #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
             (bootstrap-with-empty-config)))
-      (is (thrown-with-msg?
-            IllegalStateException
-            #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
-            (bootstrap-with-empty-config ["--bootstrap-config" nil]))))
+      (let [got-expected-exception (atom false)]
+        (try+
+          (bootstrap-with-empty-config ["--bootstrap-config" nil])
+          (catch map? m
+            (is (contains? m :type))
+            (is (= :cli-error (without-ns (:type m))))
+            (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
+            (is (contains? m :message))
+            (is (re-find
+                  #"Missing required argument for.*--bootstrap-config"
+                  (m :message)))
+            (reset! got-expected-exception true)))
+        (is (true? @got-expected-exception))))
 
     (testing "Bad line in bootstrap config file"
       (let [bootstrap-config (StringReader. "
@@ -140,9 +151,10 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
 (deftest bootstrap-path-with-spaces
   (testing "Ensure that a bootstrap config can be loaded with a path that contains spaces"
     (with-test-logging
-      (let [app                 (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
-            test-fn             (get-service-fn app :cli-test-service :test-fn)
-            hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
+      (let [app            (bootstrap-with-empty-config
+                             ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
+            test-fn        (get-service-fn app :cli-test-service :test-fn)
+            hello-world-fn (get-service-fn app :hello-world-service :hello-world)]
         (is (logged?
               #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
               :debug))

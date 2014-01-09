@@ -64,10 +64,19 @@
       (is (cli-data :debug))))
 
   (testing "Invalid CLI data"
-    (is (thrown-with-msg?
-          Exception
-          #"not a valid argument"
-          (parse-cli-args! ["--invalid-argument"]))))
+    (let [got-expected-exception (atom false)]
+      (try+
+        (parse-cli-args! ["--invalid-argument"])
+        (catch map? m
+          (is (contains? m :type))
+          (is (= :cli-error (without-ns (:type m))))
+          (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
+          (is (contains? m :message))
+          (is (re-find
+                #"Unknown option.*--invalid-argument"
+                (m :message)))
+          (reset! got-expected-exception true)))
+      (is (true? @got-expected-exception))))
 
   (testing "Fails if config CLI arg is not specified"
     ;; looks like `thrown-with-msg?` can't be used with slingshot. :(
@@ -79,8 +88,8 @@
           (is (= :cli-error (without-ns (:type m))))
           (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
           (is (contains? m :message))
-          (is (re-matches
-                #"(?s)^.*Missing required argument '--config'.*$"
+          (is (re-find
+                #"Missing required argument '--config'"
                 (m :message)))
           (reset! got-expected-exception true)))
       (is (true? @got-expected-exception)))))

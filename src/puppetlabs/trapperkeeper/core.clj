@@ -18,6 +18,9 @@
              rest of the API."}
   defservice #'services/defservice)
 
+;; TODO docs
+(def main-app nil)
+
 (defn run
   "Bootstraps a trapperkeeper application and runs it.
   Blocks the calling thread until trapperkeeper is shut down.
@@ -25,9 +28,10 @@
   (see `parse-cli-args`)"
   [cli-data]
   {:pre [(map? cli-data)]}
-  (-> cli-data
-      (bootstrap/bootstrap)
-      (run-app)))
+  (let [app (bootstrap/bootstrap cli-data)]
+    ;; TODO docs
+    (alter-var-root #'main-app (fn [_] app))
+    (run-app app)))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until

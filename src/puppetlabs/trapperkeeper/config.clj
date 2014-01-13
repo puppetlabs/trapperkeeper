@@ -22,16 +22,24 @@
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
 
+(defprotocol ConfigService
+  (get-config [this] "Returns a map containing all of the configuration values")
+  (get-in-config [this ks] [this ks default]
+                 "Returns the individual configuration value from the nested
+                 configuration structure, where ks is a sequence of keys.
+                 Returns nil if the key is not present, or the default value if
+                 supplied."))
+
 (defn config-service
   "Returns trapperkeeper's configuration service.  Expects
    to find a command-line argument value for `:config`; the value of this
    parameter should be the path to an .ini file or a directory of .ini files."
   [config]
-  ((service :config-service
-    {:depends  []
-     :provides [get-in-config get-config]}
-    {:get-in-config (partial get-in config)
-     :get-config    (fn [] config)})))
+  (service ConfigService
+           []
+           (get-config [this] config)
+           (get-in-config [this ks] (get-in config ks))
+           (get-in-config [this ks default] (get-in config ks default))))
 
 (defn- parse-config-file
   [config-file-path]

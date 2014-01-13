@@ -1,39 +1,53 @@
-(ns puppetlabs.trapperkeeper.experimental.services
+(ns puppetlabs.trapperkeeper.services
   (:require [clojure.tools.macro :refer [name-with-attributes]]
             [clojure.set :refer [difference]]
             [plumbing.core :refer [fnk]]
             [plumbing.graph :as g]
             [puppetlabs.kitchensink.core :refer [select-values keyset]]
-            [puppetlabs.trapperkeeper.experimental.services-internal :as si]))
+            [puppetlabs.trapperkeeper.services-internal :as si]))
 
-(defprotocol ServiceLifecycle
+;; TODO: Look into re-using an existing protocol for the life cycle.
+;; (Component?  Jig?) Just didn't want to introduce the dependency for now.
+(defprotocol Lifecycle
   "Lifecycle functions for a service.  All services satisfy this protocol, and
   the lifecycle functions for each service will be called at the appropriate
   phase during the application lifecycle."
   (init [this context] "Initialize the service, given a context map.
                         Must return the (possibly modified) context map.")
   (start [this context] "Start the service, given a context map.
+                         Must return the (possibly modified) context map.")
+  (stop [this context] "Stop the service, given a context map.
                          Must return the (possibly modified) context map."))
 
 (defprotocol Service
   "Common functions available to all services"
   (service-context [this] "Returns the context map for this service"))
 
-(defprotocol TrapperkeeperApp
-  "Functions available on a trapperkeeper application instance"
-  (get-service [this service-id] "Returns the service with the given service id"))
-
 (defprotocol ServiceDefinition
   "A service definition.  This protocol is for internal use only.  The service
   is not usable until it is instantiated (via `boot!`)."
   (service-id [this] "An identifier for the service")
   (service-map [this] "The map of service functions for the graph")
-  (constructor [this] "A constructor function to instantiate the service"))
+  (service-constructor [this] "A constructor function to instantiate the service"))
 
-(def lifecycle-fn-names (map :name (vals (:sigs ServiceLifecycle))))
+(def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
 
 (defmacro service
-  ;; TODO DOCS
+  "Create a Trapperkeeper ServiceDefinition.
+
+  First argument (optional) is a protocol indicating the list of functions that
+  this service exposes for use by other Trapperkeeper services.
+
+  Second argument is the dependency list; this should be a vector of vectors.
+  Each inner vector should begin with a keyword representation of the name of the
+  service protocol that the service depends upon.  All remaining items in the inner
+  vectors should be symbols representing functions that should be imported from
+  the service.
+
+  The remaining arguments should be function definitions for this service, specified
+  in the format that is used by a normal clojure `reify`.  The legal list of functions
+  that may be specified includes whatever functions are defined by this service's
+  protocol (if it has one), plus the list of functions in the `Lifecycle` protocol."
   [& forms]
   (let [{:keys [service-protocol-sym service-id service-fn-names
                 dependencies fns-map]}
@@ -65,7 +79,7 @@
                 s-graph-inst#))})
 
        ;; service constructor function
-       (constructor [this]
+       (service-constructor [this]
          ;; the constructor requires the main app graph and context atom as input
          (fn [graph# context#]
            (let [~'service-fns (graph# ~service-id)]
@@ -74,7 +88,7 @@
                Service
                (service-context [this] (get @context# ~service-id {}))
 
-               ServiceLifecycle
+               Lifecycle
                ~@(si/protocol-fns lifecycle-fn-names fns-map)
 
                ~@(if service-protocol-sym
@@ -85,53 +99,4 @@
   [svc-name & forms]
   (let [[svc-name forms] (name-with-attributes svc-name forms)]
     `(def ~svc-name (service ~@forms))))
-
-(defn boot!
-  ;; TODO docs
-  [services]
-  {:pre [(every? #(satisfies? ServiceDefinition %) services)]
-   :post [(satisfies? TrapperkeeperApp %)]}
-  (let [service-map    (apply merge (map service-map services))
-        ;; this gives us an ordered graph that we can use to call lifecycle
-        ;; functions in the correct order later
-        graph          (g/->graph service-map)
-        compiled-graph (g/eager-compile graph)
-        ;; this is the application context for this app instance.  its keys
-        ;; will be the service ids, and values will be maps that represent the
-        ;; context for each individual service
-        context        (atom {})
-        ;; when we instantiate the graph, we pass in the context atom.
-        graph-instance (compiled-graph {:context context})
-        ;; here we build up a map of all of the services by calling the
-        ;; constructor for each one
-        services-by-id (into {} (map
-                                  (fn [sd] [(service-id sd)
-                                            ((constructor sd) graph-instance context)])
-                                  services))
-        ;; finally, create the app instance
-        app            (reify
-                         TrapperkeeperApp
-                         (get-service [this protocol] (services-by-id (keyword protocol))))]
-
-    ;; iterate over the lifecycle functions in order
-    (doseq [[lifecycle-fn lifecycle-fn-name]  [[init "init"] [start "start"]]
-            ;; and iterate over the services, based on the ordered graph so
-            ;; that we know their dependencies are taken into account
-            graph-entry                       graph]
-
-      (let [service-id    (first graph-entry)
-            s             (services-by-id service-id)
-            ;; call the lifecycle function on the service, and keep a reference
-            ;; to the updated context map that it returns
-            updated-ctxt  (lifecycle-fn s (get @context service-id {}))]
-        (if-not (map? updated-ctxt)
-          (throw (IllegalStateException.
-                   (format
-                     "Lifecycle function '%s' for service '%s' must return a context map (got: %s)"
-                     lifecycle-fn-name
-                     service-id
-                     (pr-str updated-ctxt)))))
-        ;; store the updated service context map in the application context atom
-        (swap! context assoc service-id updated-ctxt)))
-    app))
 

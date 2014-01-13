@@ -9,58 +9,63 @@
 
 (use-fixtures :once with-no-jvm-shutdown-hooks)
 
-(deftest shutdown
+(defprotocol ShutdownTestService)
+
+(defprotocol ShutdownTestServiceWithFn
+  (test-fn [this]))
+
+(deftest shutdown-test
   (testing "service with shutdown hook gets called during shutdown"
     (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          app               (bootstrap-services-with-empty-config [(test-service)])]
+          test-service      (service []
+                                     (stop [this context]
+                                           (reset! shutdown-called? true)
+                                           context))
+          app               (bootstrap-services-with-empty-config [test-service])]
       (is (false? @shutdown-called?))
-      (shutdown!)
+      (shutdown! (app-context app))
       (is (true? @shutdown-called?))))
 
   (testing "services are shut down in dependency order"
     (let [order       (atom [])
-          service1    (service :service1
-                               {:depends  []
-                                :provides [shutdown]}
-                               {:shutdown #(swap! order conj 1)})
-          service2    (service :service2
-                               {:depends  [service1]
-                                :provides [shutdown]}
-                               {:shutdown #(swap! order conj 2)})
-          app         (bootstrap-services-with-empty-config [(service1) (service2)])]
+          service1    (service ShutdownTestService
+                               []
+                               (stop [this context]
+                                     (swap! order conj 1)
+                                     context))
+          service2    (service [[:ShutdownTestService]]
+                               (stop [this context]
+                                     (swap! order conj 2)
+                                     context))
+          app         (bootstrap-services-with-empty-config [service1 service2])]
       (is (empty? @order))
-      (shutdown!)
+      (shutdown! (app-context app))
       (is (= @order [2 1]))))
 
   (testing "services continue to shut down when one throws an exception"
     (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          broken-service    (service :broken-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(throw (RuntimeException. "dangit"))})
-          app               (bootstrap-services-with-empty-config [(test-service) (broken-service)])]
+          test-service      (service []
+                                     (stop [this context]
+                                           (reset! shutdown-called? true)
+                                           context))
+          broken-service    (service []
+                                     (stop [this context]
+                                           (throw (RuntimeException. "dangit"))))
+          app               (bootstrap-services-with-empty-config [test-service broken-service])]
       (is (false? @shutdown-called?))
       (with-test-logging
-        (shutdown!)
+        (shutdown! (app-context app))
         (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?))))
 
   (testing "`core/run-app` runs the framework (blocking until shutdown signal received), and `request-shutdown` shuts down services"
     (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  []
-                                      :provides [shutdown]}
-                                     {:shutdown #(reset! shutdown-called? true)})
-          app               (bootstrap-services-with-empty-config [(test-service)])
-          request-shutdown  (get-service-fn app :shutdown-service :request-shutdown)
+          test-service      (service []
+                                     (stop [this context]
+                                           (reset! shutdown-called? true)
+                                           context))
+          app               (bootstrap-services-with-empty-config [test-service])
+          request-shutdown  (partial request-shutdown (get-service app :ShutdownService))
           main-thread       (future (run-app app))]
       (is (false? @shutdown-called?))
       (request-shutdown)
@@ -69,13 +74,15 @@
 
   (testing "`shutdown-on-error` causes services to be shut down and the error is rethrown from main"
     (let [shutdown-called?  (atom false)
-          test-service      (service :test-service
-                                     {:depends  [[:shutdown-service shutdown-on-error]]
-                                      :provides [broken-fn shutdown]}
-                                     {:shutdown  #(reset! shutdown-called? true)
-                                      :broken-fn (fn [] (future (shutdown-on-error #(throw (RuntimeException. "oops")))))})
-          app                (bootstrap-services-with-empty-config [(test-service)])
-          broken-fn          (get-service-fn app :test-service :broken-fn)
+          test-service      (service ShutdownTestServiceWithFn
+                                     [[:ShutdownService shutdown-on-error]]
+                                     (stop [this context]
+                                           (reset! shutdown-called? true)
+                                           context)
+                                     (test-fn [this]
+                                              (future (shutdown-on-error #(throw (RuntimeException. "oops"))))))
+          app                (bootstrap-services-with-empty-config [test-service])
+          broken-fn          (partial test-fn (get-service app :ShutdownTestServiceWithFn))
           main-thread        (future (run-app app))]
       (is (false? @shutdown-called?))
       (broken-fn)
@@ -87,14 +94,16 @@
   (testing "`shutdown-on-error` takes an optional function that is called on error"
     (let [shutdown-called?    (atom false)
           on-error-fn-called? (atom false)
-          broken-service      (service :broken-service
-                                       {:depends  [[:shutdown-service shutdown-on-error]]
-                                        :provides [broken-fn shutdown]}
-                                       {:shutdown  #(reset! shutdown-called? true)
-                                        :broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "uh oh"))
-                                                                             #(reset! on-error-fn-called? true)))})
-          app                 (bootstrap-services-with-empty-config [(broken-service)])
-          broken-fn           (get-service-fn app :broken-service :broken-fn)
+          broken-service      (service ShutdownTestServiceWithFn
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context)
+                                       (test-fn [this]
+                                                (shutdown-on-error #(throw (RuntimeException. "uh oh"))
+                                                                   #(reset! on-error-fn-called? true))))
+          app                 (bootstrap-services-with-empty-config [broken-service])
+          broken-fn           (partial test-fn (get-service app :ShutdownTestServiceWithFn))
           main-thread         (future (run-app app))]
       (is (false? @shutdown-called?))
       (is (false? @on-error-fn-called?))
@@ -106,13 +115,13 @@
       (is (true? @on-error-fn-called?))))
 
   (testing "errors thrown by the `shutdown-on-error` optional on-error function are caught and logged"
-    (let [broken-service  (service :broken-service
-                                   {:depends  [[:shutdown-service shutdown-on-error]]
-                                    :provides [broken-fn]}
-                                   {:broken-fn (fn [] (shutdown-on-error #(throw (RuntimeException. "unused"))
-                                                                         #(throw (RuntimeException. "catch me"))))})
-          app             (bootstrap-services-with-empty-config [(broken-service)])
-          broken-fn       (get-service-fn app :broken-service :broken-fn)]
+    (let [broken-service  (service ShutdownTestServiceWithFn
+                                   [[:ShutdownService shutdown-on-error]]
+                                   (test-fn [this]
+                                            (shutdown-on-error #(throw (RuntimeException. "unused"))
+                                                               #(throw (RuntimeException. "catch me")))))
+          app             (bootstrap-services-with-empty-config [broken-service])
+          broken-fn       (partial test-fn (get-service app :ShutdownTestServiceWithFn))]
       (with-test-logging
         (let [main-thread (future (run-app app))]
           (broken-fn)

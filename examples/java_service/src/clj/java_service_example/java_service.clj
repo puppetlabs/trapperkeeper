@@ -3,19 +3,25 @@
   (:require [puppetlabs.trapperkeeper.core :refer [defservice]]
             [clojure.tools.logging :as log]))
 
-(defservice java-service
-  {:depends  []
-   :provides [msg-fn meaning-of-life-fn]}
+(defprotocol JavaService
+  (msg-fn [this])
+  (meaning-of-life-fn [this]))
 
-  ;; Service functions are implemented in a java `ServiceImpl` class
-  {:msg-fn (fn [](ServiceImpl/getMessage))
-   :meaning-of-life-fn (fn [] (ServiceImpl/getMeaningOfLife))})
+(defservice java-service
+            JavaService
+            []
+            ;; Service functions are implemented in a java `ServiceImpl` class
+            (msg-fn [this] (ServiceImpl/getMessage))
+            (meaning-of-life-fn [this] (ServiceImpl/getMeaningOfLife)))
 
 (defservice java-service-consumer
-  {:depends [[:java-service msg-fn meaning-of-life-fn]
-             [:shutdown-service request-shutdown]]
-   :provides []}
-  (log/info "Java service consumer!")
-  (log/infof "The message from Java is: '%s'" (msg-fn))
-  (log/infof "The meaning of life is: '%s'" (meaning-of-life-fn))
-  (request-shutdown))
+            [[:JavaService msg-fn meaning-of-life-fn]
+             [:ShutdownService request-shutdown]]
+            (init [this context]
+                  (log/info "Java service consumer!")
+                  (log/infof "The message from Java is: '%s'" (msg-fn))
+                  (log/infof "The meaning of life is: '%s'" (meaning-of-life-fn))
+                  context)
+            (start [this context]
+                   (request-shutdown)
+                   context))

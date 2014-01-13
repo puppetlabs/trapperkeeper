@@ -7,21 +7,16 @@
             [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.plugins :as plugins]
             [puppetlabs.trapperkeeper.config :refer [parse-config-data
-                                                     initialize-logging!
-                                                     config-service]]
-            [puppetlabs.trapperkeeper.internal :refer [validate-service-graph!
-                                                       service-graph?
-                                                       compile-graph
-                                                       instantiate
-                                                       register-shutdown-hooks!]])
-  (:import (puppetlabs.trapperkeeper.internal TrapperKeeperApp)))
+                                                     initialize-logging!]]
+            [puppetlabs.trapperkeeper.internal :as i]
+            [puppetlabs.trapperkeeper.services :as s]))
 
 (def bootstrap-config-file-name "bootstrap.cfg")
 
 (defn- parse-bootstrap-line!
   "Parses an individual line from a trapperkeeper bootstrap configuration file.
-  Each line is expected to be of the form: '<namespace>/<service-fn-name>'.  Returns
-  a 2-item vector containing the namespace and the service function name.  Throws
+  Each line is expected to be of the form: '<namespace>/<service-name>'.  Returns
+  a 2-item vector containing the namespace and the service name.  Throws
   an IllegalArgumentException if the line is not valid."
   [line]
   {:pre  [(string? line)]
@@ -37,24 +32,24 @@
                   line
                   "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")))))
 
-(defn- call-service-fn!
-  "Given the namespace and name of a service function, loads the namespace,
-  calls the function, validates that the result is a valid service graph, and
-  returns the graph.  Throws an `IllegalArgumentException` if the service graph
-  cannot be loaded."
-  [fn-ns fn-name]
-  {:pre  [(string? fn-ns)
-          (string? fn-name)]
-   :post [(service-graph? %)]}
-  (try (require (symbol fn-ns))
+(defn- resolve-service!
+  "Given the namespace and name of a service, loads the namespace,
+  calls the function, validates that the result is a valid service definition, and
+  returns the service definition.  Throws an `IllegalArgumentException` if the
+  service definition cannot be resolved."
+  [resolve-ns service-name]
+  {:pre  [(string? resolve-ns)
+          (string? service-name)]
+   :post [(satisfies? s/ServiceDefinition %)]}
+  (try (require (symbol resolve-ns))
        (catch FileNotFoundException e
          (throw (IllegalArgumentException.
-                  (str "Unable to load service: " fn-ns "/" fn-name)
+                  (str "Unable to load service: " resolve-ns "/" service-name)
                   e))))
-  (if-let [service-fn (ns-resolve (symbol fn-ns) (symbol fn-name))]
-    (validate-service-graph! (service-fn))
+  (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
+    (i/validate-service-graph! (var-get service-def))
     (throw (IllegalArgumentException.
-             (str "Unable to load service: " fn-ns "/" fn-name)))))
+             (str "Unable to load service: " resolve-ns "/" service-name)))))
 
 (defn- remove-comments
   "Given a line of text from the bootstrap config file, remove
@@ -153,26 +148,26 @@
   [config]
   {:pre  [(satisfies? IOFactory config)]
    :post [(sequential? %)
-          (every? service-graph? %)]}
+          (every? #(satisfies? s/ServiceDefinition %) %)]}
   (let [lines (line-seq (reader config))]
     (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
     (for [line (map remove-comments lines)
           :when (not (empty? line))]
-      (let [[service-fn-namespace service-fn-name] (parse-bootstrap-line! line)]
-        (call-service-fn! service-fn-namespace service-fn-name)))))
+      (let [[service-namespace service-name] (parse-bootstrap-line! line)]
+        (resolve-service! service-namespace service-name)))))
 
 (defn bootstrap-services
   "Given the services to run and command-line arguments,
    bootstrap and return the trapperkeeper application."
   [services config-data]
   {:pre  [(sequential? services)
-          (every? service-graph? services)]
-   :post [(instance? TrapperKeeperApp %)]}
-  (-> (apply merge (config-service config-data) services)
-      (register-shutdown-hooks!)
-      (compile-graph)
-      (instantiate)
-      (TrapperKeeperApp.)))
+          (every? #(satisfies? s/ServiceDefinition %) services)
+          (map? config-data)]
+   :post [(satisfies? i/TrapperkeeperApp %)]}
+  (let [app (i/build-app services config-data)]
+    (i/init app)
+    (i/start app)
+    app))
 
 (defn bootstrap
   "Bootstrap a trapperkeeper application.  This is accomplished by reading a
@@ -197,7 +192,7 @@
   [cli-data]
   {:pre  [(map? cli-data)
           (contains? cli-data :config)]
-   :post [(instance? TrapperKeeperApp %)]}
+   :post [(satisfies? i/TrapperkeeperApp %)]}
   ;; There is a strict order of operations that need to happen here:
   ;; 1. parse config files
   ;; 2. initialize logging

@@ -1,8 +1,11 @@
-(ns puppetlabs.trapperkeeper.experimental.services-test
+(ns puppetlabs.trapperkeeper.services-test
   (:require [clojure.test :refer :all]
-            [puppetlabs.trapperkeeper.experimental.services :refer
-                [TrapperkeeperApp ServiceDefinition Service ServiceLifecycle
-                 defservice service boot! get-service service-context]]))
+            [puppetlabs.trapperkeeper.services :refer
+                [ServiceDefinition Service Lifecycle
+                 defservice service service-context]]
+            [puppetlabs.trapperkeeper.internal :refer [TrapperkeeperApp get-service]]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer
+                [bootstrap-services-with-empty-config]]))
 
 (defprotocol HelloService
   (hello [this msg]))
@@ -18,13 +21,13 @@
   (testing "creates a service definition"
     (satisfies? ServiceDefinition hello-service))
 
-  (let [app (boot! [hello-service])]
+  (let [app (bootstrap-services-with-empty-config [hello-service])]
     (testing "app satisfies protocol"
       (is (satisfies? TrapperkeeperApp app)))
 
     (let [h-s (get-service app :HelloService)]
       (testing "service satisfies all protocols"
-        (is (satisfies? ServiceLifecycle h-s))
+        (is (satisfies? Lifecycle h-s))
         (is (satisfies? Service h-s))
         (is (satisfies? HelloService h-s)))
 
@@ -45,7 +48,7 @@
     (let [service1  (service Service1
                       []
                       (service1-fn [this] "hi"))
-          app       (boot! [service1])]
+          app       (bootstrap-services-with-empty-config [service1])]
       (is (not (nil? app)))))
 
   (testing "life cycle functions are called in the correct order"
@@ -66,12 +69,12 @@
                        (init [this context] (lc-fn context :init-service3))
                        (start [this context] (lc-fn context :start-service3))
                        (service3-fn [this] (lc-fn nil :service3-fn)))]
-      (boot! [service1 service3 service2])
+      (bootstrap-services-with-empty-config [service1 service3 service2])
       (is (= [:init-service1 :init-service2 :init-service3
               :start-service1 :start-service2 :start-service3]
              @call-seq))
       (reset! call-seq [])
-      (boot! [service3 service2 service1])
+      (bootstrap-services-with-empty-config [service3 service2 service1])
       (is (= [:init-service1 :init-service2 :init-service3
               :start-service1 :start-service2 :start-service3]
              @call-seq)))))
@@ -84,7 +87,7 @@
           service2 (service Service2
                             [[:Service1 service1-fn]]
                             (service2-fn [this] (str "HELLO " (service1-fn))))
-          app (boot! [service1 service2])
+          app (bootstrap-services-with-empty-config [service1 service2])
           s2 (get-service app :Service2)]
       (is (= "HELLO FOO!" (service2-fn s2)))))
 
@@ -96,7 +99,7 @@
                             [[:Service1 service1-fn]]
                             (init [this context] (service1-fn) context)
                             (service2-fn [this] "service2"))
-          app (boot! [service1 service2])
+          app (bootstrap-services-with-empty-config [service1 service2])
           s2 (get-service app :Service2)]
       (is (= "service2" (service2-fn s2))))))
 
@@ -110,7 +113,7 @@
                       []
                       (service4-fn1 [this] "foo!")
                       (service4-fn2 [this] (str (service4-fn1 this) " bar!")))
-          app       (boot! [service4])
+          app       (bootstrap-services-with-empty-config [service4])
           s4        (get-service app :Service4)]
       (is (= "foo! bar!" (service4-fn2 s4))))))
 
@@ -123,7 +126,7 @@
       (is (thrown-with-msg?
             IllegalStateException
             #"Lifecycle function 'init' for service ':Service1' must return a context map \(got: \"hi\"\)"
-            (boot! [service1]))))
+            (bootstrap-services-with-empty-config [service1]))))
 
     (let [service1 (service Service1
                             []
@@ -132,7 +135,7 @@
       (is (thrown-with-msg?
             IllegalStateException
             #"Lifecycle function 'start' for service ':Service1' must return a context map \(got: \"hi\"\)"
-            (boot! [service1])))))
+            (bootstrap-services-with-empty-config [service1])))))
 
   (testing "context should be available in subsequent lifecycle functions"
     (let [start-context (atom nil)
@@ -141,7 +144,7 @@
                             (init [this context] (assoc context :foo :bar))
                             (start [this context] (reset! start-context context))
                             (service1-fn [this] "hi"))]
-      (boot! [service1])
+      (bootstrap-services-with-empty-config [service1])
       (is (= {:foo :bar} @start-context))))
 
   (testing "context should be accessible in service functions"
@@ -150,7 +153,7 @@
                             []
                             (init [this context] (assoc context :foo :bar))
                             (service1-fn [this] (reset! sfn-context (service-context this))))
-          app (boot! [service1])
+          app (bootstrap-services-with-empty-config [service1])
           s1 (get-service app :Service1)]
       (service1-fn s1)
       (is (= {:foo :bar} @sfn-context))
@@ -164,7 +167,7 @@
           service2 (service Service2
                             [[:Service1 service1-fn]]
                             (service2-fn [this] (service1-fn)))
-          app (boot! [service1 service2])
+          app (bootstrap-services-with-empty-config [service1 service2])
           s2 (get-service app :Service2)]
       (is (= :bar (service2-fn s2)))))
 
@@ -174,7 +177,7 @@
                             (init [this context] (assoc context :foo :bar))
                             (service4-fn1 [this] ((service-context this) :foo))
                             (service4-fn2 [this] (service4-fn1 this)))
-          app (boot! [service4])
+          app (bootstrap-services-with-empty-config [service4])
           s4 (get-service app :Service4)]
       (is (= :bar (service4-fn2 s4)))))
 
@@ -189,7 +192,7 @@
                             (start [this context] (reset! s2-context (service-context this)))
                             (service2-fn [this] "hi"))
 
-          app (boot! [service1 service2])]
+          app (bootstrap-services-with-empty-config [service1 service2])]
       (is (= {} @s2-context)))))
 
 (deftest minimal-services-test
@@ -203,7 +206,7 @@
                                    (swap! call-seq conj :start)
                                    (is (= context {:foo :bar}))
                                    context))]
-      (boot! [service0])
+      (bootstrap-services-with-empty-config [service0])
       (is (= [:init :start] @call-seq))))
 
   (testing "minimal services can have dependencies"
@@ -215,5 +218,25 @@
                             (init [this context]
                                   (reset! result (service1-fn))
                                   context))]
-          (boot! [service1 service0])
+          (bootstrap-services-with-empty-config [service1 service0])
           (is (= "hi" @result)))))
+
+(defprotocol MultiArityService
+  (foo [this x] [this x y]))
+
+(deftest test-multi-arity-protocol-fn
+  (testing "should support protocols with multi-arity fns"
+    (let [ma-service  (service MultiArityService
+                               []
+                               (foo [this x] x)
+                               (foo [this x y] (+ x y)))
+          service1    (service Service1
+                               [[:MultiArityService foo]]
+                               (service1-fn [this]
+                                            [(foo 5) (foo 3 6)]))
+          app         (bootstrap-services-with-empty-config [ma-service service1])
+          mas         (get-service app :MultiArityService)
+          s1          (get-service app :Service1)]
+      (is (= 3 (foo mas 3)))
+      (is (= 5 (foo mas 4 1)))
+      (is (= [5 9] (service1-fn s1))))))

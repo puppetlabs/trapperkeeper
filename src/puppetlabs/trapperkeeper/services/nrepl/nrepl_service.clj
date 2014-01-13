@@ -37,10 +37,13 @@
 
    The nrepl service will only start if enabled is set to true, and the port specified which port nREPL should bind to.
    If no port is specified then the default port of 7888 is used."
-  {:depends [[:config-service get-in-config]]
-   :provides [shutdown]}
-  (let [nrepl-server (startup-nrepl get-in-config)]
-    {:shutdown (partial shutdown-nrepl nrepl-server)}))
+  [[:ConfigService get-in-config]]
+  (init [this context]
+        (let [nrepl-server (startup-nrepl get-in-config)]
+          (assoc context :nrepl-server nrepl-server)))
+  (stop [this context]
+        (shutdown-nrepl (context :nrepl-server))
+        context))
 
 
 

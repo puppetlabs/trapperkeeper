@@ -6,27 +6,33 @@
   []
   {:test-service "hi"})
 
+(defprotocol HelloWorldService
+  (hello-world [this]))
+
+(defprotocol TestService
+  (test-fn [this]))
+
 (defservice hello-world-service
-  {:depends  []
-   :provides [hello-world]}
-  {:hello-world (fn [] "hello world")})
+            HelloWorldService
+            []
+            (hello-world [this] "hello world"))
 
 (defservice foo-test-service
-  {:depends  []
-   :provides [test-fn]}
-  {:test-fn (fn [] :foo)})
+            TestService
+            []
+            (test-fn [this] :foo))
 
 (defservice classpath-test-service
-  {:depends  []
-   :provides [test-fn]}
-  {:test-fn (fn [] :classpath)})
+            TestService
+            []
+            (test-fn [this] :classpath))
 
 (defservice cwd-test-service
-  {:depends  []
-   :provides [test-fn]}
-  {:test-fn (fn [] :cwd)})
+            TestService
+            []
+            (test-fn [this] :cwd))
 
 (defservice cli-test-service
-  {:depends  []
-   :provides [test-fn]}
-  {:test-fn (fn [] :cli)})
+            TestService
+            []
+            (test-fn [this] :cli))

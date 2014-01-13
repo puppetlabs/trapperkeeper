@@ -1,11 +1,8 @@
-;; This namespace contains tests for the experimental service API
-;; that are specific to the prismatic implementation
-
-(ns puppetlabs.trapperkeeper.experimental.services-internal-test
+(ns puppetlabs.trapperkeeper.services-internal-test
   (:require [clojure.test :refer :all]
             [plumbing.fnk.pfnk :as pfnk]
-            [puppetlabs.trapperkeeper.experimental.services :refer [service service-map]]
-            [puppetlabs.trapperkeeper.experimental.services-internal :as si]))
+            [puppetlabs.trapperkeeper.services :refer [service service-map]]
+            [puppetlabs.trapperkeeper.services-internal :as si]))
 
 (deftest service-forms-test
   (testing "should support forms that include protocol"
@@ -42,7 +39,7 @@
   [sym]
   {:pre [(symbol? sym)]}
   (ns-resolve
-    'puppetlabs.trapperkeeper.experimental.services-internal-test
+    'puppetlabs.trapperkeeper.services-internal-test
     sym))
 
 (defprotocol EmptyProtocol)
@@ -93,7 +90,7 @@
           #"Service does not define function 'service1-fn', which is required by protocol 'Service1'"
           (si/parse-service-forms!
             ['init 'start]
-            (cons 'puppetlabs.trapperkeeper.experimental.services-internal-test/Service1
+            (cons 'puppetlabs.trapperkeeper.services-internal-test/Service1
               '([] (init [this context] context)))))))
   (testing "should throw an exception if there is a definition for a function that is not in the protocol"
     (is (thrown-with-msg?
@@ -101,7 +98,7 @@
           #"Service attempts to define function 'foo', which does not exist in protocol 'Service1'"
           (si/parse-service-forms!
             ['init 'start]
-            (cons 'puppetlabs.trapperkeeper.experimental.services-internal-test/Service1
+            (cons 'puppetlabs.trapperkeeper.services-internal-test/Service1
                   '([] (foo [this] "foo")))))))
   (testing "should throw an exception if the protocol includes a function with the same name as a lifecycle function"
     (is (thrown-with-msg?
@@ -109,7 +106,7 @@
           #"Service protocol 'BadServiceProtocol' includes function named 'start', which conflicts with lifecycle function by same name"
           (si/parse-service-forms!
             ['init 'start]
-            (cons 'puppetlabs.trapperkeeper.experimental.services-internal-test/BadServiceProtocol
+            (cons 'puppetlabs.trapperkeeper.services-internal-test/BadServiceProtocol
                   '([] (start [this] "foo"))))))))
 
 (deftest prismatic-functionality-test

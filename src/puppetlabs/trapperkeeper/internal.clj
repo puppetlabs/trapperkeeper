@@ -115,10 +115,20 @@
     (swap! app-context assoc service-id updated-ctxt)))
 
 (defn run-lifecycle-fns
-  ;; TODO docs
+  "Run a lifecycle function for all services.  Required arguments:
+
+  * app-context: the app context atom; can be updated by the lifecycle fn
+  * lifecycle-fn: a fn from the Lifecycle protocol
+  * lifecycle-fn-name: a string containing the name of the lifecycle fn that
+                       is being run.  This is only used to produce a readable
+                       error message if an error occurs.
+  * ordered-services: a list of the services in an order that conforms to
+                      their dependency specifications.  This ensures that
+                      we call the lifecycle functions in the correct order
+                      (i.e. a service can be assured that any services it
+                      depends on will have their corresponding lifecycle fn
+                      called first.)"
   [app-context lifecycle-fn lifecycle-fn-name ordered-services]
-  ;; and iterate over the services, based on the ordered graph so
-  ;; that we know their dependencies are taken into account
   (doseq [[sid s] ordered-services]
     (run-lifecycle-fn app-context lifecycle-fn lifecycle-fn-name sid s)))
 
@@ -334,9 +344,8 @@
         this))))
 
 (defn boot-services*
-  ;; TODO DOCS
-  "Given the services to run and command-line arguments,
-   bootstrap and return the trapperkeeper application."
+  "Given the services to run and the map of configuration data, create the
+  TrapperkeeperApp and boot the services.  Returns the TrapperkeeperApp."
   [services config-data]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
@@ -347,15 +356,4 @@
     (a/start app)
     app))
 
-(defn run-app
-  "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
-  which may be triggered by one of several different ways. In all cases, services
-  will be shut down and any exceptions they might throw will be caught and logged."
-  [app]
-  {:pre [(satisfies? a/TrapperkeeperApp app)]}
-  (let [shutdown-reason (wait-for-app-shutdown app)]
-    (when (initiated-internally? shutdown-reason)
-      (call-error-handler! shutdown-reason)
-      (shutdown! (a/app-context app))
-      (when-let [error (:error shutdown-reason)]
-        (throw error)))))
+

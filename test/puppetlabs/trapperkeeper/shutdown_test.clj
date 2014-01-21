@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.internal :refer :all]
             [puppetlabs.trapperkeeper.app :refer [app-context get-service]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper]
+            [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
@@ -59,7 +59,7 @@
         (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?))))
 
-  (testing "`core/run-app` runs the framework (blocking until shutdown signal received), and `request-shutdown` shuts down services"
+  (testing "`tk/run-app` runs the framework (blocking until shutdown signal received), and `request-shutdown` shuts down services"
     (let [shutdown-called?  (atom false)
           test-service      (service []
                                      (stop [this context]
@@ -67,7 +67,7 @@
                                            context))
           app               (bootstrap-services-with-empty-config [test-service])
           request-shutdown  (partial request-shutdown (get-service app :ShutdownService))
-          main-thread       (future (run-app app))]
+          main-thread       (future (tk/run-app app))]
       (is (false? @shutdown-called?))
       (request-shutdown)
       (deref main-thread)
@@ -84,7 +84,7 @@
                                               (future (shutdown-on-error #(throw (RuntimeException. "oops"))))))
           app                (bootstrap-services-with-empty-config [test-service])
           broken-fn          (partial test-fn (get-service app :ShutdownTestServiceWithFn))
-          main-thread        (future (run-app app))]
+          main-thread        (future (tk/run-app app))]
       (is (false? @shutdown-called?))
       (broken-fn)
       (is (thrown-with-msg?
@@ -105,7 +105,7 @@
                                                                    #(reset! on-error-fn-called? true))))
           app                 (bootstrap-services-with-empty-config [broken-service])
           broken-fn           (partial test-fn (get-service app :ShutdownTestServiceWithFn))
-          main-thread         (future (run-app app))]
+          main-thread         (future (tk/run-app app))]
       (is (false? @shutdown-called?))
       (is (false? @on-error-fn-called?))
       (broken-fn)
@@ -124,7 +124,7 @@
           app             (bootstrap-services-with-empty-config [broken-service])
           broken-fn       (partial test-fn (get-service app :ShutdownTestServiceWithFn))]
       (with-test-logging
-        (let [main-thread (future (run-app app))]
+        (let [main-thread (future (tk/run-app app))]
           (broken-fn)
           ;; main will rethrow the "unused" exception as expected
           ;; so we need to prevent that from failing the test

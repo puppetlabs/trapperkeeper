@@ -6,8 +6,8 @@
             [puppetlabs.kitchensink.core :refer [select-values keyset]]
             [puppetlabs.trapperkeeper.services-internal :as si]))
 
-;; TODO: Look into re-using an existing protocol for the life cycle.
-;; (Component?  Jig?) Just didn't want to introduce the dependency for now.
+;; Look into re-using an existing protocol for the life cycle instead of
+;; creating our own; just didn't want to introduce the dependency for now.
 (defprotocol Lifecycle
   "Lifecycle functions for a service.  All services satisfy this protocol, and
   the lifecycle functions for each service will be called at the appropriate

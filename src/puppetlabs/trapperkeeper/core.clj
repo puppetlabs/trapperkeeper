@@ -23,9 +23,16 @@
   defservice #'s/defservice)
 
 (defn build-app
-  ;; TODO docs
   "Given a list of services and a map of configuration data, build an instance
-  of a TrapperkeeperApp.  Services are not yet initialized or started."
+  of a TrapperkeeperApp.  Services are not yet initialized or started.  This
+  function is mainly intended for use in a REPL, for developing using the
+  'reloaded' pattern.
+  ( http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded )
+
+  Returns a TrapperkeeperApp instance.  You may call the lifecycle functions
+  (`init`, `start`, `stop`) as you see fit;  if you'd like to have the trapperkeeper
+  framework block the main thread to wait for a shutdown event, call `init`,
+  `start`, and then `run-app`."
   [services config-data]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
@@ -35,7 +42,14 @@
   (i/build-app* services config-data))
 
 (defn boot-services-with-cli-data
-  ;; TODO DOCS
+  "Given a list of ServiceDefinitions and a map containing parsed cli data, create
+  and boot a trapperkeeper app.  This function can be used if you prefer to
+  do your own CLI parsing and loading ServiceDefinitions; it circumvents
+  the normal trapperkeeper `bootstrap.cfg` boot process, but still allows
+  trapperkeeper to handle the parsing of your service configuration data.
+
+  Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
+  block the main thread to wait for a shutdown event."
   [services cli-data]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
@@ -55,9 +69,14 @@
     (i/boot-services* services config-data)))
 
 (defn boot-services-with-config
-  ;; TODO DOCS
-  "Given the services to run and command-line arguments,
-   bootstrap and return the trapperkeeper application."
+  "Given a list of ServiceDefinitions and a map containing parsed cli data, create
+  and boot a trapperkeeper app.  This function can be used if you prefer to
+  do your own CLI parsing and loading ServiceDefinitions; it circumvents
+  the normal trapperkeeper `bootstrap.cfg` boot process, but still allows
+  trapperkeeper to handle the parsing of your service configuration data.
+
+  Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
+  block the main thread to wait for a shutdown event."
   [services config-data]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
@@ -70,8 +89,7 @@
   (i/boot-services* services config-data))
 
 (defn boot-with-cli-data
-  ;; TODO docs
-  "Bootstrap a trapperkeeper application.  This is accomplished by reading a
+  "Create and boot a trapperkeeper application.  This is accomplished by reading a
   bootstrap configuration file containing a list of (namespace-qualified)
   service functions.  These functions will be called to generate a service
   graph for the application; dependency resolution between the services will
@@ -89,7 +107,10 @@
   `puppetlabs.kitchensink/cli!` can handle the parsing for you.
 
   Their must be a `:config` key in this map which defines the .ini file
-  (or directory of files) used by the configuration service."
+  (or directory of files) used by the configuration service.
+
+  Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
+  block the main thread to wait for a shutdown event."
   [cli-data]
   {:pre  [(map? cli-data)
           (contains? cli-data :config)]
@@ -108,8 +129,24 @@
         (i/boot-services* config-data))))
 
 
-;; TODO docs
+;; This variable is used to hold a reference to the "main" trapperkeeper
+;; application instance if you use trapperkeeper's "main" function to
+;; launch your application.  This allows you to get a reference to the
+;; app in a remote nREPL session if you are using the nrepl service.
 (def main-app nil)
+
+(defn run-app
+  "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
+  which may be triggered by one of several different ways. In all cases, services
+  will be shut down and any exceptions they might throw will be caught and logged."
+  [app]
+  {:pre [(satisfies? a/TrapperkeeperApp app)]}
+  (let [shutdown-reason (i/wait-for-app-shutdown app)]
+    (when (i/initiated-internally? shutdown-reason)
+      (i/call-error-handler! shutdown-reason)
+      (i/shutdown! (a/app-context app))
+      (when-let [error (:error shutdown-reason)]
+        (throw error)))))
 
 (defn run
   "Bootstraps a trapperkeeper application and runs it.
@@ -119,9 +156,10 @@
   [cli-data]
   {:pre [(map? cli-data)]}
   (let [app (boot-with-cli-data cli-data)]
-    ;; TODO docs
+    ;; This line populates the `main-app` variable with the TrapperkeeperApp
+    ;; instance.  This allows it to be referenced in a remote nREPL session.
     (alter-var-root #'main-app (fn [_] app))
-    (i/run-app app)))
+    (run-app app)))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until

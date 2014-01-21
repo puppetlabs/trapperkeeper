@@ -6,6 +6,14 @@
   (:require [clojure.stacktrace :refer [print-cause-trace]]
             [clojure.tools.logging :as log]))
 
+(defn logging-context
+  []
+  (LoggerFactory/getILoggerFactory))
+
+(defn reset-logging
+  []
+  (.reset (logging-context)))
+
 (defn root-logger
   []
   (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME))
@@ -39,6 +47,7 @@
    (let [layout (PatternLayout.)]
      (.setPattern layout "%d %-5p [%t] [%c{2}] %m%n")
      (doto (ConsoleAppender.)
+       (.setContext (logging-context))
        (.setLayout layout)
        (.start)))))
 

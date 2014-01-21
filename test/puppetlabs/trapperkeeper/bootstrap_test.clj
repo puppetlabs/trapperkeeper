@@ -6,7 +6,7 @@
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
             [puppetlabs.trapperkeeper.services :refer [service-map]]
-            [puppetlabs.trapperkeeper.internal :refer [get-service]]
+            [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.bootstrap :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]

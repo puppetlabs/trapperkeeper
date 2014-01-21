@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.tools.nrepl :as repl]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data]]
-            [puppetlabs.trapperkeeper.internal :refer [get-service]]
+            [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.services :refer [service-id stop service-context]]
             [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]))
 

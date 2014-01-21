@@ -6,22 +6,9 @@
             [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
+            [puppetlabs.trapperkeeper.app :as a]
             [puppetlabs.trapperkeeper.services :as s]))
 
-;  A type representing a trapperkeeper application.  This is intended to provide
-;  an abstraction so that users don't need to worry about the implementation
-;  details and can pass the app object to our functions in a type-safe way.
-;  The internal properties are not intended to be used outside of this
-;  namespace.
-;; TODO: move TrapperkeeperApp out of "internal" namespace since it is useful in REPL
-(defprotocol TrapperkeeperApp
-  "Functions available on a trapperkeeper application instance"
-  (get-service [this service-id] "Returns the service with the given service id")
-  (service-graph [this] "Returns the prismatic graph of service fns for this app")
-  (app-context [this] "Returns the application context for this app (an atom containing a map)")
-  (init [this] "Initialize the services")
-  (start [this] "Start the services")
-  (stop [this] "Stop the services"))
 
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
@@ -271,9 +258,9 @@
   * :error       - The error associated with the :service-error cause
   * :on-error-fn - An optional error callback associated with the :service-error cause"
   [app]
-  {:pre [(satisfies? TrapperkeeperApp app)]
+  {:pre [(satisfies? a/TrapperkeeperApp app)]
    :post [(map? %)]}
-  (wait-for-shutdown (get-service app :ShutdownService)))
+  (wait-for-shutdown (a/get-service app :ShutdownService)))
 
 (defn initiated-internally?
   "Given the shutdown reason obtained from `wait-for-shutdown`, determine whether
@@ -300,15 +287,14 @@
 
 ;;;; end of shutdown-related functions
 
-;; TODO: move build-app out of "internal" namespace since it is useful in REPL
-(defn build-app
+(defn build-app*
   "Given a list of services and a map of configuration data, build an instance
   of a TrapperkeeperApp.  Services are not yet initialized or started."
   [services config-data]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
           (map? config-data)]
-   :post [(satisfies? TrapperkeeperApp %)]}
+   :post [(satisfies? a/TrapperkeeperApp %)]}
   (let [;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service
@@ -333,29 +319,43 @@
          _ (swap! app-context assoc :ordered-services ordered-services)]
     ;; finally, create the app instance
     (reify
-      TrapperkeeperApp
-      (get-service [this protocol] (services-by-id (keyword protocol)))
-      (service-graph [this] graph-instance)
-      (app-context [this] app-context)
-      (init [this]
+      a/TrapperkeeperApp
+      (a/get-service [this protocol] (services-by-id (keyword protocol)))
+      (a/service-graph [this] graph-instance)
+      (a/app-context [this] app-context)
+      (a/init [this]
         (run-lifecycle-fns app-context s/init "init" ordered-services)
         this)
-      (start [this]
+      (a/start [this]
         (run-lifecycle-fns app-context s/start "start" ordered-services)
         this)
-      (stop [this]
+      (a/stop [this]
         (shutdown! app-context)
         this))))
+
+(defn boot-services*
+  ;; TODO DOCS
+  "Given the services to run and command-line arguments,
+   bootstrap and return the trapperkeeper application."
+  [services config-data]
+  {:pre  [(sequential? services)
+          (every? #(satisfies? s/ServiceDefinition %) services)
+          (map? config-data)]
+   :post [(satisfies? a/TrapperkeeperApp %)]}
+  (let [app (build-app* services config-data)]
+    (a/init app)
+    (a/start app)
+    app))
 
 (defn run-app
   "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
   which may be triggered by one of several different ways. In all cases, services
   will be shut down and any exceptions they might throw will be caught and logged."
   [app]
-  {:pre [(satisfies? TrapperkeeperApp app)]}
+  {:pre [(satisfies? a/TrapperkeeperApp app)]}
   (let [shutdown-reason (wait-for-app-shutdown app)]
     (when (initiated-internally? shutdown-reason)
       (call-error-handler! shutdown-reason)
-      (shutdown! (app-context app))
+      (shutdown! (a/app-context app))
       (when-let [error (:error shutdown-reason)]
         (throw error)))))

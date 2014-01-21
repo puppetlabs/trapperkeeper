@@ -3,7 +3,7 @@
             [puppetlabs.trapperkeeper.services :refer
                 [ServiceDefinition Service Lifecycle
                  defservice service service-context]]
-            [puppetlabs.trapperkeeper.internal :refer [TrapperkeeperApp get-service]]
+            [puppetlabs.trapperkeeper.app :refer [TrapperkeeperApp get-service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
                 [bootstrap-services-with-empty-config]]))
 

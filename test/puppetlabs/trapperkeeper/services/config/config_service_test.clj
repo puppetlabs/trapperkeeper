@@ -2,7 +2,7 @@
   (:import (java.io StringReader FileNotFoundException))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data]]
-            [puppetlabs.trapperkeeper.internal :refer [get-service]]
+            [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.services :refer [defservice]]))
 
 (defprotocol ConfigTestService

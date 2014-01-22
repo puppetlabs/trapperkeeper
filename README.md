@@ -1,46 +1,60 @@
 # trapperkeeper
 
-Trapperkeeper is a lightweight, pure Clojure framework for hosting long-running
-applications and services.  It borrows some of the most basic concepts of the OSGi
-"service registry" to allow users to create simple "services" and bind them together
-in a single container, but it doesn't attempt to do any fancy classloading magic,
-hot-swapping of code at runtime, or any of the other things that can make OSGi
-and other similar application frameworks complex to work with.
+Trapperkeeper is a clojure framework for hosting long-running applications and
+services.  It ties together a few nice patterns we've come across in the clojure
+community:
+
+* Stuart Sierra's ["reloaded" workflow](http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded)
+* Component lifecycles (["Component"](https://github.com/stuartsierra/component), ["jig"](https://github.com/juxt/jig#components))
+* [Composable services](http://blog.getprismatic.com/blog/2013/2/1/graph-abstractions-for-structured-computation) (based on the excellent [Prismatic graph library](https://github.com/Prismatic/plumbing)
+
+We also had a few other needs that trapperkeeper addresses (some of these arise
+because of the fact that we at Puppet Labs are shipping on-premise software, rather
+than SaaS.  The framework is a shipping part of the application, in addition to
+providing useful features for development):
+
+* Well-defined service interfaces (using clojure protocols)
+* Ability to turn services on and off via configuration after deploy
+* Ability to swap service implementations via configuration after deploy
+* Ability to load multiple web apps (usually Ring) into a single webserver
+* Unified initialization of logging and configuration so services don't have to
+  concern themselves with the implementation details
+* Super-simple configuration syntax
 
 A "service" in trapperkeeper is represented as simply a map of clojure functions.
-Each service can advertise the functions that it provides, as well as a list of
-other services that it has a dependency on.  You then configure trapperkeeper with
-a list of services to run and launch it.  At startup, it validates that all of the
-dependencies are met and fails fast if they are not.  If they are, then it injects
-the dependency functions into each service and starts them all up in the correct
-order.
+Each service can advertise the functions that it provides via a protocol, as well
+as list other services that it has a dependency on.  You then configure
+trapperkeeper with a list of services to run and launch it.  At startup, it
+validates that all of the dependencies are met and fails fast if they are not.
+If they are, then it injects the dependency functions into each service and
+starts them all up in the correct order.
 
 Trapperkeeper provides a few built-in services such as a configuration service,
-a shutdown service, and an nREPL service.  Your custom services can specify
-dependencies on these and leverage the functions that they provide.  For more
-details, see the section on [built-in services](#built-in-services) later in this
-document.
-
-## Credits
-
-Most of the heavy-lifting of the trapperkeeper framework is handled by the
-excellent [Prismatic Graph](https://github.com/Prismatic/plumbing) library.
-To a large degree, trapperkeeper just wraps some basic conventions and convenience
-functions around that library, so many thanks go out to the fine folks at
-Prismatic for sharing their code!
+a shutdown service, and an nREPL service.  Other services (such as a web server
+service) are available and ready to use, but don't ship with the base framework.
+Your custom services can specify dependencies on these and leverage the functions
+that they provide.  For more details, see the section on [built-in services](#built-in-services)
+later in this document.
 
 ## Table of Contents
 
 * [tl;dr: Quick Start](#tldr-quick-start)
+* [Credits and Origins](#credits-and-origins)
 * [Bootstrapping](#bootstrapping)
 * [Defining Services](#defining-services)
+ * [Service Lifecycle](#service-lifecycle)
+ * [Example Service](#example-service)
+ * [Multi-arity Protocol Functions](#multi-arity-protocol-functions)
 * [Built-in Services](#built-in-services)
  * [Configuration Service](#configuration-service)
  * [Shutdown Service](#shutdown-service)
  * [nREPL Service](#nrepl-service)
+
 * [Service Interfaces](#service-interfaces)
 * [Command Line Arguments](#command-line-arguments)
-* [Plugin System](#plugin-system)
+* [Other Ways to Boot](#other-ways-to-boot)
+* [Using the "Reloaded" Pattern](#using-the-reloaded-pattern)
+* [Experimental Plugin System](#experimental-plugin-system)
 * [Polyglot Support](#polyglot-support)
 * [Dev Practices](#dev-practices)
 * [Test Utils](#test-utils)
@@ -56,24 +70,30 @@ First, you need to define one or more services:
 (ns hello
   (:require [puppetlabs.trapperkeeper.core :refer [defservice]]))
 
+;; A protocol that defines what functions our service will provide
+(defprotocol HelloService
+  (hello [this])
+
 (defservice hello-service
-  ;; specify dependencies, and functions that our service provides
-  {:depends []
-   :provides [hello]}
-  ;; execute any necessary initialization code
-  (println "Hello service initializing!")
-  ;; return a map containing the functions that we said we'd provide
-  {:hello (fn [] (println "Hello there!"))})
+  HelloService
+  ;; dependencies: none for this service
+  []
+  ;; optional lifecycle functions that we can implement if we choose
+  (init [this context]
+      (println "Hello service initializing!")
+      context)
+  ;; implement our protocol functions
+  (hello [this] (println "Hello there!")))
 
 (defservice hello-consumer-service
-  ;; express a dependency on the `hello` function from the `hello-service`.
-  {:depends [[:hello-service hello]]
-   :provides []}
-  (println "Hello consumer initializing; hello service says:")
-  ;; call the function from the `hello-service`!
-  (hello)
-  ;; we don't provide any functions from this service, so return an empty map.
-  {})
+  ;; no protocol required since this service doesn't export any functions.
+  ;; express a dependency on the `hello` function from the `HelloService`.
+  [[:HelloService hello]]
+  (init [this context]
+    (println "Hello consumer initializing; hello service says:")
+    ;; call the function from the `hello-service`!
+    (hello)
+    context))
 ```
 
 Then, you need to define a trapperkeeper bootstrap configuration file, which
@@ -97,6 +117,20 @@ do much; for a more interesting example that shows how you can use trapperkeeper
 to create a web application, check out the
 [Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/blob/master/doc/example-web-service.md)
 included in the trapperkeeper webserver service project.
+
+## Credits and Origins
+
+Most of the heavy-lifting of the trapperkeeper framework is handled by the
+excellent [Prismatic Graph](https://github.com/Prismatic/plumbing) library.
+To a large degree, trapperkeeper just wraps some basic conventions and convenience
+functions around that library, so many thanks go out to the fine folks at
+Prismatic for sharing their code!
+
+Trapperkeeper borrows some of the most basic concepts of the OSGi
+"service registry" to allow users to create simple "services" and bind them together
+in a single container, but it doesn't attempt to do any fancy classloading magic,
+hot-swapping of code at runtime, or any of the other things that can make OSGi
+and other similar application frameworks complex to work with.
 
 ## Bootstrapping
 
@@ -146,70 +180,147 @@ a variable in a let block or other location.  Here's how they work:
 
 * a service name
 * an optional doc string
-* a map specifying the dependencies and listing the functions that the service provides
-* a body, which may be any number of forms but must return a map containing the
-  functions that were indicated in the 'provides' value from the previous argument.
+* an optional service protocol; only required if your service exports functions
+  that can be used by other services
+* a dependency list indicating other services/functions that this service requires
+* a series of function implementations.  This must include all of the functions
+  in the protocol if one is specified, and may also optionally provide override
+  implementations for the built-in service `Lifecycle` functions.
+
+#### Service Lifecycle
+
+The service `Lifecycle` protocol looks like this:
+
+```clj
+(defprotocol Lifecycle
+  (init [this context])
+  (start [this context])
+  (stop [this context]))
+```
+
+(This may look familiar; we chose to use the same function names as some of the
+existing lifecycle protocols.  Ultimately we'd like to just use one of those
+protocols directly, but for now our needs are different enough to warrant avoiding
+the introduction of a dependency on an existing project.)
+
+All service lifecycle functions are passed a service `context` map, which may
+be used to store any service-specific state (e.g., a database connection pool or
+some other object that you need to reference in subsequent functions.)  Services
+may define these functions, `assoc` data into the map as needed, and then return
+the updated context map.  The updated context map will be maintained by the
+framework and passed to subsequent lifecycle functions for the service.
+
+The default implementation of the lifecycle functions is to simply return
+the service context map unmodified; if you don't need to implement a particular
+lifecycle function for your service, you can simply omit it and the default
+will be used.
+
+Trapperkeeper will call the lifecycle functions in order based on the dependency
+list of the services; in other words, if your service has a dependency on service
+`Foo`, you are guaranteed that `Foo`'s `init` function will be called prior to
+yours, and that your `stop` function will be called prior to `Foo`'s.
+
+#### Example Service
 
 Let's look at a concrete example:
 
 ```clj
+;; This is the list of functions that the `FooService` must implement, and which
+;; are available to other services who have a dependency on `FooService`.
+(defprotocol FooService
+  (foo1 [this x])
+  (foo2 [this])
+  (foo3 [this x]))
+
 (defservice foo-service
    ;; docstring (optional)
    "A service that foos."
-   ;; depends/provides metadata map
-   {
-    ;; the :depends value should be a vector of vectors.  Each of the inner vectors
-    ;; should begin with a keyword that matches the name of another service, which
-    ;; may be followed by any number of symbols.  Each symbol is the name of a function
-    ;; that is provided by that service.  Trapperkeeper will fail fast at startup
-    ;; if any of the specified dependency services do not exist, *or* if they
-    ;; do not provide all of the functions specified in your vector.
-    :depends [[:some-service function1 function2]
-              [:another-service function3 function4]]
-    ;; the :provides value is simply a vector of symbols; each symbol is the name
-    ;; of a function that your service promises to provide in its output map.
-    :provides [foo1 foo2 foo3]
-   }
 
-   ;; After your metadata map comes the body of the service; this is the code
-   ;; that will be executed when the service is started by trapperkeeper.  You
-   ;; may specify any number of forms here, but the final value returned by your
-   ;; body must be a map whose keys are keywords that correspond with what you've
-   ;; specified in your `:provides` metadata, and whose values are functions that
-   ;; may be used by other services.
-   ;;
-   ;; inside your body, you may use the functions that were specified in your
-   ;; `:depends` metadata just like you would use any other function:
-   (let [someval (function1)]
-      ;; do some other initialization
+   ;; now we specify the (optional) protocol that this service satisfies:
+   FooService
+
+   ;; the :depends value should be a vector of vectors.  Each of the inner vectors
+   ;; should begin with a keyword that matches the protocol name of another service,
+   ;; which may be followed by any number of symbols.  Each symbol is the name of a
+   ;; function that is provided by that service.  Trapperkeeper will fail fast at
+   ;; startup if any of the specified dependency services do not exist, *or* if they
+   ;; do not provide all of the functions specified in your vector.  (Note that
+   ;; the syntax used here is actually just the
+   ;; [fnk binding syntax from the Prismatic plumbing library](https://github.com/Prismatic/plumbing/tree/master/src/plumbing/fnk#fnk-syntax),
+   ;; so you can technically use any form that is compatible with that.)
+   [[:SomeService function1 function2]
+    [:AnotherService function3 function4]]
+
+   ;; After your dependencies list comes the function implementations.
+   ;; You must implement all of the protocol functions (if a protocol is
+   ;; specified), and you may also override any `Lifecycle` functions that
+   ;; you choose.  We'll start by implementing the `init` function from
+   ;; the `Lifecycle`:
+   (init [this context]
+      ;; do some initialization
       ;; ...
-      ;; now return our service function map.  we said we'd provide functions
-      ;; `foo1`, `foo2`, and `foo3`, so we need to do that:
-      {:foo1 (comp function2 function3)
-       :foo2 #(println "Function4 returns" (function4))
-       :foo3 (fn [x] (format "x + function1 is: '%s'" (str x someval)))}))
+      ;; now return the service context map; we can update it to include
+      ;; some state if we like.  Note that we can use the functions that
+      ;; were specified in our dependency list here:
+      (assoc context :foo (str "Some interesting state:" (function1)))
+
+   ;; We could optionally also override the `start` and `stop` lifecycle
+   ;; functions, but we won't for this example.
+
+   ;; Now we'll define our service function implementations.  Again, we are
+   ;; free to use the imported functions from the other services here:
+   (foo1 [this x] ((comp function2 function3) x))
+   (foo2 [this] (println "Function4 returns" (function4)))
+
+   ;; We can also access the service context that we updated during the
+   ;; lifecycle functions, by using the `service-context` function from
+   ;; the `Service` protocol:
+   (foo3 [this x]
+     (let [context (service-context this)]
+       (format "x + :foo is: '%s'" (str x (:foo context))))))
 ```
 
 After this `defservice` statement, you will have a var named `foo-service` in
 your namespace that contains the service.  You can reference this from a
 trapperkeeper bootstrap configuration file to include that service in your
 app, and once you've done that your new service can be referenced as a dependency
-(`{:depends [[:foo-service ...`) by other services.
+(`{:depends [[:FooService ...`) by other services.
+
+#### Multi-arity Protocol Functions
+
+Clojure's protocols allow you to define multi-arity functions:
+
+```clj
+(defprotocol MultiArityService
+   (foo [this x] [this x y]))
+```
+
+Trapperkeeper services can use the syntax from clojure's `reify` to implement
+these multi-arity functions:
+
+```clj
+(defservice my-service
+   MultiArityService
+   []
+   (foo [this x] x)
+   (foo [this x y] (+ x y)))
+```
 
 ### `service`
 
 `service` works very similarly to `defservice`, but it doesn't define a var
-in your namespace; it simply returns the service instance.  It also expects
-a keyword value to name the service instead of the var name that you use with
-`defservice`.  Here's an example:
+in your namespace; it simply returns the service instance.  Here are some
+examples (with and without protocols):
 
 ```clj
-(service :bar-service
-   "A service that bars."
-   {:depends []
-    :provides [bar]}
-   ;; initialization code goes here, then we return our service function map
-   {:bar (fn [] "bar")})
+(service
+   []
+   (init [this context]
+     (println "Starting anonymous service!")
+     context))
+
+(defprotocol AnotherService
+   (foo [this]))
 ```
 
 ## Built-in Services
@@ -256,11 +367,20 @@ the keys of the map will be keywords representing the section headers from the
 ini file(s), and the values will be maps containing the individual setting names
 and values from that section of the ini file.
 
-The configuration service then provides two functions that you can specify as
-dependencies for other services: `get-config []` and `get-in-config [ks]`.  The
-first returns the full configuration map; the second is like clojure's `get-in`
-function, and allows you to retrieve data from an arbitrary path in the
-configuration map.
+Here's the protocol for the configuration service:
+
+```clj
+(defprotocol ConfigService
+  (get-config [this] "Returns a map containing all of the configuration values")
+  (get-in-config [this ks] [this ks default]
+                 "Returns the individual configuration value from the nested
+                 configuration structure, where ks is a sequence of keys.
+                 Returns nil if the key is not present, or the default value if
+                 supplied."))
+```
+
+Your service may then specify a dependency on the configuration service in order
+to access service configuration data.
 
 Here's an example.  Assume you have a directory called `conf.d`, and in it, you
 have a single config file called `foo.ini` with the following contents
@@ -275,14 +395,13 @@ Then, you can define a service like this:
 
 ```clj
 (defservice foo-service
-   {:depends [[:config-service get-in-config]]
-    :provides []}
+   [[:ConfigService get-in-config]]
    ;; service initialization code
-   (println
+   (init [this context]
+     (println
       (format "foosetting2 has a value of '%s'"
          (get-in-config [:foosection1 :foosetting2])))
-   ;; return empty service function map
-   {})
+     context))
 ```
 
 Then, if you add `foo-service` to your `bootstrap.cfg` file and launch your app
@@ -331,12 +450,12 @@ service, is always loaded.  It has two main responsibilities:
 
 #### Shutdown Hooks
 
-A service may provide a shutdown function which will be called during application
-shutdown.  The shutdown hook for any given service is guaranteed to be called
-*before* the shutdown hook for any of the services that it depends on.
+A service may implement the `stop` function from the `Lifecycle` protocol.  If so,
+this function will be called during application shutdown.  The shutdown hook for
+any given service is guaranteed to be called *before* the shutdown hook for any
+of the services that it depends on.
 
-To register a shutdown hook, a service need only provide a no-arg `:shutdown`
-function in its service function map.  For example:
+For example:
 
 ```clj
 (defn bar-shutdown
@@ -344,34 +463,44 @@ function in its service function map.  For example:
    (log/info "bar-service shutting down!"))
 
 (defservice bar-service
-   {:depends [[:foo-service foo]]
-    :provides [shutdown]}
+   [[:FooService foo]]
    ;; service initialization code
-   (log/info "bar-service initializing.")
-   ;; return service function map
-   {:shutdown bar-shutdown})
+   (init [this context]
+     (log/info "bar-service initializing.")
+     context)
+
+   ;; shutdown code
+   (stop [this context]
+      (bar-shutdown)
+      context))
 ```
 
 Given this service definition, the `bar-shutdown` function would be called
 during shutdown of the trapperkeeper container (during both a normal shutdown
 or an error shutdown).  Because `bar-service` has a dependency on `foo-service`,
 trapperkeeper would also guarantee that the `bar-shutdown` is called *prior to*
-the shutdown hook for `foo-service` (assuming `foo-service` provides one).
+the `stop` function for the `foo-service` (assuming `foo-service` provides one).
 
 #### Provided Shutdown Functions
 
 The shutdown service provides two functions that can be injected into other
-services: `request-shutdown` and `shutdown-on-error`.  To use them, you may
-simply specify a dependency on them:
+services: `request-shutdown` and `shutdown-on-error`.  Here's the protocol:
+
+```clj
+(defprotocol ShutdownService
+  (request-shutdown [this] "Asynchronously trigger normal shutdown")
+  (shutdown-on-error [this f] [this f on-error]
+    "Higher-order function to execute application logic and trigger shutdown in
+    the event of an exception"))
+```
+
+To use them, you may simply specify a dependency on them:
 
 ```clj
 (defservice baz-service
-   {:depends [[:shutdown-service request-shutdown shutdown-on-error]]
-    :provides []}
-   ;; initialization
+   [[:ShutdownService request-shutdown shutdown-on-error]]
    ;; ...
-   ;; return service function map
-   {})
+   )
 ```
 
 ##### `request-shutdown`
@@ -414,12 +543,15 @@ Here's an example:
    (log/info "Performing normal shutdown logic."))
 
 (defservice yet-another-service
-   {:depends [[:shutdown-service shutdown-on-error]]
-    :provides [shutdown]}
-   ;; initialization
-   (let [worker-thread (future (shutdown-on-error my-work-fn my-error-cleanup-fn))]
-      ;; return service function map
-      {:shutdown my-normal-shutdown-fn}))
+   [[:ShutdownService shutdown-on-error]]
+   (init [this context]
+      (assoc context
+         :worker-thread
+         (future (shutdown-on-error my-work-fn my-error-cleanup-fn))))
+
+   (stop [this context]
+      (my-normal-shutdown-fn)
+      context))
 ```
 
 In this scenario, the application would run for 10 seconds, and then the fatal
@@ -429,16 +561,17 @@ and then attempt to call all of the normal shutdown hooks in the correct order
 
 ### nREPL Service
 
-To assist in debugging applications, _trapperkeeper_ comes with a service that allows starting
-up a network REPL (`nREPL`) inside of the running _trapperkeeper_ process. See
-[Configuring the nREPL service](doc/nrepl-config.md) for more information.
+To assist in debugging applications, _trapperkeeper_ comes with a service that
+allows starting an embedded network REPL (`nREPL`) inside of the running
+_trapperkeeper_ process. See [Configuring the nREPL service](doc/nrepl-config.md)
+for more information.
 
 ## Service Interfaces
 
 One of the goals of trapperkeeper's "service" model is that a service should
 be thought of as simply an interface; any given service provides a
-well-known set of functions as its "contract", and the implementation details
-of these functions are not important to consumers.  (Again, this borrows heavily
+protocol as its "contract", and the implementation details
+of these functions are not important to consumers.  (This borrows heavily
 from OSGi's concept of a "service".)  This means that you can
 write multiple implementations of a given service and swap them in and out of
 your application by simply modifying your configuration, without having to change
@@ -447,10 +580,6 @@ any of the consuming code.  The trapperkeeper
 [Jetty 7 webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7)
 and a [Jetty 9 webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9)
 that can be used interchangeably.
-
-(In the future, we'd like to move to a more concrete mechanism for specifying
-a service "interface"; most likely by using a Clojure protocol.  For more info,
-see the [Hopes and Dreams](#hopes-and-dreams) section below.)
 
 One of the motivations behind this approach is to make it easier to ship
 "on-premise" or "shrink-wrapped" software written in Clojure.  In SaaS
@@ -469,32 +598,35 @@ configure their system.
 Here's a concrete example of how this might work:
 
 ```clj
-(ns services.foo.lowercase-foo)
+(ns services.foo)
+
+(defprotocol FooService
+  (foo [this]))
+
+(ns services.foo.lowercase-foo
+  (:require [services.foo :refer [FooService])
 
 (defservice foo-service
    "A lower-case implementation of the `foo-service`"
-   ;; metadata
-   {:depends []
-    :provides [foo]}
-   ;; now return our service function map:
-   {:foo (fn [] "foo")})
+   FooService
+   []
+   (foo [this] "foo"))
 
-(ns services.foo.uppercase-foo)
+(ns services.foo.uppercase-foo
+  (:require [services.foo :refer [FooService]))
 
 (defservice foo-service
    "An upper-case implementation of the `foo-service`"
-   ;; metadata
-   {:depends []
-    :provides [foo]}
-   ;; now return our service function map:
-   {:foo (fn [] "FOO")})
+   FooService
+   []
+   (foo [this] "FOO"))
 
 (ns services.foo-consumer)
 
 (defservice foo-consumer
    "A service that consumes the `foo-service`"
    ;; metadata
-   {:depends [[:foo-service foo]]
+   {:depends [[:FooService foo]]
     :provides [bar]}
    ;; now return our service function map:
    {:bar (fn [] (format "Foo service returned: '%s'" (foo)))})
@@ -624,8 +756,123 @@ as it would have used the `--config` value from the command line.  You may also
 (optionally) provide `:bootstrap-config` and `:debug` keys, to override the
 path to the bootstrap configuration file and/or enable debugging on the application.
 
-## Plugin System
-Trapperkeeper has an **extremely** simple plugin mechanism.  It allows you to
+#### Other Ways to Boot
+
+We use the term `boot` to describe the process of building up an instance of
+a `TrapperkeeperApp`, and then calling `init` and `start` on all of its services
+in the correct order.
+
+It is possible to use the trapperkeeper framework at a slightly lower level.  Using
+`run` or `main` will boot all of the services and then block the main thread until a
+shutdown is triggered; if you need more control, you'll be getting a reference
+to a `TrapperkeeperApp` directly.
+
+##### `TrapperkeeperApp` protocol
+
+There is a protocol that represents a trapperkeeper application:
+
+```clj
+(defprotocol TrapperkeeperApp
+  "Functions available on a trapperkeeper application instance"
+  (app-context [this] "Returns the application context for this app (an atom containing a map)")
+  (init [this] "Initialize the services")
+  (start [this] "Start the services")
+  (stop [this] "Stop the services"))
+```
+
+With a reference to a `TrapperkeeperApp`, you can gain more control over when
+the lifecycle functions are called.  To get an instance, you can call any of
+these functions:
+
+* `(boot-with-cli-data [cli-data])`: this function expects you to process your
+  own cli args into a map (as with `run`).  It then creates a TrapperkeeperApp,
+  boots all of the services, and returns the app.
+* `(boot-services-with-cli-data [services cli-data])`: this function expects you
+  to process your own cli args into a map, and also to build up your own list
+  of services to pass in as the first arg.  It circumvents the normal
+  trapperkeeper `bootstrap.cfg` process, creates a `TrapperkeeperApp` with all
+  of your services, boots them, and returns the app.
+* `(boot-services-with-config [services config])`: this function expects you
+  to process your own cli args, configuration data, and build up your own list
+  of services.  You pass it the list of services and the map of all service
+  configuration data, and it circumvents the normal `bootstrap.cfg` process,
+  creates a `TrapperkeeperApp` with all of your services, boots them, and
+  returns the app.
+
+Each of the above gives you a way to get a reference to a `TrapperkeeperApp`
+without blocking the main thread to wait for shutdown.  If, later, you do wish
+to wait for the shutdown, you can simply call `run-app` and pass it your
+`TrapperkeeperApp`.  Alternately, you can call `stop` on the `TrapperkeeperApp`
+to initiate shutdown on your own terms.
+
+Note that all of these functions *do* boot your services.  If you wish to have
+more control over the booting of the services, you can use this function:
+
+* `(build-app [services config-data])`: this function creates a `TrapperkeeperApp`
+  *without* booting the services.  You can then boot them yourself by calling
+  `init` and `start` on the `TrapperkeeperApp`.
+
+## Using the "Reloaded" Pattern
+
+[Stuart Sierra's "reloaded" workflow](http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded)
+has become very popular in the clojure world of late; and for good reason, it's
+an awesome and super productive way to do interactive development in the REPL,
+and also helps encourage code modularity and minimizing mutable state.  He
+has some [example code](https://github.com/stuartsierra/component#reloading)
+that shows some utility functions to use in the REPL to interact with your application.
+
+Trapperkeeper was designed with this pattern in mind as a goal.  Thus, it's
+entirely possible to write some very similar code that allows you to start/stop/reload
+your app in a REPL:
+```clj
+(ns examples.my-app.repl
+  (:require [puppetlabs.trapperkeeper.services.webserver.jetty9-service :refer [jetty9-service]]
+            [examples.my-app.services :refer [count-service foo-service baz-service]]
+            [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.trapperkeeper.app :as tka]
+            [clojure.tools.namespace.repl :refer (refresh)]))
+
+;; a var to hole the main `TrapperkeeperApp` instance
+(def system nil)
+
+(defn init []
+  (alter-var-root #'system
+    (fn [_] (let [app (tk/build-app
+                        [jetty9-service count-service foo-service baz-service]
+                        {:global    {:logging-config "examples/my_app/logback.xml"}
+                         :webserver {:port 8080}
+                         :example   {:my-app-config-value "FOO"}})]
+              (tka/init app)))))
+
+(defn start []
+  (alter-var-root #'system tka/start))
+
+(defn stop []
+  (alter-var-root #'system
+    (fn [s] (when s (tka/stop s)))))
+
+(defn go []
+  (init)
+  (start))
+
+(defn context []
+  @(tka/app-context system))
+
+;; pretty print the entire application context
+(defn print-context []
+  (clojure.pprint/pprint (context)))
+
+(defn reset []
+  (stop)
+  (refresh :after 'examples.ring-app.repl/go))
+```
+
+For a working example, see the `repl` namespace in the
+[jetty9 example app](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/ring_app)
+
+## Experimental Plugin System
+
+Trapperkeeper has an **extremely** simple, experimental plugin mechanism.  It allows you to
 specify (as a command-line argument) a directory of "plugin" .jars that will be
 dynamically added to the classpath at runtime.  Each .jar will also be checked
 for duplicate classes or namespaces before it is added, so as to prevent any
@@ -720,17 +967,6 @@ information.
 Here are some ideas that we've had and things we've played around with a bit for
 improving trapperkeeper in the future.
 
-### More rigid specification of service interfaces
-
-As it stands right now, a service provides an implicit "contract" as to what its
-interface is via the list of functions in its `:provides` metadata.  We'd like
-to promote the ability to swap out services with alternate implementations that
-use the same interface, but in order to do that, we probably need to come up
-with a more concrete and less implicit way for the services to specify their
-contract/interface.  This will most likely end up leveraging Clojure's
-protocols, but we haven't quite sorted out what the API for that would look
-like.
-
 ### More flexible configuration service
 
 The current configuration service is hard-coded to use `ini` files as its back
@@ -758,22 +994,6 @@ a [Ring](https://github.com/ring-clojure/ring) or
 We'd like to add a few more similar functions that would allow you to register other
 types of web applications, specifically an `add-rack-handler` function that would allow
 you to register a Rack application (to be run via JRuby).
-
-### More robust life cycle / context management
-
-We have been considering several options around managing the life cycles of
-services, and potentially providing a context map that services could use to
-tuck away some state information.  This would probably end up looking a bit
-like the [Component Lifecycle from the Jig project](https://github.com/juxt/jig#components).
-
-In addition to providing a bit more granularity for service initialization, it'd
-also allow a more REPL-friendly workflow since the context object could be used
-to introspect or restart subsystems of the application.  It should also make
-it a lot easier for us to make the current hard-coded configuration service and
-logging initialization pluggable.
-
-We decided that this introduced too much complexity for our initial release, but
-it's something we're likely to revisit soon.
 
 ## License
 

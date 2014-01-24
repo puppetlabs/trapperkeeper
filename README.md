@@ -708,7 +708,7 @@ on by using a classifier in your project dependencies.
 ```clojure
   (defproject yourproject "1.0.0"
     ...
-    :profiles {:test {:dependencies [[puppetlabs/trapperkeeper "x.y.z" :classifier "test"]]}})
+    :profiles {:dev {:dependencies [[puppetlabs/trapperkeeper "x.y.z" :classifier "test"]]}})
 ```
 
 Since _trapperkeeper_ handles logging initialization and provides a web server, some utility functions are available

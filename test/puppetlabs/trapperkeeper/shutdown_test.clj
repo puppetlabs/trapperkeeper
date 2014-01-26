@@ -81,7 +81,8 @@
                                            (reset! shutdown-called? true)
                                            context)
                                      (test-fn [this]
-                                              (future (shutdown-on-error #(throw (RuntimeException. "oops"))))))
+                                              (future (shutdown-on-error (service-id this)
+                                                                         #(throw (RuntimeException. "oops"))))))
           app                (bootstrap-services-with-empty-config [test-service])
           broken-fn          (partial test-fn (get-service app :ShutdownTestServiceWithFn))
           main-thread        (future (tk/run-app app))]
@@ -101,8 +102,9 @@
                                              (reset! shutdown-called? true)
                                              context)
                                        (test-fn [this]
-                                                (shutdown-on-error #(throw (RuntimeException. "uh oh"))
-                                                                   #(reset! on-error-fn-called? true))))
+                                                (shutdown-on-error (service-id this)
+                                                                   #(throw (RuntimeException. "uh oh"))
+                                                                   (fn [ctxt] (reset! on-error-fn-called? true)))))
           app                 (bootstrap-services-with-empty-config [broken-service])
           broken-fn           (partial test-fn (get-service app :ShutdownTestServiceWithFn))
           main-thread         (future (tk/run-app app))]
@@ -119,8 +121,9 @@
     (let [broken-service  (service ShutdownTestServiceWithFn
                                    [[:ShutdownService shutdown-on-error]]
                                    (test-fn [this]
-                                            (shutdown-on-error #(throw (RuntimeException. "unused"))
-                                                               #(throw (RuntimeException. "catch me")))))
+                                            (shutdown-on-error (service-id this)
+                                                               #(throw (RuntimeException. "unused"))
+                                                               (fn [ctxt] (throw (RuntimeException. "catch me"))))))
           app             (bootstrap-services-with-empty-config [broken-service])
           broken-fn       (partial test-fn (get-service app :ShutdownTestServiceWithFn))]
       (with-test-logging

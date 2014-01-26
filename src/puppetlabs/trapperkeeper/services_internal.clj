@@ -381,7 +381,7 @@
                         ;; now we need to transform all calls to `service-context` from
                         ;; protocol form to prismatic form.  we don't need to track this as
                         ;; a dependency because it will be provided by the app.
-                        [_ fn-body] (replace-fn-calls #{'service-context} this fn-body)
+                        [_ fn-body] (replace-fn-calls #{'service-context 'service-id} this fn-body)
                         ;; transform all the functions from the service protocol, and keep
                         ;; a list of the dependencies so that prismatic can inject them
                         [deps fn-body] (replace-fn-calls (set fn-names) this fn-body)]

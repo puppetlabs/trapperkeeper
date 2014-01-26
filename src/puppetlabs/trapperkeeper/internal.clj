@@ -180,22 +180,27 @@
 
   If an optional `on-error-fn` is provided, it will be executed if `f` throws
   an exception, but before the primary shutdown sequence begins."
-  ([shutdown-reason-promise f]
-   (shutdown-on-error* shutdown-reason-promise f nil))
-  ([shutdown-reason-promise f on-error-fn]
-   {:pre [(ifn? f)
+  ([shutdown-reason-promise app-context svc-id f]
+   (shutdown-on-error* shutdown-reason-promise app-context svc-id f nil))
+  ([shutdown-reason-promise app-context svc-id f on-error-fn]
+   {:pre [(instance? Atom app-context)
+          (map? @app-context)
+          (keyword? svc-id)
+          (contains? @app-context svc-id)
+          (ifn? f)
           ((some-fn nil? ifn?) on-error-fn)]}
    (try
      (f)
      (catch Exception e
        (deliver shutdown-reason-promise {:cause       :service-error
                                          :error       e
-                                         :on-error-fn on-error-fn})))))
+                                         :on-error-fn (when on-error-fn
+                                                        (partial on-error-fn (get @app-context svc-id)))})))))
 
 (defprotocol ShutdownService
   (wait-for-shutdown [this])
   (request-shutdown [this] "Asynchronously trigger normal shutdown")
-  (shutdown-on-error [this f] [this f on-error]
+  (shutdown-on-error [this svc-id f] [this svc-id f on-error]
     "Higher-order function to execute application logic and trigger shutdown in
     the event of an exception"))
 
@@ -210,13 +215,13 @@
                          and trigger shutdown in the event of an exception
 
   For more information, see `request-shutdown` and `shutdown-on-error`."
-  [shutdown-reason-promise]
+  [shutdown-reason-promise app-context]
   (s/service ShutdownService
     []
     (wait-for-shutdown [this] (deref shutdown-reason-promise))
     (request-shutdown [this]  (request-shutdown* shutdown-reason-promise))
-    (shutdown-on-error [this f] (shutdown-on-error* shutdown-reason-promise f))
-    (shutdown-on-error [this f on-error] (shutdown-on-error* shutdown-reason-promise f on-error))))
+    (shutdown-on-error [this svc-id f] (shutdown-on-error* shutdown-reason-promise app-context svc-id f))
+    (shutdown-on-error [this svc-id f on-error] (shutdown-on-error* shutdown-reason-promise app-context svc-id f on-error))))
 
 (defn ordered-services?
   "Predicate that validates that an object is an ordered list of services as required
@@ -253,7 +258,7 @@
   {:pre [(instance? Atom app-context)]
    :post [(satisfies? s/ServiceDefinition %)]}
   (let [shutdown-reason-promise (promise)
-        shutdown-service (shutdown-service shutdown-reason-promise)]
+        shutdown-service (shutdown-service shutdown-reason-promise app-context)]
     (add-shutdown-hook! #(when-not (realized? shutdown-reason-promise)
                           (shutdown! app-context)
                           (deliver shutdown-reason-promise {:cause :jvm-shutdown-hook})))

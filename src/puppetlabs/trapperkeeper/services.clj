@@ -68,6 +68,7 @@
            (fnk ~(si/fnk-binding-form dependencies service-fn-names)
               ;; create a function that exposes the service context to the service.
               (let [~'service-context (fn [] (get ~'@context ~service-id))
+                    ~'service-id      (fn [] ~service-id)
                     ;; here we create an inner graph for this service.  we need
                     ;; this in order to handle deps within a single service.
                     service-map#      ~(si/prismatic-service-map

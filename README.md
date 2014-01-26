@@ -489,7 +489,7 @@ services: `request-shutdown` and `shutdown-on-error`.  Here's the protocol:
 ```clj
 (defprotocol ShutdownService
   (request-shutdown [this] "Asynchronously trigger normal shutdown")
-  (shutdown-on-error [this f] [this f on-error]
+  (shutdown-on-error [this service-id f] [this service-id f on-error]
     "Higher-order function to execute application logic and trigger shutdown in
     the event of an exception"))
 ```
@@ -517,11 +517,18 @@ logic in a `try/catch` block that will cause trapperkeeper to initiate an error
 shutdown if an unhandled exception occurs in your block.  (This is generally
 intended to be used on worker threads that your service may launch.)
 
-`shutdown-on-error` accepts either one or two arguments: `[f]` or `[f on-error-fn]`.
+`shutdown-on-error` accepts either two or three arguments: `[service-id f]` or
+`[service-id f on-error-fn]`.
+
+`service-id` is the id of your service; you can retrieve this via `(service-id this)`
+inside of any of your service function definitions.
+
 `f` is a function containing whatever application logic you desire; this is the
 function that will be wrapped in `try/catch`.  `on-error-fn` is an optional callback
 function that you can provide, which will be executed during error shutdown *if*
-an unhandled exception occurs during the execution of `f`.
+an unhandled exception occurs during the execution of `f`.  `on-error-fn` should
+take a single argument: `context`, which is the service context map (the same
+map that is used in the lifecycle functions).
 
 Here's an example:
 
@@ -534,8 +541,8 @@ Here's an example:
    (throw (IllegalStateException. "egads!")))
 
 (defn my-error-cleanup-fn
-   []
-   (log/info "Something terrible happened!")
+   [context]
+   (log/info "Something terrible happened!  Foo: " (context :foo))
    (log/info "Performing shutdown logic that should only happen on a fatal error."))
 
 (defn my-normal-shutdown-fn
@@ -547,7 +554,7 @@ Here's an example:
    (init [this context]
       (assoc context
          :worker-thread
-         (future (shutdown-on-error my-work-fn my-error-cleanup-fn))))
+         (future (shutdown-on-error (service-id this) my-work-fn my-error-cleanup-fn))))
 
    (stop [this context]
       (my-normal-shutdown-fn)

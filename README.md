@@ -6,7 +6,7 @@ community:
 
 * Stuart Sierra's ["reloaded" workflow](http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded)
 * Component lifecycles (["Component"](https://github.com/stuartsierra/component), ["jig"](https://github.com/juxt/jig#components))
-* [Composable services](http://blog.getprismatic.com/blog/2013/2/1/graph-abstractions-for-structured-computation) (based on the excellent [Prismatic graph library](https://github.com/Prismatic/plumbing)
+* [Composable services](http://blog.getprismatic.com/blog/2013/2/1/graph-abstractions-for-structured-computation) (based on the excellent [Prismatic graph library](https://github.com/Prismatic/plumbing))
 
 We also had a few other needs that trapperkeeper addresses (some of these arise
 because of the fact that we at Puppet Labs are shipping on-premise software, rather
@@ -839,7 +839,7 @@ your app in a REPL:
             [puppetlabs.trapperkeeper.app :as tka]
             [clojure.tools.namespace.repl :refer (refresh)]))
 
-;; a var to hole the main `TrapperkeeperApp` instance
+;; a var to hold the main `TrapperkeeperApp` instance.
 (def system nil)
 
 (defn init []

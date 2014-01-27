@@ -66,10 +66,10 @@
                                            (reset! shutdown-called? true)
                                            context))
           app               (bootstrap-services-with-empty-config [test-service])
-          request-shutdown  (partial request-shutdown (get-service app :ShutdownService))
+          shutdown-svc      (get-service app :ShutdownService)
           main-thread       (future (tk/run-app app))]
       (is (false? @shutdown-called?))
-      (request-shutdown)
+      (request-shutdown shutdown-svc)
       (deref main-thread)
       (is (true? @shutdown-called?))))
 
@@ -84,10 +84,10 @@
                                               (future (shutdown-on-error (service-id this)
                                                                          #(throw (RuntimeException. "oops"))))))
           app                (bootstrap-services-with-empty-config [test-service])
-          broken-fn          (partial test-fn (get-service app :ShutdownTestServiceWithFn))
+          test-svc           (get-service app :ShutdownTestServiceWithFn)
           main-thread        (future (tk/run-app app))]
       (is (false? @shutdown-called?))
-      (broken-fn)
+      (test-fn test-svc)
       (is (thrown-with-msg?
             java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
             (deref main-thread)))
@@ -106,11 +106,11 @@
                                                                    #(throw (RuntimeException. "uh oh"))
                                                                    (fn [ctxt] (reset! on-error-fn-called? true)))))
           app                 (bootstrap-services-with-empty-config [broken-service])
-          broken-fn           (partial test-fn (get-service app :ShutdownTestServiceWithFn))
+          test-svc            (get-service app :ShutdownTestServiceWithFn)
           main-thread         (future (tk/run-app app))]
       (is (false? @shutdown-called?))
       (is (false? @on-error-fn-called?))
-      (broken-fn)
+      (test-fn test-svc)
       (is (thrown-with-msg?
             java.util.concurrent.ExecutionException #"java.lang.RuntimeException: uh oh"
             (deref main-thread)))
@@ -125,10 +125,10 @@
                                                                #(throw (RuntimeException. "unused"))
                                                                (fn [ctxt] (throw (RuntimeException. "catch me"))))))
           app             (bootstrap-services-with-empty-config [broken-service])
-          broken-fn       (partial test-fn (get-service app :ShutdownTestServiceWithFn))]
+          test-svc        (get-service app :ShutdownTestServiceWithFn)]
       (with-test-logging
         (let [main-thread (future (tk/run-app app))]
-          (broken-fn)
+          (test-fn test-svc)
           ;; main will rethrow the "unused" exception as expected
           ;; so we need to prevent that from failing the test
           (try (deref main-thread) (catch Throwable t))

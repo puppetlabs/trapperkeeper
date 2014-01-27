@@ -85,7 +85,7 @@
         required    [:config]]
     (first (cli! cli-args specs required))))
 
-(defn run-lifecycle-fn
+(defn run-lifecycle-fn!
   "Run a lifecycle function for a service.  Required arguments:
 
   * app-context: the app context atom; can be updated by the lifecycle fn
@@ -129,8 +129,8 @@
                       depends on will have their corresponding lifecycle fn
                       called first.)"
   [app-context lifecycle-fn lifecycle-fn-name ordered-services]
-  (doseq [[sid s] ordered-services]
-    (run-lifecycle-fn app-context lifecycle-fn lifecycle-fn-name sid s)))
+  (doseq [[service-id s] ordered-services]
+    (run-lifecycle-fn! app-context lifecycle-fn lifecycle-fn-name service-id s)))
 
 ;;;; Application Shutdown Support
 ;;;;
@@ -245,9 +245,9 @@
            (and (map? ctxt)
                 (ordered-services? (ctxt :ordered-services))))]}
   (log/info "Beginning shutdown sequence")
-  (doseq [[sid s] (reverse (@app-context :ordered-services))]
+  (doseq [[service-id s] (reverse (@app-context :ordered-services))]
     (try
-      (run-lifecycle-fn app-context s/stop "stop" sid s)
+      (run-lifecycle-fn! app-context s/stop "stop" service-id s)
       (catch Exception e
         (log/error e "Encountered error during shutdown sequence"))))
   (log/info "Finished shutdown sequence"))
@@ -330,7 +330,7 @@
                                    (fn [sd] [(s/service-id sd)
                                              ((s/service-constructor sd) graph-instance app-context)])
                                    services))
-         ordered-services (map (fn [[sid _]] [sid (services-by-id sid)]) graph)
+         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)
          _ (swap! app-context assoc :ordered-services ordered-services)]
     ;; finally, create the app instance
     (reify

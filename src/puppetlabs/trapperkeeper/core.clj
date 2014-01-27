@@ -1,26 +1,25 @@
 (ns puppetlabs.trapperkeeper.core
   (:require [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+]]
-            [plumbing.graph :as g]
             [puppetlabs.kitchensink.core :refer [without-ns]]
-            [puppetlabs.trapperkeeper.services :as s]
-            [puppetlabs.trapperkeeper.app :as a]
-            [puppetlabs.trapperkeeper.bootstrap :as b]
-            [puppetlabs.trapperkeeper.internal :as i]
-            [puppetlabs.trapperkeeper.config :as c]
-            [puppetlabs.trapperkeeper.plugins :as p]))
+            [puppetlabs.trapperkeeper.services :as services]
+            [puppetlabs.trapperkeeper.app :as app]
+            [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
+            [puppetlabs.trapperkeeper.internal :as internal]
+            [puppetlabs.trapperkeeper.config :as config]
+            [puppetlabs.trapperkeeper.plugins :as plugins]))
 
 (def #^{:macro true
-        :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
+        :doc "An alias for the `puppetlabs.trapperkeeper.serviceservices/service` macro
              so that it is accessible from the core namespace along with the
              rest of the API."}
-  service #'s/service)
+  service #'services/service)
 
 (def #^{:macro true
-        :doc "An alias for the `puppetlabs.trapperkeeper.services/defservice` macro
+        :doc "An alias for the `puppetlabs.trapperkeeper.serviceservices/defservice` macro
              so that it is accessible from the core namespace along with the
              rest of the API."}
-  defservice #'s/defservice)
+  defservice #'services/defservice)
 
 (defn build-app
   "Given a list of services and a map of configuration data, build an instance
@@ -35,11 +34,11 @@
   `start`, and then `run-app`."
   [services config-data]
   {:pre  [(sequential? services)
-          (every? #(satisfies? s/ServiceDefinition %) services)
+          (every? #(satisfies? services/ServiceDefinition %) services)
           (map? config-data)]
-   :post [(satisfies? a/TrapperkeeperApp %)]}
-  (c/initialize-logging! config-data)
-  (i/build-app* services config-data))
+   :post [(satisfies? app/TrapperkeeperApp %)]}
+  (config/initialize-logging! config-data)
+  (internal/build-app* services config-data))
 
 (defn boot-services-with-cli-data
   "Given a list of ServiceDefinitions and a map containing parsed cli data, create
@@ -52,21 +51,12 @@
   block the main thread to wait for a shutdown event."
   [services cli-data]
   {:pre  [(sequential? services)
-          (every? #(satisfies? s/ServiceDefinition %) services)
+          (every? #(satisfies? services/ServiceDefinition %) services)
           (map? cli-data)]
-   :post [(satisfies? a/TrapperkeeperApp %)]}
-  (let [config-data (c/parse-config-data cli-data)]
-    (c/initialize-logging! config-data)
-    ;; TODO: I don't think we need to do plugin stuff if they are passing
-    ;; us instances of ServiceDefinition
-    #_(p/add-plugin-jars-to-classpath! (cli-data :plugins))
-    ;; TODO: I don't think we need to do bootstrap-config stuff if they
-    ;; are passing us instances of ServiceDefinition
-    #_(-> cli-data
-        (b/find-bootstrap-config)
-        (b/parse-bootstrap-config!)
-        (i/boot-services* config-data))
-    (i/boot-services* services config-data)))
+   :post [(satisfies? app/TrapperkeeperApp %)]}
+  (let [config-data (config/parse-config-data cli-data)]
+    (config/initialize-logging! config-data)
+    (internal/boot-services* services config-data)))
 
 (defn boot-services-with-config
   "Given a list of ServiceDefinitions and a map containing parsed cli data, create
@@ -79,14 +69,11 @@
   block the main thread to wait for a shutdown event."
   [services config-data]
   {:pre  [(sequential? services)
-          (every? #(satisfies? s/ServiceDefinition %) services)
+          (every? #(satisfies? services/ServiceDefinition %) services)
           (map? config-data)]
-   :post [(satisfies? a/TrapperkeeperApp %)]}
-  (c/initialize-logging! config-data)
-  ;; TODO: I don't think we need to do plugin stuff if they are passing
-  ;; us instances of ServiceDefinition
-  #_(p/add-plugin-jars-to-classpath! (cli-data :plugins))
-  (i/boot-services* services config-data))
+   :post [(satisfies? app/TrapperkeeperApp %)]}
+  (config/initialize-logging! config-data)
+  (internal/boot-services* services config-data))
 
 (defn boot-with-cli-data
   "Create and boot a trapperkeeper application.  This is accomplished by reading a
@@ -114,19 +101,19 @@
   [cli-data]
   {:pre  [(map? cli-data)
           (contains? cli-data :config)]
-   :post [(satisfies? a/TrapperkeeperApp %)]}
+   :post [(satisfies? app/TrapperkeeperApp %)]}
   ;; There is a strict order of operations that need to happen here:
   ;; 1. parse config files
   ;; 2. initialize logging
   ;; 3. initialize plugin system
   ;; 4. bootstrap rest of framework
-  (let [config-data (c/parse-config-data cli-data)]
-    (c/initialize-logging! config-data)
-    (p/add-plugin-jars-to-classpath! (cli-data :plugins))
+  (let [config-data (config/parse-config-data cli-data)]
+    (config/initialize-logging! config-data)
+    (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
     (-> cli-data
-        (b/find-bootstrap-config)
-        (b/parse-bootstrap-config!)
-        (i/boot-services* config-data))))
+        (bootstrap/find-bootstrap-config)
+        (bootstrap/parse-bootstrap-config!)
+        (internal/boot-services* config-data))))
 
 
 ;; This variable is used to hold a reference to the "main" trapperkeeper
@@ -140,11 +127,11 @@
   which may be triggered by one of several different ways. In all cases, services
   will be shut down and any exceptions they might throw will be caught and logged."
   [app]
-  {:pre [(satisfies? a/TrapperkeeperApp app)]}
-  (let [shutdown-reason (i/wait-for-app-shutdown app)]
-    (when (i/initiated-internally? shutdown-reason)
-      (i/call-error-handler! shutdown-reason)
-      (i/shutdown! (a/app-context app))
+  {:pre [(satisfies? app/TrapperkeeperApp app)]}
+  (let [shutdown-reason (internal/wait-for-app-shutdown app)]
+    (when (internal/initiated-internally? shutdown-reason)
+      (internal/call-error-handler! shutdown-reason)
+      (internal/shutdown! (app/app-context app))
       (when-let [error (:error shutdown-reason)]
         (throw error)))))
 
@@ -171,7 +158,7 @@
          (every? string? args)]}
   (try+
     (-> args
-        (i/parse-cli-args!)
+        (internal/parse-cli-args!)
         (run))
     (catch map? m
       (println (:message m))

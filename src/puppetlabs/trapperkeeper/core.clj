@@ -10,13 +10,13 @@
             [puppetlabs.trapperkeeper.plugins :as plugins]))
 
 (def #^{:macro true
-        :doc "An alias for the `puppetlabs.trapperkeeper.serviceservices/service` macro
+        :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
              so that it is accessible from the core namespace along with the
              rest of the API."}
   service #'services/service)
 
 (def #^{:macro true
-        :doc "An alias for the `puppetlabs.trapperkeeper.serviceservices/defservice` macro
+        :doc "An alias for the `puppetlabs.trapperkeeper.services/defservice` macro
              so that it is accessible from the core namespace along with the
              rest of the API."}
   defservice #'services/defservice)

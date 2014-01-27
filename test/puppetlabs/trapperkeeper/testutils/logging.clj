@@ -204,7 +204,5 @@
   in order to ensure that they don't affect test logging for subsequent
   tests."
   [f]
-  ;(.reset (LoggerFactory/getILoggerFactory))
   (f)
-  #_(.reset (LoggerFactory/getILoggerFactory))
   (pl-log/reset-logging))

@@ -1,0 +1,11 @@
+<configuration scan="true">
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d %-5p [%c{2}] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

@@ -1,92 +1,103 @@
 (ns puppetlabs.trapperkeeper.services
-  (:require [plumbing.core :refer [fnk]]))
+  (:require [clojure.tools.macro :refer [name-with-attributes]]
+            [clojure.set :refer [difference]]
+            [plumbing.core :refer [fnk]]
+            [plumbing.graph :as g]
+            [puppetlabs.kitchensink.core :refer [select-values keyset]]
+            [puppetlabs.trapperkeeper.services-internal :as si]))
 
-(defn- io->fnk-binding-form
-  "Converts a service's input-output map into a binding-form suitable for
-  passing to a fnk. The binding-form defines the fnk's expected input and
-  output values, and is required to satisfy graph compilation.
+;; Look into re-using an existing protocol for the life cycle instead of
+;; creating our own; just didn't want to introduce the dependency for now.
+(defprotocol Lifecycle
+  "Lifecycle functions for a service.  All services satisfy this protocol, and
+  the lifecycle functions for each service will be called at the appropriate
+  phase during the application lifecycle."
+  (init [this context] "Initialize the service, given a context map.
+                        Must return the (possibly modified) context map.")
+  (start [this context] "Start the service, given a context map.
+                         Must return the (possibly modified) context map.")
+  (stop [this context] "Stop the service, given a context map.
+                         Must return the (possibly modified) context map."))
 
-  This function is necessary in order to allow for the defservice macro to
-  support arbitrary code in the body. A fnk will attempt to determine what
-  its output-schema is, but will only work if a map is immediately returned
-  from the body. When a map is not immediately returned (i.e. a `let` block
-  around the map), the output-schema must be explicitly provided in the fnk
-  metadata."
-  [io-map]
-  (let [to-output-schema  (fn [provides]
-                            (reduce (fn [m p] (assoc m (keyword p) true))
-                                    {}
-                                    provides))
-        output-schema     (to-output-schema (:provides io-map))]
-    ;; Add an output-schema entry to the depends vector's metadata map
-    (vary-meta (:depends io-map) assoc :output-schema output-schema)))
+(defprotocol Service
+  "Common functions available to all services"
+  (service-context [this] "Returns the context map for this service"))
 
-(defn- validate-io-map!
-  "Validates a service's io-map contains the required :depends & :provides keys,
-  otherwise an exception is thrown."
-  [io-map]
-  {:pre [(map? io-map)]}
-  (when-not (contains? io-map :depends)
-    (throw (IllegalArgumentException. ":depends is required in service definition")))
-  (when-not (contains? io-map :provides)
-    (throw (IllegalArgumentException. ":provides is required in service definition"))))
+(defprotocol ServiceDefinition
+  "A service definition.  This protocol is for internal use only.  The service
+  is not usable until it is instantiated (via `boot!`)."
+  (service-id [this] "An identifier for the service")
+  (service-map [this] "The map of service functions for the graph")
+  (service-constructor [this] "A constructor function to instantiate the service"))
+
+(def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
 
 (defmacro service
-  "Define a service that may depend on other services, and provides functions
-  for other services to depend on. This macro is intended to be used inline
-  rather than at the top-level (see `defservice` for that).
+  "Create a Trapperkeeper ServiceDefinition.
 
-  Defining a service requires a:
-    * service name keyword
-    * input-output map in the form: {:depends [...] :provides [...]}
-    * a body of code that returns a map of functions the service provides.
-      The keys of the map must match the values of the :provides vector.
+  First argument (optional) is a protocol indicating the list of functions that
+  this service exposes for use by other Trapperkeeper services.
 
-  Example:
+  Second argument is the dependency list; this should be a vector of vectors.
+  Each inner vector should begin with a keyword representation of the name of the
+  service protocol that the service depends upon.  All remaining items in the inner
+  vectors should be symbols representing functions that should be imported from
+  the service.
 
-    (service :logging-service
-      {:depends  []
-       :provides [log]}
-      {:log (fn [msg] (println msg))})"
-  [svc-name io-map & body]
-  (validate-io-map! io-map)
-  (let [binding-form (io->fnk-binding-form io-map)]
-    `(fn []
-       {~svc-name
-        (fnk
-          ~binding-form
-          ~@body)})))
+  The remaining arguments should be function definitions for this service, specified
+  in the format that is used by a normal clojure `reify`.  The legal list of functions
+  that may be specified includes whatever functions are defined by this service's
+  protocol (if it has one), plus the list of functions in the `Lifecycle` protocol."
+  [& forms]
+  (let [{:keys [service-protocol-sym service-id service-fn-names
+                dependencies fns-map]}
+                      (si/parse-service-forms!
+                        lifecycle-fn-names
+                        forms)
+        ;;; we add 'context' to the dependencies list of all of the services.  we'll
+        ;;; use this to inject the service context so it's accessible from service functions
+        dependencies  (conj dependencies 'context)]
+    `(reify ServiceDefinition
+       (service-id [this] ~service-id)
+
+       ;; service map for prismatic graph
+       (service-map [this]
+         {~service-id
+           ;; the main service fnk for the app graph.  we add metadata to the fnk
+           ;; arguments list to specify an explicit output schema for the fnk
+           (fnk ~(si/fnk-binding-form dependencies service-fn-names)
+              ;; create a function that exposes the service context to the service.
+              (let [~'service-context (fn [] (get ~'@context ~service-id))
+                    ~'service-id      (fn [] ~service-id)
+                    ;; here we create an inner graph for this service.  we need
+                    ;; this in order to handle deps within a single service.
+                    service-map#      ~(si/prismatic-service-map
+                                         (concat lifecycle-fn-names service-fn-names)
+                                         fns-map)
+                    s-graph-inst#     (if (empty? service-map#)
+                                        {}
+                                        ((g/eager-compile service-map#) {}))]
+                s-graph-inst#))})
+
+       ;; service constructor function
+       (service-constructor [this]
+         ;; the constructor requires the main app graph and context atom as input
+         (fn [graph# context#]
+           (let [~'service-fns (graph# ~service-id)]
+             ;; now we instantiate the service and define all of its protocol functions
+             (reify
+               Service
+               (service-context [this] (get @context# ~service-id {}))
+
+               Lifecycle
+               ~@(si/protocol-fns lifecycle-fn-names fns-map)
+
+               ~@(if service-protocol-sym
+                  `(~service-protocol-sym
+                    ~@(si/protocol-fns service-fn-names fns-map))))))))))
 
 (defmacro defservice
-  "Define a service that may depend on other services, and provides functions
-  for other services to depend on. Defining a service requires a:
-    * service name
-    * optional documentation string
-    * input-output map in the form: {:depends [...] :provides [...]}
-    * a body of code that returns a map of functions the service provides.
-      The keys of the map must match the values of the :provides vector.
-
-  Examples:
-
-    (defservice logging-service
-      {:depends  []
-       :provides [debug info warn]}
-      {:debug (partial println \"DEBUG:\")
-       :info  (partial println \"INFO:\")
-       :warn  (partial println \"WARN:\")})
-
-    (defservice datastore-service
-      \"Store key-value pairs.\"
-      {:depends  [[:logging-service debug]]
-       :provides [get put]}
-      (let [log       (partial debug \"[datastore]\")
-            datastore (atom {})]
-        {:get (fn [key]       (log \"Getting...\") (get @datastore key))
-         :put (fn [key value] (log \"Putting...\") (swap! datastore assoc key value))}))"
   [svc-name & forms]
-  (let [[svc-doc io-map body] (if (string? (first forms))
-                                [(first forms) (second forms) (nthrest forms 2)]
-                                ["" (first forms) (rest forms)])]
-    `(def ~svc-name
-       ~svc-doc
-       (service ~(keyword svc-name) ~io-map ~@body))))
+  (let [[svc-name forms] (name-with-attributes svc-name forms)]
+    `(def ~svc-name (service ~@forms))))
+

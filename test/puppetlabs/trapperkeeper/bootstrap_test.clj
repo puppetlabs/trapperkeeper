@@ -5,10 +5,12 @@
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
-            [puppetlabs.trapperkeeper.internal :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.services :refer [service-map]]
+            [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.bootstrap :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]))
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]
+            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn hello-world]]))
 
 (deftest bootstrapping
   (testing "Valid bootstrap configurations"
@@ -21,22 +23,22 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
           app                 (parse-and-bootstrap (StringReader. bootstrap-config))]
 
       (testing "Can load a service based on a valid bootstrap config string"
-        (let [test-fn             (get-service-fn app :foo-test-service :test-fn)
-              hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
-          (is (= (test-fn) :foo))
-          (is (= (hello-world-fn) "hello world"))))
+        (let [test-svc        (get-service app :TestService)
+              hello-world-svc (get-service app :HelloWorldService)]
+          (is (= (test-fn test-svc) :foo))
+          (is (= (hello-world hello-world-svc) "hello world"))))
 
     (with-additional-classpath-entries ["./test-resources/bootstrapping/classpath"]
       (testing "Looks for bootstrap config on classpath (test-resources)"
         (with-test-logging
-          (let [app                 (bootstrap-with-empty-config)
-                test-fn             (get-service-fn app :classpath-test-service :test-fn)
-                hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
+          (let [app             (bootstrap-with-empty-config)
+                test-svc        (get-service app :TestService)
+                hello-world-svc (get-service app :HelloWorldService)]
             (is (logged?
                   #"Loading bootstrap config from classpath: 'file:/.*test-resources/bootstrapping/classpath/bootstrap.cfg'"
                   :debug))
-            (is (= (test-fn) :classpath))
-            (is (= (hello-world-fn) "hello world")))))
+            (is (= (test-fn test-svc) :classpath))
+            (is (= (hello-world hello-world-svc) "hello world")))))
 
       (testing "Gives precedence to bootstrap config in cwd"
         (let [old-cwd (System/getProperty "user.dir")]
@@ -45,26 +47,26 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
               "user.dir"
               (.getAbsolutePath (file "./test-resources/bootstrapping/cwd")))
             (with-test-logging
-              (let [app                 (bootstrap-with-empty-config)
-                    test-fn             (get-service-fn app :cwd-test-service :test-fn)
-                    hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
+              (let [app             (bootstrap-with-empty-config)
+                    test-svc        (get-service app :TestService)
+                    hello-world-svc (get-service app :HelloWorldService)]
                 (is (logged?
                       #"Loading bootstrap config from current working directory: '.*/test-resources/bootstrapping/cwd/bootstrap.cfg'"
                       :debug))
-                (is (= (test-fn) :cwd))
-                (is (= (hello-world-fn) "hello world"))))
+                (is (= (test-fn test-svc) :cwd))
+                (is (= (hello-world hello-world-svc) "hello world"))))
             (finally (System/setProperty "user.dir" old-cwd)))))
 
       (testing "Gives precedence to bootstrap config specified as CLI arg"
         (with-test-logging
-            (let [app                 (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/bootstrap.cfg"])
-                  test-fn             (get-service-fn app :cli-test-service :test-fn)
-                  hello-world-fn      (get-service-fn app :hello-world-service :hello-world)]
+            (let [app             (bootstrap-with-empty-config ["--bootstrap-config" "./test-resources/bootstrapping/cli/bootstrap.cfg"])
+                  test-svc        (get-service app :TestService)
+                  hello-world-svc (get-service app :HelloWorldService)]
               (is (logged?
                     #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/bootstrap.cfg'"
                     :debug))
-              (is (= (test-fn) :cli))
-              (is (= (hello-world-fn) "hello world")))))))
+              (is (= (test-fn test-svc) :cli))
+              (is (= (hello-world hello-world-svc) "hello world")))))))
 
   (testing "Invalid bootstrap configurations"
     (testing "Bootstrap config path specified on CLI does not exist"
@@ -133,7 +135,7 @@ This is not a legit line.
                                "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/invalid-service-graph-service")]
         (is (thrown-with-msg?
               IllegalArgumentException
-              #"Invalid service graph;"
+              #"Invalid service definition;"
               (parse-and-bootstrap bootstrap-config)))))))
 
   (testing "comments allowed in bootstrap config file"
@@ -143,23 +145,26 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
 ; another commented out line
  ;puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
 puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ; comment"
-          services        (parse-bootstrap-config! (StringReader. bootstrap-config))]
-      (is (= (count services) 2))
-      (is (contains? (first services) :hello-world-service))
-      (is (contains? (second services) :foo-test-service)))))
+          service-maps      (->> bootstrap-config
+                                 (StringReader.)
+                                 parse-bootstrap-config!
+                                 (map service-map))]
+      (is (= (count service-maps) 2))
+      (is (contains? (first service-maps) :HelloWorldService))
+      (is (contains? (second service-maps) :TestService)))))
 
 (deftest bootstrap-path-with-spaces
   (testing "Ensure that a bootstrap config can be loaded with a path that contains spaces"
     (with-test-logging
-      (let [app            (bootstrap-with-empty-config
-                             ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
-            test-fn        (get-service-fn app :cli-test-service :test-fn)
-            hello-world-fn (get-service-fn app :hello-world-service :hello-world)]
+      (let [app             (bootstrap-with-empty-config
+                               ["--bootstrap-config" "./test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
+            test-svc        (get-service app :TestService)
+            hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
               #"Loading bootstrap config from specified path: './test-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
               :debug))
-        (is (= (test-fn) :cli))
-        (is (= (hello-world-fn) "hello world"))))))
+        (is (= (test-fn test-svc) :cli))
+        (is (= (hello-world hello-world-svc) "hello world"))))))
 
 (deftest config-file-in-jar
   (testing "Bootstrapping via a config file contained in a .jar"

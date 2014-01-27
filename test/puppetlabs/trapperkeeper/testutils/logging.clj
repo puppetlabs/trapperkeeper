@@ -56,20 +56,22 @@
              (swap! output-atom conj entry))))))))
 
 (defn atom-appender
-  "Creates a log4j appender that writes log messages to the supplied atom"
+  "Creates a logback appender that writes log messages to the supplied atom"
   ([output-atom] (atom-appender output-atom false))
   ([output-atom debug]
-   (proxy [AppenderBase] []
-     (append [logging-event]
-       (let [throwable-info  (.getThrowableInformation logging-event)
-             ex              (if throwable-info (.getThrowable throwable-info))
-             entry           [(.getLoggerName logging-event)
-                              (.getLevel logging-event)
-                              ex
-                              (str (.getMessage logging-event))]]
-         (when debug (log-to-console entry))
-         (swap! output-atom conj entry)))
-     (close []))))
+   (let [appender (proxy [AppenderBase] []
+                    (append [logging-event]
+                       (let [throwable-info (.getThrowableInformation logging-event)
+                             ex (if throwable-info (.getThrowable throwable-info))
+                             entry [(.getLoggerName logging-event)
+                                    (.getLevel logging-event)
+                                    ex
+                                    (str (.getMessage logging-event))]]
+                         (when debug (log-to-console entry))
+                         (swap! output-atom conj entry)))
+                     (close []))]
+     (.setContext appender (pl-log/logging-context))
+     appender)))
 
 (defmacro with-log-output-atom
   "This is a utility macro, intended for use by other macros such as
@@ -203,4 +205,4 @@
   tests."
   [f]
   (f)
-  (.reset (LoggerFactory/getILoggerFactory)))
+  (pl-log/reset-logging))

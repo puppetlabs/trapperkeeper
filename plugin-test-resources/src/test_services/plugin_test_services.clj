@@ -8,7 +8,7 @@
 ;;
 ;;      zip -r ../plugins/test-service.jar test_services
 ;;
-;; This requires that your pwd is
+;; This requires that your cwd is
 ;;      plugin-test-resources/src
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -17,8 +17,11 @@
 (ns test-services.plugin-test-services
   (:require [puppetlabs.trapperkeeper.core :refer [defservice]]))
 
+(defprotocol PluginTestService
+  (moo [this]))
+
 (defservice plugin-test-service
-            {:depends []
-             :provides [moo]}
-            {:moo (fn [] "This message comes from the plugin test service.")})
+            PluginTestService
+            []
+            (moo [this] "This message comes from the plugin test service."))
 

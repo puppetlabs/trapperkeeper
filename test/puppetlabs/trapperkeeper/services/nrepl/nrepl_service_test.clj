@@ -2,17 +2,18 @@
   (:require [clojure.test :refer :all]
             [clojure.tools.nrepl :as repl]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data]]
-            [puppetlabs.trapperkeeper.internal :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.app :refer [get-service]]
+            [puppetlabs.trapperkeeper.services :refer [service-id stop service-context]]
             [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]))
 
 (deftest test-nrepl-service
   (testing "An nREPL service has been started"
-    (let [app      (bootstrap-services-with-cli-data [(nrepl-service)] {:config "./test-resources/config/nrepl/nrepl.ini"})
-          shutdown (get-service-fn app :nrepl-service :shutdown)]
+    (let [app      (bootstrap-services-with-cli-data [nrepl-service] {:config "./test-resources/config/nrepl/nrepl.ini"})
+          si       (get-service app (service-id nrepl-service))]
       (try
         (is (= [2] (with-open [conn (repl/connect :port 7888)]
                      (-> (repl/client conn 1000)
                          (repl/message {:op "eval" :code "(+ 1 1)"})
                          (repl/response-values)))))
       (finally
-        (shutdown))))))
+        (stop si (service-context si)))))))

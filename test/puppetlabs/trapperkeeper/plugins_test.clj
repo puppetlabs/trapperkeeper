@@ -3,7 +3,7 @@
             [clojure.java.io :refer [file]]
             [puppetlabs.trapperkeeper.plugins :refer :all]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.internal :refer [get-service-fn]]
+            [puppetlabs.trapperkeeper.app :refer [get-service service-graph]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config]]))
 
 (deftest test-jars-in-dir
@@ -36,5 +36,7 @@
     (let [app (bootstrap-with-empty-config
                 ["--plugins" "./plugin-test-resources/plugins"
                  "--bootstrap-config" "./test-resources/bootstrapping/plugin/bootstrap.cfg"])
-          service-fn (get-service-fn app :plugin-test-service :moo)]
+          service-fn (-> (service-graph app)
+                         :PluginTestService
+                         :moo)]
       (is (= "This message comes from the plugin test service." (service-fn))))))

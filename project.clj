@@ -11,6 +11,7 @@
                  [puppetlabs/kitchensink ~ks-version]
                  [prismatic/plumbing "0.1.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
+                 [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.0.13"]]
 
   :repositories [["releases" "http://nexus.delivery.puppetlabs.net/content/repositories/releases/"]
@@ -28,10 +29,11 @@
   :profiles {:dev {:test-paths ["test-resources"]
                    :source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
-                   :java-source-paths ["examples/java_service/src/java"]}
-
-             :test {:dependencies [[clj-http "0.5.3"]
-                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]}
+                   :java-source-paths ["examples/java_service/src/java"]
+                   :dependencies [[spyscope "0.1.4"]
+                                  [clj-http "0.5.3"]
+                                  [puppetlabs/kitchensink ~ks-version :classifier "test"]]
+                   :injections [(require 'spyscope.core)]}
 
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]

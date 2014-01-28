@@ -2,6 +2,7 @@
   (:require [clojure.tools.macro :refer [name-with-attributes]]
             [clojure.set :refer [difference]]
             [plumbing.core :refer [fnk]]
+            [schema.core :as schema]
             [plumbing.graph :as g]
             [puppetlabs.kitchensink.core :refer [select-values keyset]]
             [puppetlabs.trapperkeeper.services-internal :as si]))
@@ -56,7 +57,9 @@
                         forms)
         ;;; we add 'context' to the dependencies list of all of the services.  we'll
         ;;; use this to inject the service context so it's accessible from service functions
-        dependencies  (conj dependencies 'context)]
+        dependencies  (conj dependencies 'context)
+        output-schema (into {}
+                            (map (fn [f] [(keyword f) schema/Any]) service-fn-names))]
     `(reify ServiceDefinition
        (service-id [this] ~service-id)
 
@@ -65,7 +68,8 @@
          {~service-id
            ;; the main service fnk for the app graph.  we add metadata to the fnk
            ;; arguments list to specify an explicit output schema for the fnk
-           (fnk ~(si/fnk-binding-form dependencies service-fn-names)
+           (fnk f :- ~output-schema
+              ~dependencies
               ;; create a function that exposes the service context to the service.
               (let [~'service-context (fn [] (get ~'@context ~service-id))
                     ~'service-id      (fn [] ~service-id)

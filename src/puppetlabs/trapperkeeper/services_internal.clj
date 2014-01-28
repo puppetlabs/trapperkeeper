@@ -279,25 +279,6 @@
      :dependencies          dependencies
      :fns-map               fns-map}))
 
-
-(defn fnk-binding-form
-  "Given a fnk dependencies binding form vector and a list of functions that
-  a service provides, return the binding form annotated with metadata containing
-  an explicit output schema for the fnk."
-  [depends provides]
-  {:pre [(vector? depends)
-         (coll? provides)
-         (every? symbol? provides)]
-   :post [(vector? %)]}
-  (let [to-output-schema  (fn [provides]
-                            (reduce (fn [m p] (assoc m (keyword p) true))
-                                    {}
-                                    provides))
-        output-schema     (to-output-schema provides)]
-    ;; Add an output-schema entry to the depends vector's metadata map
-    (vary-meta depends assoc :output-schema output-schema)))
-
-
 (defn postwalk-with-pred
   "Convenience wrapper for clojure.walk/postwalk.  Given two functions `matches?`
   and `replace` walks form `form`.  For each node, if `matches?` returns true,

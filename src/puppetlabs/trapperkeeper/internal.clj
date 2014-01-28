@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.internal
-  (:import (clojure.lang Atom))
+  (:import (clojure.lang Atom ExceptionInfo))
   (:require [clojure.tools.logging :as log]
             [plumbing.map]
             [plumbing.graph :as g]
@@ -36,6 +36,54 @@
                                            "be nested maps of keywords to functions.  Found: "
                                            (s/service-map service-def))))))
 
+(defn parse-missing-required-key
+  "Prismatic's graph compilation code throws `ExceptionInfo` objects if required
+  keys are missing somewhere in the graph structure.  This includes a map with
+  information about what keys were missing.  This function is responsible for
+  interpreting one of those error maps to determine whether it implies that the
+  trapperkeeper service definition was missing a service function.
+
+  Returns a map containing the name of the service and the name of the missing
+  function, or nil if the error map looks like it represents some other kind
+  of error."
+  [m]
+  {:pre [(map? m)]
+   :post [(or (nil? %)
+              (and (map? %)
+                   (contains? % :service-name)
+                   (contains? % :service-fn)))]}
+  (let [service-name    (first (keys m))
+        service-fn-name (first (keys (m service-name)))
+        error           (get-in m [service-name service-fn-name])]
+    (when (= error 'missing-required-key)
+      {:service-name (name service-name)
+       :service-fn   (name service-fn-name)})))
+
+(defn handle-prismatic-exception!
+  "Takes an ExceptionInfo object that was thrown during a prismatic graph
+  compilation / instantiation, and inspects it to see if the error data map
+  represents a missing trapperkeeper service or function.  If so, throws a
+  more meaningful exception.  If not, re-throws the original exception."
+  [e]
+  {:pre [(instance? ExceptionInfo e)]}
+  (let [data  (ex-data e)]
+    (condp = (:error data)
+      :missing-key
+      (if (empty? (:map data))
+        (throw (RuntimeException. (format "Service '%s' not found" (:key data))))
+        (throw (RuntimeException. (format "Service function '%s' not found"
+                                          (name (:key data))))))
+
+      :does-not-satisfy-schema
+      (if-let [error-info (parse-missing-required-key (:failures data))]
+        (throw (RuntimeException. (format "Service function '%s' not found in service '%s'"
+                                          (:service-fn error-info)
+                                          (:service-name error-info))))
+        (throw e))
+
+      :else
+      (throw e))))
+
 (defn compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.
   Throws an exception if there is a dependency on a service that is not found in the map."
@@ -44,13 +92,8 @@
    :post [(ifn? %)]}
   (try
     (g/eager-compile graph-map)
-    (catch IllegalArgumentException e
-      ;; TODO: when prismatic releases version 0.2.0 of plumbing, we should clean this
-      ;; up.  See: https://tickets.puppetlabs.com/browse/PE-2281
-      (let [match (re-matches #"(?s)^Failed on keyseq: \[:(.*)\]\. Value is missing\. .*$" (.getMessage e))]
-        (if match
-          (throw (RuntimeException. (format "Service function '%s' not found" (second match))))
-          (throw e))))))
+    (catch ExceptionInfo e
+      (handle-prismatic-exception! e))))
 
 (defn instantiate
   "Given the compiled graph function, instantiate the application. Throws an exception
@@ -61,12 +104,9 @@
    :post [(service-graph? %)]}
   (try
     (graph-fn data)
-    (catch RuntimeException e
-      ;; TODO: when prismatic releases version 0.2.0 of plumbing, we should clean this
-      ;; up.  See: https://tickets.puppetlabs.com/browse/PE-2281
-      (if-let [match (re-matches #"^Key (:.*) not found in .*$" (.getMessage e))]
-        (throw (RuntimeException. (format "Service/function '%s' not found" (second match))))
-        (throw e)))))
+    (catch ExceptionInfo e
+      (handle-prismatic-exception! e))))
+
 
 (defn parse-cli-args!
   "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.

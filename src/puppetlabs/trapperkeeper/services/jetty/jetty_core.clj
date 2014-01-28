@@ -167,15 +167,13 @@
   ([webserver servlet path] (add-servlet-handler webserver servlet path {}))
   ([webserver servlet path servlet-init-params]
   (let [holder (doto (ServletHolder. servlet)
-                   (.setInitParameters servlet-init-params)
-                   )]
-    (let [handler (doto (ServletContextHandler. ServletContextHandler/SESSIONS)
+                   (.setInitParameters servlet-init-params))
+        handler (doto (ServletContextHandler. ServletContextHandler/SESSIONS)
                       (.setContextPath path)
                       (.addServlet holder "/*"))]
         (.addHandler (:handlers webserver) handler)
         (.start handler)
         handler)))
-  )
 
 (defn join
   [webserver]

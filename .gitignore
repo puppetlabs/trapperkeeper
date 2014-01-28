@@ -3,3 +3,5 @@
 target/
 checkouts/
 pom.xml
+.idea/
+*.iml

@@ -66,13 +66,10 @@
   more meaningful exception.  If not, re-throws the original exception."
   [e]
   {:pre [(instance? ExceptionInfo e)]}
-  (let [data  (ex-data e)]
+  (let [data (ex-data e)]
     (condp = (:error data)
       :missing-key
-      (if (empty? (:map data))
-        (throw (RuntimeException. (format "Service '%s' not found" (:key data))))
-        (throw (RuntimeException. (format "Service function '%s' not found"
-                                          (name (:key data))))))
+      (throw (RuntimeException. (format "Service '%s' not found" (:key data))))
 
       :does-not-satisfy-schema
       (if-let [error-info (parse-missing-required-key (:failures data))]

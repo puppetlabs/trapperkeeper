@@ -21,7 +21,7 @@
                            [[:MissingService f]]
                            (init [this context] (f) context))]
       (is (thrown-with-msg?
-            RuntimeException #"Service function 'MissingService' not found"
+            RuntimeException #"Service ':MissingService' not found"
             (bootstrap-services-with-empty-config [broken-service])))))
 
   (testing "missing service function throws meaningful message"
@@ -32,7 +32,7 @@
                             [[:FooService bar]]
                             (init [this context] (bar) context))]
       (is (thrown-with-msg?
-            RuntimeException #"Service function 'bar' not found"
+            RuntimeException #"Service function 'bar' not found in service 'FooService"
             (bootstrap-services-with-empty-config [test-service broken-service]))))
 
     (let [broken-service  (service

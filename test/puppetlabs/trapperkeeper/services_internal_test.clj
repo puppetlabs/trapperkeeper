@@ -1,6 +1,7 @@
 (ns puppetlabs.trapperkeeper.services-internal-test
   (:require [clojure.test :refer :all]
             [plumbing.fnk.pfnk :as pfnk]
+            [schema.core :as schema]
             [puppetlabs.trapperkeeper.services :refer [service service-map]]
             [puppetlabs.trapperkeeper.services-internal :as si]))
 
@@ -132,8 +133,8 @@
             depends      (pfnk/input-schema service-fnk)
             provides     (pfnk/output-schema service-fnk)]
         (is (ifn? service-fnk))
-        (is (= depends  {:context true}))
-        (is (= provides {:service1-fn true})))
+        (is (= depends  {schema/Keyword schema/Any, :context schema/Any}))
+        (is (= provides {:service1-fn schema/Any})))
 
       (is (map? s2-graph))
       (let [graph-keys (keys s2-graph)]
@@ -147,7 +148,9 @@
                                        :context (atom {})})
             s2-fn        (:service2-fn fnk-instance)]
         (is (ifn? service-fnk))
-        (is (= depends  {:Service1 {:service1-fn true}
-                         :context true}))
-        (is (= provides {:service2-fn true}))
+        (is (= depends {schema/Keyword schema/Any,
+                        :context schema/Any,
+                        :Service1 {schema/Keyword schema/Any,
+                                   :service1-fn schema/Any}}))
+        (is (= provides {:service2-fn schema/Any}))
         (is (= "Bar!" (s2-fn)))))))

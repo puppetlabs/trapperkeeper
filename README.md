@@ -632,13 +632,15 @@ Here's a concrete example of how this might work:
 
 (ns services.foo-consumer)
 
+(defprotocol FooConsumer
+  (bar [this]))
+
 (defservice foo-consumer
-   "A service that consumes the `foo-service`"
-   ;; metadata
-   {:depends [[:FooService foo]]
-    :provides [bar]}
-   ;; now return our service function map:
-   {:bar (fn [] (format "Foo service returned: '%s'" (foo)))})
+  "A service that consumes the `foo-service`"
+  FooConsumer
+  [[:FooService foo]]
+  (bar [this]
+    (format "Foo service returned: '%s'" (foo))))
 ```
 
 Given this combination of services, you might have a `bootstrap.cfg` file

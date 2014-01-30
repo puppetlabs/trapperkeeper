@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper.png?branch=0.3.0)](https://travis-ci.org/puppetlabs/trapperkeeper)
+
 # trapperkeeper
 
 Trapperkeeper is a clojure framework for hosting long-running applications and

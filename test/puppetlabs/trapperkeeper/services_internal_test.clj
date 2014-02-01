@@ -2,8 +2,11 @@
   (:require [clojure.test :refer :all]
             [plumbing.fnk.pfnk :as pfnk]
             [schema.core :as schema]
+            [schema.test :as schema-test]
             [puppetlabs.trapperkeeper.services :refer [service service-map]]
             [puppetlabs.trapperkeeper.services-internal :as si]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (deftest service-forms-test
   (testing "should support forms that include protocol"
@@ -134,7 +137,8 @@
             provides     (pfnk/output-schema service-fnk)]
         (is (ifn? service-fnk))
         (is (= depends  {schema/Keyword schema/Any, :context schema/Any}))
-        (is (= provides {:service1-fn schema/Any})))
+        (is (= provides {:init schema/Any, :start schema/Any,
+                         :stop schema/Any, :service1-fn schema/Any})))
 
       (is (map? s2-graph))
       (let [graph-keys (keys s2-graph)]
@@ -152,5 +156,6 @@
                         :context schema/Any,
                         :Service1 {schema/Keyword schema/Any,
                                    :service1-fn schema/Any}}))
-        (is (= provides {:service2-fn schema/Any}))
+        (is (= provides {:init schema/Any, :service2-fn schema/Any,
+                         :start schema/Any, :stop schema/Any}))
         (is (= "Bar!" (s2-fn)))))))

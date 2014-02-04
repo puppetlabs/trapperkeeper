@@ -15,8 +15,13 @@
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.0.13"]]
 
-  :lein-release {:scm :git
-                 :deploy-via :clojars}
+  :lein-release {:scm         :git
+                 :deploy-via  :lein-deploy}
+
+  :deploy-repositories [["releases" {:url "https://clojars.org/repo"
+                                     :username :env/clojars_username
+                                     :password :env/clojars_password
+                                     :sign-releases false}]]
   
   ;; Convenience for manually testing application shutdown support - run `lein test-external-shutdown`
   :aliases {"test-external-shutdown" ["trampoline" "run" "-m" "examples.shutdown-app.test-external-shutdown"]}

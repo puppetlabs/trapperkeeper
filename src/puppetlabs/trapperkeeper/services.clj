@@ -59,7 +59,8 @@
         ;;; use this to inject the service context so it's accessible from service functions
         dependencies  (conj dependencies 'context)
         output-schema (into {}
-                            (map (fn [f] [(keyword f) schema/Any]) service-fn-names))]
+                            (map (fn [f] [(keyword f) schema/Any])
+                                 (concat lifecycle-fn-names service-fn-names)))]
     `(reify ServiceDefinition
        (service-id [this] ~service-id)
 

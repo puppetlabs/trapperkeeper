@@ -9,7 +9,7 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
                  [puppetlabs/kitchensink ~ks-version]
-                 [prismatic/plumbing "0.2.0"]
+                 [prismatic/plumbing "0.2.1"]
                  [prismatic/schema "0.2.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]

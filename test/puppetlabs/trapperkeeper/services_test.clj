@@ -5,7 +5,10 @@
                  defservice service service-context]]
             [puppetlabs.trapperkeeper.app :refer [TrapperkeeperApp get-service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
-                [bootstrap-services-with-empty-config]]))
+                [bootstrap-services-with-empty-config]]
+            [schema.test :as schema-test]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (defprotocol HelloService
   (hello [this msg]))

@@ -37,3 +37,56 @@ this regex matches any line that has been logged within the body of a `with-test
 
 The optional second parameter is a keyword describing a log level to specifically search in. It currently can be one of
 `:trace`, `:debug`, `:info`, `:warn`, `:error` or `:fatal`.
+
+## Testing Services
+
+For the most part, your trapperkeeper service definitions should be written as
+very thin wrappers around regular clojure functions.  Thus, the vast majority
+of your tests can be written as normal clojure unit tests that operate on those
+functions directly.
+
+However, it can be useful to have a few tests that actually boot up a trapperkeeper
+application instance; this allows you to, for example, verify that the services
+that you have a dependency on get injected correctly.
+
+To this end, the testutils library code includes some helper functions for creating
+a trapperkeeper application.  Here are the most useful ones:
+
+### bootstrap-with-empty-config
+
+This function can be used if you have a `bootstrap.cfg` file in your test classpath,
+and you want to use that for instantiating a trapperkeeper app.  It presumes that
+you don't need to pass in any custom configuration data.  e.g.:
+
+```clj
+(let [app       (bootstrap-with-empty-config)
+      test-svc  (get-service app :TestService)]
+  (is (= :foo (test-fn test-svc))))
+```
+
+### bootstrap-services-with-empty-config
+
+This function can be used if you don't want/need to use a `bootstrap.cfg` file,
+and wish to instead list out your services directly in code.  It still presumes
+that you don't need to pass in any custom configuration data.  e.g.:
+
+```clj
+(let [app       (bootstrap-services-with-empty-config
+                   [test-service1 test-service2])
+      test-svc1 (get-service app :TestService1)]
+  (is (= :foo (test-fn test-svc1))))
+```
+
+### bootstrap-services-with-cli-data
+
+This function allows you to specify your services directly, but also to pass in
+a path to a configuration file or directory:
+
+```clj
+(let [app       (bootstrap-services-with-cli-data
+                   [test-service1 test-service2]
+                   {:config "./test-resources/config.ini"})
+      test-svc1 (get-service app :TestService1)]
+  (is (= :foo (test-fn test-svc1))))
+```
+

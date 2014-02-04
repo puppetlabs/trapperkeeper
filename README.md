@@ -969,8 +969,9 @@ on by using a classifier in your project dependencies.
     :profiles {:dev {:dependencies [[puppetlabs/trapperkeeper "x.y.z" :classifier "test"]]}})
 ```
 
-Since _trapperkeeper_ handles logging initialization and provides a web server, some utility functions are available
-to assist writing tests for your application. See the [Trapperkeeper Test Utils](doc/test-utils.md) for more
+This library includes some utilities to help test logging functionality, as well
+as to test your services by bootstrapping a _trapperkeeper_ application instance
+in your test.  See the [Trapperkeeper Test Utils](doc/test-utils.md) for more
 information.
 
 ## Hopes and Dreams

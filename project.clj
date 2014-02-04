@@ -15,9 +15,9 @@
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.0.13"]]
 
-  :repositories [["releases" "http://nexus.delivery.puppetlabs.net/content/repositories/releases/"]
-                 ["snapshots" "http://nexus.delivery.puppetlabs.net/content/repositories/snapshots/"]]
-
+  :lein-release {:scm :git
+                 :deploy-via :clojars}
+  
   ;; Convenience for manually testing application shutdown support - run `lein test-external-shutdown`
   :aliases {"test-external-shutdown" ["trampoline" "run" "-m" "examples.shutdown-app.test-external-shutdown"]}
 

@@ -157,7 +157,7 @@
   {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
   (try+
-    (-> args
+    (-> (or args '())
         (internal/parse-cli-args!)
         (run))
     (catch map? m

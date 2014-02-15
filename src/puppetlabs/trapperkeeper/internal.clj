@@ -364,11 +364,12 @@
         ;; here we build up a map of all of the services by calling the
         ;; constructor for each one
          services-by-id (into {} (map
-                                   (fn [sd] [(s/service-id sd)
+                                   (fn [sd] [(s/service-def-id sd)
                                              ((s/service-constructor sd) graph-instance app-context)])
                                    services))
-         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)
-         _ (swap! app-context assoc :ordered-services ordered-services)]
+         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
+    (swap! app-context assoc :services-by-id services-by-id)
+    (swap! app-context assoc :ordered-services ordered-services)
     ;; finally, create the app instance
     (reify
       a/TrapperkeeperApp

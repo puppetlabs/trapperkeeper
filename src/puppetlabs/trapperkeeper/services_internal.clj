@@ -2,7 +2,7 @@
   (:require [clojure.walk :refer [postwalk]]
             [clojure.set :refer [difference union intersection]]
             [plumbing.core :refer [fnk]]
-            [puppetlabs.kitchensink.core :refer [keyset]]))
+            [puppetlabs.kitchensink.core :as ks]))
 
 
 (defn protocol?
@@ -161,7 +161,7 @@
   {:pre [(fns-map? fns-map)
          (symbol? fn-name)]
    :post [(fns-map? %)
-          (= (keyset %) (conj (keyset fns-map) (keyword fn-name)))]}
+          (= (ks/keyset %) (conj (ks/keyset fns-map) (keyword fn-name)))]}
   (if (contains? fns-map (keyword fn-name))
     fns-map
     (assoc fns-map (keyword fn-name)
@@ -175,8 +175,8 @@
          (every? symbol? lifecycle-fn-names)
          (fns-map? fns-map)]
    :post [(map? %)
-          (= (keyset %)
-             (union (keyset fns-map)
+          (= (ks/keyset %)
+             (union (ks/keyset fns-map)
                     (set (map keyword lifecycle-fn-names))))]}
   (reduce add-default-lifecycle-fn fns-map lifecycle-fn-names))
 
@@ -195,7 +195,7 @@
          (every? symbol? lifecycle-fn-names)
          (every? seq? fns)]
    :post [(fns-map? %)
-          (= (keyset %)
+          (= (ks/keyset %)
              (union (set (map keyword service-fn-names))
                     (set (map keyword lifecycle-fn-names))))]}
 
@@ -215,7 +215,7 @@
     (validate-provided-fns!
       service-protocol-sym
       (set (map keyword service-fn-names))
-      (difference (keyset fns-map)
+      (difference (ks/keyset fns-map)
                   (set (map keyword lifecycle-fn-names))))
     (when service-protocol-sym
       (validate-required-fns! service-protocol-sym service-fn-names fns-map))
@@ -228,9 +228,10 @@
   [service-protocol-sym]
   {:pre [((some-fn nil? symbol?) service-protocol-sym)]
    :post [(keyword? %)]}
-  (if service-protocol-sym
-    (keyword service-protocol-sym)
-    (keyword (gensym "tk-service"))))
+  (ks/without-ns
+    (if service-protocol-sym
+      (keyword service-protocol-sym)
+      (keyword (gensym "tk-service")))))
 
 (defn get-service-fn-names
   "Get a list of service fn names based on a protocol.  Returns
@@ -261,7 +262,7 @@
          (seq? forms)]
    :post [(map? %)
           (= #{:service-protocol-sym :service-id :service-fn-names
-               :dependencies :fns-map} (keyset %))]}
+               :dependencies :fns-map} (ks/keyset %))]}
   (let [[service-protocol-sym dependencies fns]
                           (find-prot-and-deps-forms! forms)
         service-id        (get-service-id service-protocol-sym)
@@ -340,29 +341,33 @@
     [@acc result]))
 
 (defn protocol-fn->graph-fn
-  "Given a list of fn names provided by a service, and a list of fn forms for a
+  "Given the list of fn names that make up the main trapperkeeper Service protocol,
+  a list of fn names provided by a service, and a list of fn forms for a
   (potentially multi-arity) fn from the service macro, create a fn form that is
   suitable for use in a prismatic graph.  Returns a map containing the following
   keys:
 
   :deps - a list of fns from the service that this fn depends on
   :f    - the modified fn form, suitable for use in the graph"
-  [fn-names sigs]
+  [tk-svc-fn-names fn-names sigs]
   {:pre [(every? symbol? fn-names)
          (seq? sigs)
          (every? seq? sigs)]
    :post [(map? %)
-          (= #{:deps :f} (keyset %))
+          (= #{:deps :f} (ks/keyset %))
           (coll? (:deps %))
           (seq? (:f %))
           (= 'fn (first (:f %)))]}
   (let [bodies (for [sig sigs]
                   ;; first we destructure the function form into its various parts
                   (let [[_ [this & fn-args] & fn-body] sig
-                        ;; now we need to transform all calls to `service-context` from
-                        ;; protocol form to prismatic form.  we don't need to track this as
-                        ;; a dependency because it will be provided by the app.
-                        [_ fn-body] (replace-fn-calls #{'service-context 'service-id} this fn-body)
+                        ;; now we need to transform all calls to the fns from the
+                        ;; Service protocol from protocol form to prismatic form.
+                        ;; we don't need to track these as dependencies because it
+                        ;; will be provided by the app.
+                        [_ fn-body] (replace-fn-calls (set tk-svc-fn-names)
+                                                      ;#{'service-context 'service-id}
+                                                      this fn-body)
                         ;; transform all the functions from the service protocol, and keep
                         ;; a list of the dependencies so that prismatic can inject them
                         [deps fn-body] (replace-fn-calls (set fn-names) this fn-body)]
@@ -371,11 +376,12 @@
      :f    (cons 'fn (map :sig bodies))}))
 
 (defn add-prismatic-service-fnk
-  "Given the name of a fn from a service protocol, convert the raw fn form provided
+  "Given the list of fn names that make up the main trapperkeeper Service protocol,
+  the name of a fn from a service protocol, convert the raw fn form provided
   to the macro into a fn form suitable for use in a prismatic graph, wrap it in a
   prismatic fnk, and add it to the fnk accumulator map.  Returns the updated
   accumulator map."
-  [fn-names fns-map fnk-acc fn-name]
+  [tk-svc-fn-names fn-names fns-map fnk-acc fn-name]
   {:pre [(every? symbol? fn-names)
          (fns-map? fns-map)
          (map? fnk-acc)
@@ -387,15 +393,17 @@
           (every? seq? (vals %))
           (every? (fn [v] (= 'plumbing.core/fnk (first v))) (vals %))]}
   (let [{:keys [deps f]} (protocol-fn->graph-fn
+                           tk-svc-fn-names
                            fn-names
                            (fns-map fn-name))]
     (assoc fnk-acc fn-name
       (list 'plumbing.core/fnk (vec deps) f))))
 
 (defn prismatic-service-map
-  "Given a list of fn names and a map of the original fn forms provided to the
+  "Given the list of fn names that make up the main trapperkeeper Service protocol,
+  a list of fn names and a map of the original fn forms provided to the
   service macro, return a map of fnks suitable for use in a prismatic graph."
-  [fn-names fns-map]
+  [tk-svc-fn-names fn-names fns-map]
   {:pre [(every? symbol? fn-names)
          (fns-map? fns-map)]
    :post [(map? %)
@@ -403,9 +411,9 @@
           (every? seq? (vals %))
           (every? (fn [v] (= 'plumbing.core/fnk (first v))) (vals %))
           (= (set (map keyword fn-names))
-             (keyset fns-map))]}
+             (ks/keyset fns-map))]}
   (reduce
-    (partial add-prismatic-service-fnk fn-names fns-map)
+    (partial add-prismatic-service-fnk tk-svc-fn-names fn-names fns-map)
     {}
     (map keyword fn-names)))
 

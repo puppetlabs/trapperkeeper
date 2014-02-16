@@ -110,6 +110,16 @@
       (is (satisfies? Service1 s1))
       (is (= "FOO!" (service1-fn s1)))))
 
+  (testing "an error should be thrown if calling get-service on a non-existent service"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] (get-service this :NonExistent)))
+          app               (bootstrap-services-with-empty-config [service1])
+          s1                (app/get-service app :Service1)]
+      (is (thrown-with-msg?
+            IllegalArgumentException
+            #"Call to 'get-service' failed; service ':NonExistent' does not exist."
+            (service1-fn s1)))))
 
   (testing "lifecycle functions should be able to call injected functions"
     (let [service1 (service Service1

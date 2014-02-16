@@ -77,7 +77,11 @@
               ;; create a function that exposes the service context to the service.
               (let [~'service-id      (fn [] ~service-id)
                     ~'service-context (fn [] (get ~'@context ~service-id))
-                    ~'get-service     (fn [svc-id#] (get-in ~'@context [:services-by-id svc-id#]))
+                    ~'get-service     (fn [svc-id#] (or (get-in ~'@context [:services-by-id svc-id#])
+                                                        (throw (IllegalArgumentException.
+                                                                 (format
+                                                                   "Call to 'get-service' failed; service '%s' does not exist."
+                                                                   svc-id#)))))
                     ;; here we create an inner graph for this service.  we need
                     ;; this in order to handle deps within a single service.
                     service-map#      ~(si/prismatic-service-map
@@ -99,7 +103,12 @@
                Service
                (service-id [this] ~service-id)
                (service-context [this] (get @context# ~service-id {}))
-               (get-service [this service-id] (get-in @context# [:services-by-id service-id]))
+               (get-service [this service-id]
+                 (or (get-in @context# [:services-by-id service-id])
+                     (throw (IllegalArgumentException.
+                              (format
+                                "Call to 'get-service' failed; service '%s' does not exist."
+                                service-id)))))
 
                Lifecycle
                ~@(si/protocol-fns lifecycle-fn-names fns-map)

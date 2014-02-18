@@ -3,7 +3,7 @@
             [puppetlabs.trapperkeeper.services :refer
                 [ServiceDefinition Service Lifecycle
                  defservice service service-context]]
-            [puppetlabs.trapperkeeper.app :refer [TrapperkeeperApp get-service]]
+            [puppetlabs.trapperkeeper.app :as app]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
                 [bootstrap-services-with-empty-config]]
             [schema.test :as schema-test]))
@@ -26,9 +26,9 @@
 
   (let [app (bootstrap-services-with-empty-config [hello-service])]
     (testing "app satisfies protocol"
-      (is (satisfies? TrapperkeeperApp app)))
+      (is (satisfies? app/TrapperkeeperApp app)))
 
-    (let [h-s (get-service app :HelloService)]
+    (let [h-s (app/get-service app :HelloService)]
       (testing "service satisfies all protocols"
         (is (satisfies? Lifecycle h-s))
         (is (satisfies? Service h-s))
@@ -91,8 +91,35 @@
                             [[:Service1 service1-fn]]
                             (service2-fn [this] (str "HELLO " (service1-fn))))
           app (bootstrap-services-with-empty-config [service1 service2])
-          s2 (get-service app :Service2)]
+          s2  (app/get-service app :Service2)]
       (is (= "HELLO FOO!" (service2-fn s2)))))
+
+  (testing "services should be able to retrieve instances of services that they depend on"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] "FOO!"))
+          service2 (service Service2
+                            [[:Service1 service1-fn]]
+                            (init [this context]
+                                  (let [s1 (get-service this :Service1)]
+                                    (assoc context :s1 s1)))
+                            (service2-fn [this] ((service-context this) :s1)))
+          app               (bootstrap-services-with-empty-config [service1 service2])
+          s2                (app/get-service app :Service2)
+          s1                (service2-fn s2)]
+      (is (satisfies? Service1 s1))
+      (is (= "FOO!" (service1-fn s1)))))
+
+  (testing "an error should be thrown if calling get-service on a non-existent service"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] (get-service this :NonExistent)))
+          app               (bootstrap-services-with-empty-config [service1])
+          s1                (app/get-service app :Service1)]
+      (is (thrown-with-msg?
+            IllegalArgumentException
+            #"Call to 'get-service' failed; service ':NonExistent' does not exist."
+            (service1-fn s1)))))
 
   (testing "lifecycle functions should be able to call injected functions"
     (let [service1 (service Service1
@@ -103,7 +130,7 @@
                             (init [this context] (service1-fn) context)
                             (service2-fn [this] "service2"))
           app (bootstrap-services-with-empty-config [service1 service2])
-          s2 (get-service app :Service2)]
+          s2  (app/get-service app :Service2)]
       (is (= "service2" (service2-fn s2))))))
 
 (defprotocol Service4
@@ -117,7 +144,7 @@
                       (service4-fn1 [this] "foo!")
                       (service4-fn2 [this] (str (service4-fn1 this) " bar!")))
           app       (bootstrap-services-with-empty-config [service4])
-          s4        (get-service app :Service4)]
+          s4        (app/get-service app :Service4)]
       (is (= "foo! bar!" (service4-fn2 s4))))))
 
 (deftest context-test
@@ -157,7 +184,7 @@
                             (init [this context] (assoc context :foo :bar))
                             (service1-fn [this] (reset! sfn-context (service-context this))))
           app (bootstrap-services-with-empty-config [service1])
-          s1 (get-service app :Service1)]
+          s1  (app/get-service app :Service1)]
       (service1-fn s1)
       (is (= {:foo :bar} @sfn-context))
       (is (= {:foo :bar} (service-context s1)))))
@@ -171,7 +198,7 @@
                             [[:Service1 service1-fn]]
                             (service2-fn [this] (service1-fn)))
           app (bootstrap-services-with-empty-config [service1 service2])
-          s2 (get-service app :Service2)]
+          s2  (app/get-service app :Service2)]
       (is (= :bar (service2-fn s2)))))
 
   (testing "context works correctly in service functions called by other functions in same service"
@@ -181,7 +208,7 @@
                             (service4-fn1 [this] ((service-context this) :foo))
                             (service4-fn2 [this] (service4-fn1 this)))
           app (bootstrap-services-with-empty-config [service4])
-          s4 (get-service app :Service4)]
+          s4  (app/get-service app :Service4)]
       (is (= :bar (service4-fn2 s4)))))
 
   (testing "context from other services should not be visible"
@@ -238,8 +265,8 @@
                                (service1-fn [this]
                                             [(foo 5) (foo 3 6)]))
           app         (bootstrap-services-with-empty-config [ma-service service1])
-          mas         (get-service app :MultiArityService)
-          s1          (get-service app :Service1)]
+          mas         (app/get-service app :MultiArityService)
+          s1          (app/get-service app :Service1)]
       (is (= 3 (foo mas 3)))
       (is (= 5 (foo mas 4 1)))
       (is (= [5 9] (service1-fn s1))))))

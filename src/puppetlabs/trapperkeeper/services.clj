@@ -22,16 +22,19 @@
 
 (defprotocol Service
   "Common functions available to all services"
-  (service-context [this] "Returns the context map for this service"))
+  (service-id [this] "An identifier for the service")
+  (service-context [this] "Returns the context map for this service")
+  (get-service [this service-id] "Returns the service with the given service id"))
 
 (defprotocol ServiceDefinition
   "A service definition.  This protocol is for internal use only.  The service
   is not usable until it is instantiated (via `boot!`)."
-  (service-id [this] "An identifier for the service")
+  (service-def-id [this] "An identifier for the service")
   (service-map [this] "The map of service functions for the graph")
   (service-constructor [this] "A constructor function to instantiate the service"))
 
 (def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
+(def tk-service-fn-names (map :name (vals (:sigs Service))))
 
 (defmacro service
   "Create a Trapperkeeper ServiceDefinition.
@@ -62,7 +65,7 @@
                             (map (fn [f] [(keyword f) schema/Any])
                                  (concat lifecycle-fn-names service-fn-names)))]
     `(reify ServiceDefinition
-       (service-id [this] ~service-id)
+       (service-def-id [this] ~service-id)
 
        ;; service map for prismatic graph
        (service-map [this]
@@ -72,11 +75,17 @@
            (fnk f :- ~output-schema
               ~dependencies
               ;; create a function that exposes the service context to the service.
-              (let [~'service-context (fn [] (get ~'@context ~service-id))
-                    ~'service-id      (fn [] ~service-id)
+              (let [~'service-id      (fn [] ~service-id)
+                    ~'service-context (fn [] (get ~'@context ~service-id))
+                    ~'get-service     (fn [svc-id#] (or (get-in ~'@context [:services-by-id svc-id#])
+                                                        (throw (IllegalArgumentException.
+                                                                 (format
+                                                                   "Call to 'get-service' failed; service '%s' does not exist."
+                                                                   svc-id#)))))
                     ;; here we create an inner graph for this service.  we need
                     ;; this in order to handle deps within a single service.
                     service-map#      ~(si/prismatic-service-map
+                                         tk-service-fn-names
                                          (concat lifecycle-fn-names service-fn-names)
                                          fns-map)
                     s-graph-inst#     (if (empty? service-map#)
@@ -92,7 +101,14 @@
              ;; now we instantiate the service and define all of its protocol functions
              (reify
                Service
+               (service-id [this] ~service-id)
                (service-context [this] (get @context# ~service-id {}))
+               (get-service [this service-id]
+                 (or (get-in @context# [:services-by-id service-id])
+                     (throw (IllegalArgumentException.
+                              (format
+                                "Call to 'get-service' failed; service '%s' does not exist."
+                                service-id)))))
 
                Lifecycle
                ~@(si/protocol-fns lifecycle-fn-names fns-map)

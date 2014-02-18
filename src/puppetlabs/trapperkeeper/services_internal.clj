@@ -366,7 +366,6 @@
                         ;; we don't need to track these as dependencies because it
                         ;; will be provided by the app.
                         [_ fn-body] (replace-fn-calls (set tk-svc-fn-names)
-                                                      ;#{'service-context 'service-id}
                                                       this fn-body)
                         ;; transform all the functions from the service protocol, and keep
                         ;; a list of the dependencies so that prismatic can inject them

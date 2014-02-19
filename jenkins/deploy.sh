@@ -11,6 +11,6 @@ echo "Tests passed!"
 lein release
 echo "Release plugin successful, pushing changes to git"
 
-git push origin --tags `git rev-parse --abbrev-ref HEAD`
+git push origin --tags HEAD:$TRAPPERKEEPER_BRANCH
 
 echo "git push successful."

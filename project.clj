@@ -44,6 +44,8 @@
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
+                         
+  :plugins [[lein-release "1.0.5"]]                         
 
   :main puppetlabs.trapperkeeper.main
   )

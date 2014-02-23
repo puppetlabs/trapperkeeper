@@ -1,4 +1,4 @@
-(ns puppetlabs.trapperkeeper.services.config.config-service-test
+(ns puppetlabs.trapperkeeper.config-test
   (:import (java.io StringReader FileNotFoundException))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data]]

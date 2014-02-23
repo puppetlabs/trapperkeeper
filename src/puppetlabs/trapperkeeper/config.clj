@@ -25,7 +25,7 @@
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Service protocols
+;;; Service protocol
 
 (defprotocol ConfigService
   (get-config [this] "Returns a map containing all of the configuration values")
@@ -34,21 +34,6 @@
                  configuration structure, where ks is a sequence of keys.
                  Returns nil if the key is not present, or the default value if
                  supplied."))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Public
-;; TODO: consolidate public sections
-
-(defn config-service
-  "Returns trapperkeeper's configuration service.  Expects
-   to find a command-line argument value for `:config`; the value of this
-   parameter should be the path to an .ini file or a directory of .ini files."
-  [config]
-  (service ConfigService
-           []
-           (get-config [this] config)
-           (get-in-config [this ks] (get-in config ks))
-           (get-in-config [this ks default] (get-in config ks default))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -85,6 +70,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
+
+(defn config-service
+  "Returns trapperkeeper's configuration service.  Expects
+   to find a command-line argument value for `:config`; the value of this
+   parameter should be the path to an .ini file or a directory of .ini files."
+  [config]
+  (service ConfigService
+           []
+           (get-config [this] config)
+           (get-in-config [this ks] (get-in config ks))
+           (get-in-config [this ks default] (get-in config ks default))))
 
 (defn parse-config-data
   "Parses the .ini configuration file(s) and returns a map of configuration data."

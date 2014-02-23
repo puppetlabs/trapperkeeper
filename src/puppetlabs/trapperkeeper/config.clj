@@ -16,8 +16,10 @@
 ;;;;
 
 (ns puppetlabs.trapperkeeper.config
-  (:import  (java.io FileNotFoundException))
-  (:require [clojure.java.io :refer [file]]
+  (:import  (java.io FileNotFoundException PushbackReader))
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [clojure.edn :as edn]
             [fs.core :as fs]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.config.typesafe :as typesafe]
@@ -40,15 +42,21 @@
 
 (defn config-file->map
   [file]
-  (if (= (fs/extension file) ".ini")
+  (condp (fn [vals ext] (contains? vals ext)) (fs/extension file)
+    #{".ini"}
     (ks/ini-to-map file)
-    (typesafe/config-file->map file)))
+
+    #{".json" ".conf" ".properties"}
+    (typesafe/config-file->map file)
+
+    #{".edn"}
+    (edn/read (PushbackReader. (io/reader file)))))
 
 (defn parse-config-path
   ([path]
-   (parse-config-path path ["*.ini" "*.conf" "*.json" "*.properties"]))
+   (parse-config-path path ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"]))
   ([path glob-patterns]
-   (when-not (.canRead (file path))
+   (when-not (.canRead (io/file path))
      (throw (FileNotFoundException.
               (format "Configuration path '%s' must exist and must be readable."
                       path))))

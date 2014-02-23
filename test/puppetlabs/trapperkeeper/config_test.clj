@@ -38,6 +38,20 @@
                                     :bar {:setting1 "bar1"}
                                     :debug false} ))))))
 
+  (testing "Can read values from a single .edn file"
+    (with-app-with-cli-data app [test-service] {:config "./test-resources/config/file/config.edn"}
+      (let [test-svc  (get-service app :ConfigTestService)]
+        (testing "`get-config` function"
+          (is (= {:debug false
+                  :foo {:bar "barbar"
+                        :baz "bazbaz"
+                        :bam 42
+                        :bap {:boozle "boozleboozle"
+                              :bip [1 2 {:hi "there"} 3]}}}
+                 (test-fn2 test-svc)))))))
+
+  ;; NOTE: other individual file formats are tested in `typesafe-test`
+
   (testing "Can read values from a directory of .ini files"
     (with-app-with-cli-data app [test-service] {:config "./test-resources/config/inidir"}
       (let [test-svc  (get-service app :ConfigTestService)]
@@ -68,11 +82,10 @@
                cfg)))))
   
   (testing "An error is thrown if duplicate settings exist"
-    (is (thrown-with-msg?
-          IllegalArgumentException
-          #"Duplicate configuration entry: \[:foo :baz\]"
-          (bootstrap-services-with-cli-data [test-service] {:config "./test-resources/config/conflictdir1"})))
-    (is (thrown-with-msg?
-          IllegalArgumentException
-          #"Duplicate configuration entry: \[:foo :baz\]"
-          (bootstrap-services-with-cli-data [test-service] {:config "./test-resources/config/conflictdir2"})))))
+    (doseq [invalid-config-dir ["./test-resources/config/conflictdir1"
+                                "./test-resources/config/conflictdir2"
+                                "./test-resources/config/conflictdir3"]]
+      (is (thrown-with-msg?
+            IllegalArgumentException
+            #"Duplicate configuration entry: \[:foo :baz\]"
+            (bootstrap-services-with-cli-data [test-service] {:config invalid-config-dir}))))))

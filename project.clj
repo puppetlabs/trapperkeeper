@@ -13,7 +13,8 @@
                  [prismatic/schema "0.2.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
-                 [ch.qos.logback/logback-classic "1.0.13"]]
+                 [ch.qos.logback/logback-classic "1.0.13"]
+                 [com.typesafe/config "1.2.0"]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}

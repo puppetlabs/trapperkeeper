@@ -296,9 +296,11 @@
    :post [(satisfies? s/ServiceDefinition %)]}
   (let [shutdown-reason-promise (promise)
         shutdown-service (shutdown-service shutdown-reason-promise app-context)]
-    (add-shutdown-hook! #(when-not (realized? shutdown-reason-promise)
-                          (shutdown! app-context)
-                          (deliver shutdown-reason-promise {:cause :jvm-shutdown-hook})))
+    (add-shutdown-hook! (fn []
+                          (log/info "Shutting down due to JVM shutdown hook.")
+                          (when-not (realized? shutdown-reason-promise)
+                            (shutdown! app-context)
+                            (deliver shutdown-reason-promise {:cause :jvm-shutdown-hook}))))
     shutdown-service))
 
 (defn wait-for-app-shutdown

@@ -95,14 +95,14 @@
 
 (deftest test-cli-args
   (testing "debug mode is off by default"
-    (let [app             (bootstrap-services-with-empty-config [])
-          config-service  (get-service app :ConfigService)]
-      (is (false? (config/get-in-config config-service [:debug])))))
+    (with-app-with-empty-config app []
+      (let [config-service (get-service app :ConfigService)]
+        (is (false? (config/get-in-config config-service [:debug]))))))
 
   (testing "--debug puts TK in debug mode"
-    (let [app             (bootstrap-services-with-empty-config [] ["--debug"])
-          config-service  (get-service app :ConfigService)]
-      (is (true? (config/get-in-config config-service [:debug])))))
+    (with-app-with-cli-args app [] ["--config" "./test-resources/config/empty.ini" "--debug"]
+      (let [config-service (get-service app :ConfigService)]
+        (is (true? (config/get-in-config config-service [:debug]))))))
 
   (testing "TK should accept --plugins arg"
     ;; Make sure --plugins is allowed; will throw an exception if not.

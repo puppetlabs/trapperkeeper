@@ -1,4 +1,4 @@
-(def ks-version "0.5.1")
+(def ks-version "0.5.3-SNAPSHOT")
 
 (defproject puppetlabs/trapperkeeper "0.3.4-SNAPSHOT"
   :description "We are trapperkeeper.  We are one."

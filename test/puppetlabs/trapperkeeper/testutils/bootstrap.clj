@@ -1,12 +1,14 @@
 (ns puppetlabs.trapperkeeper.testutils.bootstrap
-  (:require [puppetlabs.trapperkeeper.core :as tk]
+  (:require [fs.core :as fs]
+            [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.app :as tk-app]
             [puppetlabs.kitchensink.testutils :as ks-testutils]
             [puppetlabs.trapperkeeper.internal :refer [parse-cli-args!]]
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.config :as config]))
 
-(def empty-config "./test-resources/config/empty.ini")
+(def empty-config "./target/empty.ini")
+(fs/touch empty-config)
 
 (defmacro with-app-with-config
   [app services config & body]

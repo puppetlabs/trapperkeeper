@@ -12,8 +12,10 @@
   [app services config & body]
   `(ks-testutils/with-no-jvm-shutdown-hooks
      (let [~app (tk/boot-services-with-config ~services ~config)]
-       ~@body
-       (tk-app/stop ~app))))
+       (try
+         ~@body
+         (finally
+           (tk-app/stop ~app))))))
 
 (defn bootstrap-services-with-cli-data
   [services cli-data]
@@ -23,8 +25,10 @@
   [app services cli-data & body]
   `(ks-testutils/with-no-jvm-shutdown-hooks
      (let [~app (bootstrap-services-with-cli-data ~services ~cli-data)]
-      ~@body
-      (tk-app/stop ~app))))
+       (try
+         ~@body
+         (finally
+           (tk-app/stop ~app))))))
 
 (defn bootstrap-services-with-cli-args
   [services cli-args]
@@ -34,8 +38,10 @@
   [app services cli-args & body]
   `(ks-testutils/with-no-jvm-shutdown-hooks
      (let [~app (bootstrap-services-with-cli-args ~services ~cli-args)]
-       ~@body
-       (tk-app/stop ~app))))
+       (try
+         ~@body
+         (finally
+           (tk-app/stop ~app))))))
 
 (defn bootstrap-services-with-empty-config
   [services]
@@ -45,8 +51,10 @@
   [app services & body]
   `(ks-testutils/with-no-jvm-shutdown-hooks
      (let [~app (bootstrap-services-with-empty-config ~services)]
-       ~@body
-       (tk-app/stop ~app))))
+       (try
+         ~@body
+         (finally
+           (tk-app/stop ~app))))))
 
 (defn bootstrap-with-empty-config
   ([]

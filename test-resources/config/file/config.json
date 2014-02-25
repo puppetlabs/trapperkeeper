@@ -1,0 +1,8 @@
+{"foo":
+    {"bar": "barbar",
+     "baz": "bazbaz",
+     "bam": 42,
+     "bap":
+        {"boozle": "boozleboozle",
+         "bip": [1, 2, {"hi": "there"}, 3]
+        }}}

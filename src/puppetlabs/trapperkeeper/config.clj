@@ -16,11 +16,18 @@
 ;;;;
 
 (ns puppetlabs.trapperkeeper.config
-  (:import  (java.io FileNotFoundException))
-  (:require [clojure.java.io :refer [file]]
-            [puppetlabs.kitchensink.core :refer [inis-to-map]]
+  (:import  (java.io FileNotFoundException PushbackReader))
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [clojure.edn :as edn]
+            [fs.core :as fs]
+            [puppetlabs.kitchensink.core :as ks]
+            [puppetlabs.trapperkeeper.config.typesafe :as typesafe]
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Service protocol
 
 (defprotocol ConfigService
   (get-config [this] "Returns a map containing all of the configuration values")
@@ -29,6 +36,44 @@
                  configuration structure, where ks is a sequence of keys.
                  Returns nil if the key is not present, or the default value if
                  supplied."))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Private
+
+(defn config-file->map
+  [file]
+  (condp (fn [vals ext] (contains? vals ext)) (fs/extension file)
+    #{".ini"}
+    (ks/ini-to-map file)
+
+    #{".json" ".conf" ".properties"}
+    (typesafe/config-file->map file)
+
+    #{".edn"}
+    (edn/read (PushbackReader. (io/reader file)))))
+
+(defn parse-config-path
+  [path]
+  (when-not (.canRead (io/file path))
+    (throw (FileNotFoundException.
+             (format "Configuration path '%s' must exist and must be readable."
+                     path))))
+  (let [files (if-not (fs/directory? path)
+                [path]
+                (mapcat
+                  #(fs/glob (fs/file path %))
+                  ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"]))]
+    (->> files
+         (map fs/absolute-path)
+         (map config-file->map)
+         (apply ks/deep-merge-with-keys
+                (fn [ks & _]
+                  (throw (IllegalArgumentException.
+                           (str "Duplicate configuration entry: " ks)))))
+         (merge {}))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
 
 (defn config-service
   "Returns trapperkeeper's configuration service.  Expects
@@ -41,23 +86,13 @@
            (get-in-config [this ks] (get-in config ks))
            (get-in-config [this ks default] (get-in config ks default))))
 
-(defn- parse-config-file
-  [config-file-path]
-  {:pre  [(string? config-file-path)]
-   :post [(map? %)]}
-  (when-not (.canRead (file config-file-path))
-    (throw (FileNotFoundException.
-             (format "Configuration path '%s' must exist and must be readable."
-                     config-file-path))))
-  (inis-to-map config-file-path))
-
 (defn parse-config-data
   "Parses the .ini configuration file(s) and returns a map of configuration data."
   [cli-data]
   {:post [(map? %)]}
   (let [debug? (or (:debug cli-data) false)]
     (-> (:config cli-data)
-        (parse-config-file)
+        (parse-config-path)
         (assoc :debug debug?))))
 
 (defn initialize-logging!

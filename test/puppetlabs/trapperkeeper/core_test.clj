@@ -6,7 +6,7 @@
             [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.internal :refer [parse-cli-args!]]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.config :as config]
             [puppetlabs.trapperkeeper.testutils.logging :refer [reset-logging-config-after-test]]))
 
@@ -22,7 +22,7 @@
                            (init [this context] (f) context))]
       (is (thrown-with-msg?
             RuntimeException #"Service ':MissingService' not found"
-            (bootstrap-services-with-empty-config [broken-service])))))
+            (testutils/bootstrap-services-with-empty-config [broken-service])))))
 
   (testing "missing service function throws meaningful message"
     (let [test-service    (service FooService
@@ -33,7 +33,7 @@
                             (init [this context] (bar) context))]
       (is (thrown-with-msg?
             RuntimeException #"Service function 'bar' not found in service 'FooService"
-            (bootstrap-services-with-empty-config [test-service broken-service]))))
+            (testutils/bootstrap-services-with-empty-config [test-service broken-service]))))
 
     (let [broken-service  (service
                             []
@@ -41,7 +41,7 @@
                                   (throw (RuntimeException. "This shouldn't match the regexs"))))]
       (is (thrown-with-msg?
             RuntimeException #"This shouldn't match the regexs"
-            (bootstrap-services-with-empty-config [broken-service]))))
+            (testutils/bootstrap-services-with-empty-config [broken-service]))))
 
     (is (thrown-with-msg?
           RuntimeException #"Service does not define function 'foo'"
@@ -95,12 +95,12 @@
 
 (deftest test-cli-args
   (testing "debug mode is off by default"
-    (with-app-with-empty-config app []
+    (testutils/with-app-with-empty-config app []
       (let [config-service (get-service app :ConfigService)]
         (is (false? (config/get-in-config config-service [:debug]))))))
 
   (testing "--debug puts TK in debug mode"
-    (with-app-with-cli-args app [] ["--config" "./test-resources/config/empty.ini" "--debug"]
+    (testutils/with-app-with-cli-args app [] ["--config" testutils/empty-config "--debug"]
       (let [config-service (get-service app :ConfigService)]
         (is (true? (config/get-in-config config-service [:debug]))))))
 

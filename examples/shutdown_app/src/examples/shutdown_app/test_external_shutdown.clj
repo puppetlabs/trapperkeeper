@@ -1,5 +1,6 @@
 (ns examples.shutdown-app.test-external-shutdown
-  (:require [puppetlabs.trapperkeeper.core :as trapperkeeper]))
+  (:require [puppetlabs.trapperkeeper.core :as trapperkeeper]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]))
 
 (trapperkeeper/defservice test-service
   []
@@ -12,5 +13,5 @@
   (println "Waiting for a shutdown signal - use Ctrl-C or kill.")
   (println "You should see a message printed out when services are being shutdown.")
   (trapperkeeper/run
-    {:config "test-resources/config/empty.ini"
+    {:config testutils/empty-config
      :bootstrap-config "examples/shutdown_app/bootstrap.cfg"}))

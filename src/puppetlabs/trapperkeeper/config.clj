@@ -53,26 +53,24 @@
     (edn/read (PushbackReader. (io/reader file)))))
 
 (defn parse-config-path
-  ([path]
-   (parse-config-path path ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"]))
-  ([path glob-patterns]
-   (when-not (.canRead (io/file path))
-     (throw (FileNotFoundException.
-              (format "Configuration path '%s' must exist and must be readable."
-                      path))))
-   (let [files (if-not (fs/directory? path)
-                 [path]
-                 (mapcat
-                   #(fs/glob (fs/file path %))
-                   glob-patterns))]
-     (->> files
-          (map fs/absolute-path)
-          (map config-file->map)
-          (apply ks/deep-merge-with-keys
-                 (fn [ks & _]
-                   (throw (IllegalArgumentException.
-                            (str "Duplicate configuration entry: " ks)))))
-          (merge {})))))
+  [path]
+  (when-not (.canRead (io/file path))
+    (throw (FileNotFoundException.
+             (format "Configuration path '%s' must exist and must be readable."
+                     path))))
+  (let [files (if-not (fs/directory? path)
+                [path]
+                (mapcat
+                  #(fs/glob (fs/file path %))
+                  ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"]))]
+    (->> files
+         (map fs/absolute-path)
+         (map config-file->map)
+         (apply ks/deep-merge-with-keys
+                (fn [ks & _]
+                  (throw (IllegalArgumentException.
+                           (str "Duplicate configuration entry: " ks)))))
+         (merge {}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public

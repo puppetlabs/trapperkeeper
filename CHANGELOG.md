@@ -1,8 +1,12 @@
-## 0.3.2
+## 0.3.4
+ * Add new macros in `testutils/bootstrap` namespace, to make it easier to write tests for services
+ * Add support for .edn, .conf, .json, .properties config files in addition to .ini
+
+## 0.3.3
  * Fix a bug in how we were handling command-line arguments in the case where the user does not pass any
  * Add a new function `get-service` to the `Service` protocol, which allows service authors to get a reference to the protocol instance of a service if they prefer that to the prismatic-style function injections
 
-## 0.3.1
+## 0.3.2
  * Bugfix release
  * Use prismatic schema validation during tests to ensure we are complying with
    our advertised schemas

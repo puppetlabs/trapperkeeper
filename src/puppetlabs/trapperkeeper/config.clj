@@ -62,10 +62,8 @@
                       path))))
    (let [files (if-not (fs/directory? path)
                  [path]
-                 (reduce
-                   (fn [acc glob-pattern]
-                     (concat acc (fs/glob (fs/file path glob-pattern))))
-                   []
+                 (mapcat
+                   #(fs/glob (fs/file path %))
                    glob-patterns))]
      (->> files
           (map fs/absolute-path)

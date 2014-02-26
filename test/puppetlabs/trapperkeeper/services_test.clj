@@ -276,8 +276,9 @@
     (is (thrown-with-msg?
           Exception
           #"Incorrect macro usage"
-          (macroexpand '(service Service1
-                                 []
-                                 (service1-fn
-                                   "This is an example of an invalid docstring"
-                                   [this] nil)))))))
+          (macroexpand '(puppetlabs.trapperkeeper.services/service
+                          puppetlabs.trapperkeeper.services-test/Service1
+                          []
+                          (service1-fn
+                            "This is an example of an invalid docstring"
+                            [this] nil)))))))

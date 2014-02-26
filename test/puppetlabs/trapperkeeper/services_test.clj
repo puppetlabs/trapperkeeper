@@ -270,3 +270,14 @@
       (is (= 3 (foo mas 3)))
       (is (= 5 (foo mas 4 1)))
       (is (= [5 9] (service1-fn s1))))))
+
+(deftest service-fn-invalid-docstring
+  (testing "defining a service function, mistakenly adding a docstring"
+    (is (thrown-with-msg?
+          Exception
+          #"Incorrect macro usage"
+          (macroexpand '(service Service1
+                                 []
+                                 (service1-fn
+                                   "This is an example of an invalid docstring"
+                                   [this] nil)))))))

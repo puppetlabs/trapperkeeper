@@ -204,6 +204,17 @@
 
   (let [fns-map (->> (reduce
                        (fn [acc f]
+                         ; second element should be a vector - params to the fn
+                         (when-not (vector? (second f))
+                           ; macro was used incorrectly - perhaps the user
+                           ; mistakenly tried to insert a docstring, like:
+                           ; `(service-fn "docs about service-fn..." [this] ... )`
+                           (throw
+                             (Exception.
+                               (str
+                                 "Incorrect macro usage: service functions must "
+                                 "be defined the same as a call to `reify`, eg: "
+                                 "`(my-service-fn [this other-args] ...)`"))))
                          (let [k    (keyword (first f))
                                cur  (acc k)]
                            (if cur

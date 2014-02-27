@@ -49,44 +49,71 @@ However, it can be useful to have a few tests that actually boot up a trapperkee
 application instance; this allows you to, for example, verify that the services
 that you have a dependency on get injected correctly.
 
-To this end, the testutils library code includes some helper functions for creating
-a trapperkeeper application.  Here are the most useful ones:
+To this end, the testutils library code includes some helper functions and macros
+for creating a trapperkeeper application.  The macros should be preferred in
+most cases; they generally start with the prefix `with-app-`, and allow you to
+create a temporary trapperkeeper app given a list of services.  They will take
+care of some important mechanics for you:
 
-### bootstrap-with-empty-config
+* Making sure that no JVM shutdown hooks are registered during tests, as they
+  would be during a normal trapperkeeper application boot sequence
+* Making sure that the app is shut down properly after the test completes.
 
-This function can be used if you have a `bootstrap.cfg` file in your test classpath,
-and you want to use that for instantiating a trapperkeeper app.  It presumes that
-you don't need to pass in any custom configuration data.  e.g.:
+Here are some of the most useful ones:
 
-```clj
-(let [app       (bootstrap-with-empty-config)
-      test-svc  (get-service app :TestService)]
-  (is (= :foo (test-fn test-svc))))
-```
+### with-app-with-config
 
-### bootstrap-services-with-empty-config
-
-This function can be used if you don't want/need to use a `bootstrap.cfg` file,
-and wish to instead list out your services directly in code.  It still presumes
-that you don't need to pass in any custom configuration data.  e.g.:
+This macro allows you to specify your services directly, and to pass in a map
+of configuration data that the app should use:
 
 ```clj
-(let [app       (bootstrap-services-with-empty-config
-                   [test-service1 test-service2])
-      test-svc1 (get-service app :TestService1)]
-  (is (= :foo (test-fn test-svc1))))
+(with-app-with-config app
+   [test-service1 test-service2]
+   {:myconfig {:foo "foo"
+               :bar "bar"}}
+   (let [test-svc  (get-service app :TestService1)]
+      (is (= "baz" (t1/test-fn test-svc))))
 ```
 
-### bootstrap-services-with-cli-data
+### with-app-with-cli-data
 
-This function allows you to specify your services directly, but also to pass in
-a path to a configuration file or directory:
+This variant is very similar, but instead of passing a map of config data, you
+pass a map of parsed cli args, such as the path to a config file on disk that
+should be processed to build the actual application configuration:
 
 ```clj
-(let [app       (bootstrap-services-with-cli-data
-                   [test-service1 test-service2]
-                   {:config "./test-resources/config.ini"})
-      test-svc1 (get-service app :TestService1)]
-  (is (= :foo (test-fn test-svc1))))
+(with-app-with-cli-data app
+   [test-service1 test-service2]
+   {:config "./test-resources/config.ini"}
+   (let [test-svc  (get-service app :TestService1)]
+      (is (= "baz" (t1/test-fn test-svc))))
 ```
 
+### with-app-with-cli-args
+
+This version accepts a vector of command line args:
+
+```clj
+(with-app-with-cli-args app
+   [test-service1 test-service2]
+   ["--config" "./test-resources/config.ini" "--debug"]
+   (let [test-svc  (get-service app :TestService1)]
+      (is (= "baz" (t1/test-fn test-svc))))
+```
+
+### with-app-with-empty-config
+
+This version is useful when you don't need to pass in any configuration data
+at all to the services
+
+```clj
+(with-app-with-empty-config app
+   [test-service1 test-service2]
+   (let [test-svc  (get-service app :TestService1)]
+      (is (= "baz" (t1/test-fn test-svc))))
+```
+
+For each of the above macros, there is generally a `bootstrap-services-with-*`
+function that will behave similarly; however, the `bootstrap-*` functions don't
+handle the cleanup / shutdown behaviors for you, so should only be used in rare
+cases.

@@ -3,7 +3,10 @@
 # trapperkeeper
 
 Trapperkeeper is a clojure framework for hosting long-running applications and
-services.  It ties together a few nice patterns we've come across in the clojure
+services.  You can think of it as a "binder", of sorts--for ring applications
+and other modular bits of clojure code.
+
+It ties together a few nice patterns we've come across in the clojure
 community:
 
 * Stuart Sierra's ["reloaded" workflow](http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded)
@@ -40,7 +43,10 @@ later in this document.
 
 ## Table of Contents
 
+* [Installation](#installation)
 * [tl;dr: Quick Start](#tldr-quick-start)
+ * [Lein Template](#lein-template)
+ * [Hello World](#hello-world)
 * [Credits and Origins](#credits-and-origins)
 * [Bootstrapping](#bootstrapping)
 * [Defining Services](#defining-services)
@@ -56,7 +62,6 @@ later in this document.
  * [Configuration Service](#configuration-service)
  * [Shutdown Service](#shutdown-service)
  * [nREPL Service](#nrepl-service)
-
 * [Service Interfaces](#service-interfaces)
 * [Command Line Arguments](#command-line-arguments)
 * [Other Ways to Boot](#other-ways-to-boot)
@@ -67,7 +72,25 @@ later in this document.
 * [Test Utils](#test-utils)
 * [Hopes and Dreams](#hopes-and-dreams)
 
+## Installation
+
+Add the following dependency to your `project.clj` file:
+
+    [puppetlabs/trapperkeeper "0.3.4"]
+
 ## TL;DR: Quick Start
+
+### Lein Template
+
+A leinengen template is available that shows a suggested project structure:
+
+    lein new trapperkeeper my.namespace/myproject
+
+Note that the template is intended to suggest a specific namespace organization;
+it's just intended to show you how to write a service, a web service, and tests
+for each.
+
+### Hello World
 
 Here's a "hello world" example for getting started with trapperkeeper.
 

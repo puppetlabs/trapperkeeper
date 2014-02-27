@@ -117,7 +117,7 @@ Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
 And now you should be able to run the app via `lein run`.  This example doesn't
 do much; for a more interesting example that shows how you can use trapperkeeper
 to create a web application, check out the
-[Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/blob/master/doc/example-web-service.md)
+[Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/ring_app)
 included in the trapperkeeper webserver service project.
 
 ## Credits and Origins

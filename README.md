@@ -340,14 +340,15 @@ In the simplest case, you may just want to grab a direct reference to one or mor
 
 ```clj
 (defservice foo-service
-   [[:BarService bar-fn] [:BazService baz-fn]]
+   [[:BarService bar-fn]
+    [:BazService baz-fn]]
    (init [this context]
       (bar-fn)
       (baz-fn)
       context))
 ```
 
-This form expresses a dependency on two other services; one implementing the `BarService` protocol, and one implementing the `BazService` protocol.  It gives us a direct reference to the functions `bar-fn` and `bar-fn`.  We can call them as normal functions, without worrying about protocols any further.
+This form expresses a dependency on two other services; one implementing the `BarService` protocol, and one implementing the `BazService` protocol.  It gives us a direct reference to the functions `bar-fn` and `baz-fn`.  We can call them as normal functions, without worrying about protocols any further.
 
 ### A Map of Functions
 

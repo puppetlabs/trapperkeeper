@@ -65,11 +65,11 @@ later in this document.
 * [Service Interfaces](#service-interfaces)
 * [Command Line Arguments](#command-line-arguments)
 * [Other Ways to Boot](#other-ways-to-boot)
+* [Test Utils](#test-utils)
 * [Using the "Reloaded" Pattern](#using-the-reloaded-pattern)
 * [Experimental Plugin System](#experimental-plugin-system)
 * [Polyglot Support](#polyglot-support)
 * [Dev Practices](#dev-practices)
-* [Test Utils](#test-utils)
 * [Hopes and Dreams](#hopes-and-dreams)
 
 ## Installation
@@ -916,6 +916,24 @@ more control over the booting of the services, you can use this function:
   *without* booting the services.  You can then boot them yourself by calling
   `init` and `start` on the `TrapperkeeperApp`.
 
+## Test Utils
+
+Trapperkeeper provides some [utility code](./test/puppetlabs/trapperkeeper/testutils)
+for use in tests.  The code is available in a separate "test" jar that you may depend
+on by using a classifier in your project dependencies.
+
+```clojure
+  (defproject yourproject "1.0.0"
+    ...
+    :profiles {:dev {:dependencies [[puppetlabs/trapperkeeper "x.y.z" :classifier "test"]]}})
+```
+
+This library includes some utilities to help test logging functionality, as well
+as to test your services by bootstrapping a _trapperkeeper_ application instance
+in your test.  See the [Trapperkeeper Test Utils](doc/test-utils.md) for more
+information.
+
+
 ## Using the "Reloaded" Pattern
 
 [Stuart Sierra's "reloaded" workflow](http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded)
@@ -1049,23 +1067,6 @@ However, one quirk that we've discovered is that it does not appear that lein's
 via `lein trampoline`, the classpath will not include the projects in the
 `checkouts` directory.  Thus, you'll need to do `lein install` on the `checkouts`
 projects to copy their jars into your `.m2` directory before running `lein trampoline run`.
-
-## Test Utils
-
-Trapperkeeper provides some [utility code](./test/puppetlabs/trapperkeeper/testutils)
-for use in tests.  The code is available in a separate "test" jar that you may depend
-on by using a classifier in your project dependencies.
-
-```clojure
-  (defproject yourproject "1.0.0"
-    ...
-    :profiles {:dev {:dependencies [[puppetlabs/trapperkeeper "x.y.z" :classifier "test"]]}})
-```
-
-This library includes some utilities to help test logging functionality, as well
-as to test your services by bootstrapping a _trapperkeeper_ application instance
-in your test.  See the [Trapperkeeper Test Utils](doc/test-utils.md) for more
-information.
 
 ## Hopes and Dreams
 

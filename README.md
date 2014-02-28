@@ -371,7 +371,7 @@ Both of the cases above are actually just specific examples of forms supported b
 
 ### Via Service Protocol
 
-In some cases you may actually prefer to get a reference to an object that satisfies the service protocol.  This way, you can pass the object around and use the actual protocol to provide a more type-safe way to reference the functions provided by a service.  To achieve this, you use the `get-service` function from the main `Service` protocol.  Here's how this might look:
+In some cases you may actually prefer to get a reference to an object that satisfies the service protocol.  This way, you can pass the object around and use the actual clojure protocol to reference the functions provided by a service.  To achieve this, you use the `get-service` function from the main `Service` protocol.  Here's how this might look:
 
 ```clj
 (ns bar.service)

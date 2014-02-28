@@ -67,6 +67,27 @@ This macro allows you to specify your services directly, and to pass in a map
 of configuration data that the app should use:
 
 ```clj
+(ns services.test-service-1)
+
+(defprotocol TestService1
+   (test-fn [this]))
+
+(defservice test-service1
+  TestService1
+  []
+  (test-fn [this] "foo"))
+```
+```clj
+(ns services.test-service2)
+
+(defservice test-service2
+  ;;...
+  )
+```
+```clj
+(ns test.services-test
+   (:require services.test-service-1 :as t1))
+
 (with-app-with-config app
    [test-service1 test-service2]
    {:myconfig {:foo "foo"

@@ -2,6 +2,14 @@
 
 # trapperkeeper
 
+## Installation
+
+Add the following dependency to your `project.clj` file:
+
+    [puppetlabs/trapperkeeper "0.3.4"]
+
+## Overview
+
 Trapperkeeper is a clojure framework for hosting long-running applications and
 services.  You can think of it as a "binder", of sorts--for ring applications
 and other modular bits of clojure code.
@@ -43,7 +51,6 @@ later in this document.
 
 ## Table of Contents
 
-* [Installation](#installation)
 * [tl;dr: Quick Start](#tldr-quick-start)
  * [Lein Template](#lein-template)
  * [Hello World](#hello-world)
@@ -76,12 +83,6 @@ later in this document.
 * [Polyglot Support](#polyglot-support)
 * [Dev Practices](#dev-practices)
 * [Hopes and Dreams](#hopes-and-dreams)
-
-## Installation
-
-Add the following dependency to your `project.clj` file:
-
-    [puppetlabs/trapperkeeper "0.3.4"]
 
 ## TL;DR: Quick Start
 

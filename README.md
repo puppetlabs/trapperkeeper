@@ -92,7 +92,7 @@ A leinengen template is available that shows a suggested project structure:
 
     lein new trapperkeeper my.namespace/myproject
 
-Note that the template is intended to suggest a specific namespace organization;
+Note that the template is not intended to suggest a specific namespace organization;
 it's just intended to show you how to write a service, a web service, and tests
 for each.
 
@@ -945,13 +945,12 @@ Here are some general guidelines for writing trapperkeeper services.
 
 ### To Trapperkeeper Or Not To Trapperkeeper
 
-Trapperkeeper is our clojure application/service framework.  It's useful and
-gives us a lot of flexibility on how we decide to package and deploy applications
-and services.  When should you use it?  The easiest rule of thumb is: if it's
-possible to expose your code as a simple library with no dependencies on
-trapperkeeper, it's highly preferable to go that route.  Here are some things
-that might be reasonable indicators that you should consider exposing your code
-via a trapperkeeper service:
+Trapperkeeper gives us a lot of flexibility on how we decide to package and
+eploy applications and services.  When should you use it?  The easiest rule of
+thumb is: if it's possible to expose your code as a simple library with no
+dependencies on trapperkeeper, it's highly preferable to go that route.  Here are
+some things that might be reasonable indicators that you should consider exposing
+your code via a trapperkeeper service:
 
 * You're writing a clojure web service and there is a greater-than-zero percent
   chance that you will eventually want to be able to run it inside of the same

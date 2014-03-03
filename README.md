@@ -1041,7 +1041,7 @@ that your dependencies work as expected, etc.
 
 When writing tests that boot a trapperkeeper app, the best way to do it is to
 use the helper testutils macros that we describe in the
-[testutils documentation](./test/puppetlabs/trapperkeeper/testutils).  They will
+[testutils documentation](./doc/test-utils.md).  They will
 take care of things like making sure the application is shut down cleanly after
 the test, and will generally just make your life easier :)
 

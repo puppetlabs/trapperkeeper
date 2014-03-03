@@ -946,7 +946,7 @@ Here are some general guidelines for writing trapperkeeper services.
 ### To Trapperkeeper Or Not To Trapperkeeper
 
 Trapperkeeper gives us a lot of flexibility on how we decide to package and
-eploy applications and services.  When should you use it?  The easiest rule of
+deploy applications and services.  When should you use it?  The easiest rule of
 thumb is: if it's possible to expose your code as a simple library with no
 dependencies on trapperkeeper, it's highly preferable to go that route.  Here are
 some things that might be reasonable indicators that you should consider exposing

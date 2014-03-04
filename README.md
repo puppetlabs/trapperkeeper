@@ -458,15 +458,24 @@ In its current form, the configuration service has some fairly rigid behavior.
 
 #### Loading configuration data
 
-All configuration data is read from `ini` files.  When launching a trapperkeeper
+All configuration data is read from config files on disk.  When launching a trapperkeeper
 application, you specify a ```--config``` command-line argument, whose value is
-a file path.  You may specify the path to a single file, or you may specify a directory
-of .ini files.
+a file path.  You may specify the path to a single config file, or you may specify a
+directory of config files.
 
-The configuration service will then parse the ini file(s) into memory as a map;
-the keys of the map will be keywords representing the section headers from the
-ini file(s), and the values will be maps containing the individual setting names
-and values from that section of the ini file.
+We support several types of files for expressing the configuration data:
+
+   * `.ini` files
+   * `.edn` files
+   * `.conf` files (this is the [Human-Optimized Config Object Notation](https://github.com/typesafehub/config/blob/master/HOCON.md) format; a flexible superset of JSON defined by the [typesafe config library](https://github.com/typesafehub/config))
+   * `.json` files
+   * `.properties` files
+
+The configuration service will then parse the config file(s) into memory as a
+nested map; e.g., the section headers from an `.ini` file would become the top-level
+keys of the map, and the values will be maps containing the individual setting names
+and values from that section of the ini file.  (If using `.edn`, `.conf`, or
+`.json`, you can control the nesting of the map more explicitly.)
 
 Here's the protocol for the configuration service:
 
@@ -1186,10 +1195,11 @@ improving trapperkeeper in the future.
 
 ### More flexible configuration service
 
-The current configuration service is hard-coded to use `ini` files as its back
+The current configuration service is hard-coded to use files (`.ini`, `.edn`,
+`.conf`, `.json`, or `.properties`) as its back
 end, requires a `--config` argument on the CLI, and is hard-coded to use
 `logback` to initialize logging.  We'd like to make all of those more flexible;
-e.g., to support other persistence mechanisms / formats for the configuration data,
+e.g., to support other persistence mechanisms,
 perhaps allow dynamic modifications to configuration values, support other
 logging frameworks, etc.  These changes will probably require us to make the
 service life cycle just a bit more complex, though, so we didn't tackle them

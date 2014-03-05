@@ -466,7 +466,7 @@ directory of config files.
 We support several types of files for expressing the configuration data:
 
    * `.ini` files
-   * `.edn` files
+   * `.edn` files (Clojure's [Extensible Data Notation](https://github.com/edn-format/edn) format)
    * `.conf` files (this is the [Human-Optimized Config Object Notation](https://github.com/typesafehub/config/blob/master/HOCON.md) format; a flexible superset of JSON defined by the [typesafe config library](https://github.com/typesafehub/config))
    * `.json` files
    * `.properties` files

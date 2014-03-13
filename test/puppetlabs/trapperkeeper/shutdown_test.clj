@@ -82,14 +82,14 @@
                                            context)
                                      (test-fn [this]
                                               (future (shutdown-on-error (service-id this)
-                                                                         #(throw (RuntimeException. "oops"))))))
+                                                                         #(throw (Throwable. "oops"))))))
           app                (bootstrap-services-with-empty-config [test-service])
           test-svc           (get-service app :ShutdownTestServiceWithFn)
           main-thread        (future (tk/run-app app))]
       (is (false? @shutdown-called?))
       (test-fn test-svc)
       (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
+            java.util.concurrent.ExecutionException #"java.lang.Throwable: oops"
             (deref main-thread)))
       (is (true? @shutdown-called?))))
 

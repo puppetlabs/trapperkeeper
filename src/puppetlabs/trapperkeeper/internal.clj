@@ -228,9 +228,9 @@
           ((some-fn nil? ifn?) on-error-fn)]}
    (try
      (f)
-     (catch Exception e
+     (catch Throwable t
        (deliver shutdown-reason-promise {:cause       :service-error
-                                         :error       e
+                                         :error       t
                                          :on-error-fn (when on-error-fn
                                                         (partial on-error-fn (get @app-context svc-id)))})))))
 
@@ -336,8 +336,8 @@
   (when-let [on-error-fn (:on-error-fn shutdown-reason)]
     (try
       (on-error-fn)
-      (catch Exception e
-        (log/error e "Error occurred during shutdown")))))
+      (catch Throwable t
+        (log/error t "Error occurred during shutdown")))))
 
 ;;;; end of shutdown-related functions
 

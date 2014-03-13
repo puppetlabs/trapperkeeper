@@ -5,7 +5,7 @@
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
+            [puppetlabs.trapperkeeper.testutils.logging :as logging]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
 
 (use-fixtures :once with-no-jvm-shutdown-hooks)
@@ -54,7 +54,7 @@
                                            (throw (RuntimeException. "dangit"))))
           app               (bootstrap-services-with-empty-config [test-service broken-service])]
       (is (false? @shutdown-called?))
-      (with-test-logging
+      (logging/with-test-logging
         (shutdown! (app-context app))
         (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?))))
@@ -82,14 +82,14 @@
                                            context)
                                      (test-fn [this]
                                               (future (shutdown-on-error (service-id this)
-                                                                         #(throw (RuntimeException. "oops"))))))
+                                                                         #(throw (Throwable. "oops"))))))
           app                (bootstrap-services-with-empty-config [test-service])
           test-svc           (get-service app :ShutdownTestServiceWithFn)
           main-thread        (future (tk/run-app app))]
       (is (false? @shutdown-called?))
       (test-fn test-svc)
       (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
+            java.util.concurrent.ExecutionException #"java.lang.Throwable: oops"
             (deref main-thread)))
       (is (true? @shutdown-called?))))
 
@@ -122,14 +122,14 @@
                                    [[:ShutdownService shutdown-on-error]]
                                    (test-fn [this]
                                             (shutdown-on-error (service-id this)
-                                                               #(throw (RuntimeException. "unused"))
-                                                               (fn [ctxt] (throw (RuntimeException. "catch me"))))))
+                                                               #(throw (Throwable. "foo"))
+                                                               (fn [ctxt] (throw (Throwable. "busted on-error function"))))))
           app             (bootstrap-services-with-empty-config [broken-service])
           test-svc        (get-service app :ShutdownTestServiceWithFn)]
-      (with-test-logging
+      (logging/with-test-logging
         (let [main-thread (future (tk/run-app app))]
           (test-fn test-svc)
-          ;; main will rethrow the "unused" exception as expected
-          ;; so we need to prevent that from failing the test
-          (try (deref main-thread) (catch Throwable t))
+          (is (thrown-with-msg?
+                java.util.concurrent.ExecutionException #"java.lang.Throwable: foo"
+                (deref main-thread)))
           (is (logged? #"Error occurred during shutdown" :error)))))))

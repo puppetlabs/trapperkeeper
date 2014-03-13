@@ -336,8 +336,8 @@
   (when-let [on-error-fn (:on-error-fn shutdown-reason)]
     (try
       (on-error-fn)
-      (catch Exception e
-        (log/error e "Error occurred during shutdown")))))
+      (catch Throwable t
+        (log/error t "Error occurred during shutdown")))))
 
 ;;;; end of shutdown-related functions
 

@@ -1,3 +1,9 @@
+## 0.3.5
+ * Improved error handling in the `service`/`defservice` macros.
+ * Improved error handling in the shutdown logic, particularly when using `shutdown-on-error`.
+ * Fix a bug that prevented `service-id` from being called from a service's `init` function.
+ * Minor documentation fixes and improvements.
+
 ## 0.3.4
  * Add new macros in `testutils/bootstrap` namespace, to make it easier to write tests for services
  * Add support for .edn, .conf, .json, .properties config files in addition to .ini

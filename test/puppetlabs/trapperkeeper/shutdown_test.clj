@@ -100,7 +100,7 @@
                                      (init [this context]
                                            (shutdown-on-error
                                              :ShutdownTestService
-                                             #(throw (RuntimeException. "oops")))
+                                             #(throw (Throwable. "oops")))
                                            context)
                                      (stop [this context]
                                            (reset! shutdown-called? true)
@@ -108,7 +108,7 @@
           app                (bootstrap-services-with-empty-config [test-service])
           main-thread        (future (tk/run-app app))]
       (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
+            java.util.concurrent.ExecutionException #"java.lang.Throwable: oops"
             (deref main-thread)))
       (is (true? @shutdown-called?))))
 

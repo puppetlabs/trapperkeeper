@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.services.config.typesafe-test
-  (:require [puppetlabs.trapperkeeper.config.typesafe :as ts]
+  (:require [puppetlabs.config.typesafe :as ts]
             [clojure.test :refer :all]))
 
 (deftest configfile->map-test

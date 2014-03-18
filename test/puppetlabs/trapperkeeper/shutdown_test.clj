@@ -93,6 +93,25 @@
             (deref main-thread)))
       (is (true? @shutdown-called?))))
 
+  (testing "`shutdown-on-error` will catch errors raised during init"
+    (let [shutdown-called?  (atom false)
+          test-service      (service ShutdownTestService
+                                     [[:ShutdownService shutdown-on-error]]
+                                     (init [this context]
+                                           (shutdown-on-error
+                                             :ShutdownTestService
+                                             #(throw (RuntimeException. "oops")))
+                                           context)
+                                     (stop [this context]
+                                           (reset! shutdown-called? true)
+                                           context))
+          app                (bootstrap-services-with-empty-config [test-service])
+          main-thread        (future (tk/run-app app))]
+      (is (thrown-with-msg?
+            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: oops"
+            (deref main-thread)))
+      (is (true? @shutdown-called?))))
+
   (testing "`shutdown-on-error` takes an optional function that is called on error"
     (let [shutdown-called?    (atom false)
           on-error-fn-called? (atom false)

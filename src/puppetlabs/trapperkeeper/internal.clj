@@ -372,6 +372,7 @@
          ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
     (swap! app-context assoc :services-by-id services-by-id)
     (swap! app-context assoc :ordered-services ordered-services)
+    (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
     ;; finally, create the app instance
     (reify
       a/TrapperkeeperApp

@@ -5,10 +5,12 @@
                  defservice service service-context]]
             [puppetlabs.trapperkeeper.app :as app]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
-                [bootstrap-services-with-empty-config]]
-            [schema.test :as schema-test]))
+                [bootstrap-services-with-empty-config
+                 with-app-with-empty-config]]
+            [schema.test :as schema-test]
+            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
 
-(use-fixtures :once schema-test/validate-schemas)
+(use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
 
 (defprotocol HelloService
   (hello [this msg]))
@@ -80,7 +82,28 @@
       (bootstrap-services-with-empty-config [service3 service2 service1])
       (is (= [:init-service1 :init-service2 :init-service3
               :start-service1 :start-service2 :start-service3]
-             @call-seq)))))
+             @call-seq))))
+
+  (testing "service-id should be able to be called from any lifecycle phase"
+    (let [test-context (atom {})
+          service1 (service Service1
+                            []
+                            (init [this context]
+                                  (swap! test-context assoc :init-service-id (service-id this))
+                                  context)
+                            (start [this context]
+                                   (swap! test-context assoc :start-service-id (service-id this))
+                                   context)
+                            (stop [this context]
+                                  (swap! test-context assoc :stop-service-id (service-id this))
+                                  context)
+                            (service1-fn [this] nil))]
+      (with-app-with-empty-config app [service1]
+        ;; no-op; we just want the app to start up and shut down
+        )
+      (is (= :Service1 (:init-service-id @test-context)))
+      (is (= :Service1 (:start-service-id @test-context)))
+      (is (= :Service1 (:stop-service-id @test-context))))))
 
 (deftest dependencies-test
   (testing "services should be able to call functions in dependency list"

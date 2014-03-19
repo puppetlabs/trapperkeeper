@@ -22,7 +22,7 @@
             [clojure.edn :as edn]
             [fs.core :as fs]
             [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.trapperkeeper.config.typesafe :as typesafe]
+            [puppetlabs.config.typesafe :as typesafe]
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
 

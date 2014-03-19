@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper.png?branch=0.3.0)](https://travis-ci.org/puppetlabs/trapperkeeper)
+[![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper.png?branch=master)](https://travis-ci.org/puppetlabs/trapperkeeper)
 
 # trapperkeeper
 

@@ -220,13 +220,20 @@
   ([shutdown-reason-promise app-context svc-id f]
    (shutdown-on-error* shutdown-reason-promise app-context svc-id f nil))
   ([shutdown-reason-promise app-context svc-id f on-error-fn]
-   {:pre [(instance? Atom app-context)
-          (map? @app-context)
-          (keyword? svc-id)
-          (contains? @app-context svc-id)
-          (ifn? f)
-          ((some-fn nil? ifn?) on-error-fn)]}
    (try
+     ; These would normally be pre-conditions; however, this function needs
+     ; to never throw an exception - since it is often called as a wrapper
+     ; around everything inside a `future`, it is important that this function
+     ; never throw anything (like an AssertionError from a pre-condition),
+     ; since it is likely to just get lost in a `future`.  Instead,
+     ; invalid arguments will simply cause the shutdown promise to be delivered.
+     (assert (instance? Atom app-context))
+     (assert (map? @app-context))
+     (assert (keyword? svc-id))
+     (assert (contains? @app-context svc-id))
+     (assert (ifn? f))
+     (assert ((some-fn nil? ifn?) on-error-fn))
+
      (f)
      (catch Throwable t
        (deliver shutdown-reason-promise {:cause       :service-error

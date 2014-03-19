@@ -152,3 +152,23 @@
                 java.util.concurrent.ExecutionException #"java.lang.Throwable: foo"
                 (deref main-thread)))
           (is (logged? #"Error occurred during shutdown" :error)))))))
+
+(deftest shutdown-on-error-error-handling
+  (testing "Shutdown-on-error should never throw an exception."
+    (testing "providing `nil` for all arguments"
+      (let [test-service (tk/service
+                           [[:ShutdownService shutdown-on-error]]
+                           (init [this context]
+                                 (shutdown-on-error nil nil nil)
+                                 context))]
+        (bootstrap-services-with-empty-config [test-service]))
+      (is (true? true)))
+
+    (testing "passing `nil` instead of a function"
+      (let [test-service (tk/service
+                           [[:ShutdownService shutdown-on-error]]
+                           (init [this context]
+                                 (shutdown-on-error context nil)
+                                 context))]
+        (bootstrap-services-with-empty-config [test-service]))
+      (is (true? true)))))

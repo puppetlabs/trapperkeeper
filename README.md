@@ -623,11 +623,18 @@ cause all registered shutdown hooks to be called).  It is asynchronous.
 
 ##### `shutdown-on-error`
 
-`shutdown-on-error` is a higher-order function that is intended to be used as
-a wrapper around some logic in your services; it will basically wrap your application
-logic in a `try/catch` block that will cause Trapperkeeper to initiate an error
-shutdown if an unhandled exception occurs in your block.  (This is generally
-intended to be used on worker threads that your service may launch.)
+`shutdown-on-error` is a higher-order function that can be used as
+a wrapper around some logic in your services; its functionality is simple:
+```clj
+(try
+  ; execute the given function
+  (catch Throwable t
+    ; initiate Trapperkeeper's shutdown logic
+```
+This has two main use-cases:
+* "worker" / background threads that your service may launch
+* a section of code that needs to execute in a service function, in which any 
+  error is so problematic that the entire application should shut down
 
 `shutdown-on-error` accepts either two or three arguments: `[service-id f]` or
 `[service-id f on-error-fn]`.

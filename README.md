@@ -71,6 +71,7 @@ later in this document.
  * [Configuration Service](#configuration-service)
  * [Shutdown Service](#shutdown-service)
  * [nREPL Service](#nrepl-service)
+* [Error Handling](#error-handling)
 * [Service Interfaces](#service-interfaces)
 * [Command Line Arguments](#command-line-arguments)
 * [Other Ways to Boot](#other-ways-to-boot)
@@ -691,6 +692,35 @@ To assist in debugging applications, _Trapperkeeper_ comes with a service that
 allows starting an embedded network REPL (`nREPL`) inside of the running
 _Trapperkeeper_ process. See [Configuring the nREPL service](doc/nrepl-config.md)
 for more information.
+
+## Error Handling
+
+### Errors During `init` or `start`
+
+If the `init` or `start` function of any service throws a `Throwable`, it will
+immediately cause Trapperkeeper to shut down.  If you are using Trapperkeeper's
+`main` function, this will result in the process terminating with a non-zero
+exit code.
+
+If the `init` or `start` function of your service launches a background thread
+to perform some costly initialization computations (like, say, populating a pool
+of objects which are expensive to create), it is advisable to wrap that
+comptuation inside a call to `shutdown-on-error`; however, you should note that
+`shutdown-on-error` does *not* short-circuit Trapperkeeper's start-up sequence -
+the app will continue booting.  The `init` and `start` functions 
+of all services will still be run, and once that has completed, all `stop` 
+functions will be called, and the process will terminate.
+
+### Services Should Fail Fast
+
+Trapperkeeper embraces fail-fast behavior.  With that in mind, we advise
+writing services that also fail-fast.  In particular, it is best practice
+for services to check any needed configuration state and perform
+initilization logic on Trapperkeeper's main thread, inside `init` or `start` - 
+*not* on a background thead, because `Throwables` on the main thread will
+propagate out of `init` or `start` and cause the application to shut down -
+i.e., it will *fail fast*.  There are different operational semantics for 
+errors thrown on a background thread (see previous section).
 
 ## Service Interfaces
 

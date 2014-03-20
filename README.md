@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper.png?branch=master)](https://travis-ci.org/puppetlabs/trapperkeeper)
 
-# trapperkeeper
+# Trapperkeeper
 
 ## Installation
 
@@ -21,7 +21,7 @@ community:
 * Component lifecycles (["Component"](https://github.com/stuartsierra/component), ["jig"](https://github.com/juxt/jig#components))
 * [Composable services](http://blog.getprismatic.com/blog/2013/2/1/graph-abstractions-for-structured-computation) (based on the excellent [Prismatic graph library](https://github.com/Prismatic/plumbing))
 
-We also had a few other needs that trapperkeeper addresses (some of these arise
+We also had a few other needs that Trapperkeeper addresses (some of these arise
 because of the fact that we at Puppet Labs are shipping on-premise software, rather
 than SaaS.  The framework is a shipping part of the application, in addition to
 providing useful features for development):
@@ -34,10 +34,10 @@ providing useful features for development):
   concern themselves with the implementation details
 * Super-simple configuration syntax
 
-A "service" in trapperkeeper is represented as simply a map of clojure functions.
+A "service" in Trapperkeeper is represented as simply a map of clojure functions.
 Each service can advertise the functions that it provides via a protocol, as well
 as list other services that it has a dependency on.  You then configure
-trapperkeeper with a list of services to run and launch it.  At startup, it
+Trapperkeeper with a list of services to run and launch it.  At startup, it
 validates that all of the dependencies are met and fails fast if they are not.
 If they are, then it injects the dependency functions into each service and
 starts them all up in the correct order.
@@ -98,7 +98,7 @@ for each.
 
 ### Hello World
 
-Here's a "hello world" example for getting started with trapperkeeper.
+Here's a "hello world" example for getting started with Trapperkeeper.
 
 First, you need to define one or more services:
 
@@ -132,7 +132,7 @@ First, you need to define one or more services:
     context))
 ```
 
-Then, you need to define a trapperkeeper bootstrap configuration file, which
+Then, you need to define a Trapperkeeper bootstrap configuration file, which
 simply lists the services that you want to load at startup.  This file should
 be named `bootstrap.cfg` and should be located at the root of your classpath
 (so, a good spot for it would be in your `resources` directory).
@@ -142,23 +142,23 @@ hello/hello-consumer-service
 hello/hello-service
 ```
 
-Lastly, set trapperkeeper to be your `:main` in your leinengen project file:
+Lastly, set Trapperkeeper to be your `:main` in your leinengen project file:
 
 ```clj
 :main puppetlabs.trapperkeeper.main
 ```
 
 And now you should be able to run the app via `lein run`.  This example doesn't
-do much; for a more interesting example that shows how you can use trapperkeeper
+do much; for a more interesting example that shows how you can use Trapperkeeper
 to create a web application, check out the
 [Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/ring_app)
-included in the trapperkeeper webserver service project.
+included in the Trapperkeeper webserver service project.
 
 ## Credits and Origins
 
-Most of the heavy-lifting of the trapperkeeper framework is handled by the
+Most of the heavy-lifting of the Trapperkeeper framework is handled by the
 excellent [Prismatic Graph](https://github.com/Prismatic/plumbing) library.
-To a large degree, trapperkeeper just wraps some basic conventions and convenience
+To a large degree, Trapperkeeper just wraps some basic conventions and convenience
 functions around that library, so many thanks go out to the fine folks at
 Prismatic for sharing their code!
 
@@ -170,10 +170,10 @@ and other similar application frameworks complex to work with.
 
 ## Bootstrapping
 
-As mentioned briefly in the tl;dr section, trapperkeeper relies on a `bootstrap.cfg`
+As mentioned briefly in the tl;dr section, Trapperkeeper relies on a `bootstrap.cfg`
 file to determine the list of services that it should load at startup.  The other
 piece of the bootstrapping equation is setting up a `main` that calls
-trapperkeeper's bootstrap code.  Here we'll go into a bit more detail about both
+Trapperkeeper's bootstrap code.  Here we'll go into a bit more detail about both
 of these topics.
 
 ### `bootstrap.cfg`
@@ -194,7 +194,7 @@ correct order based on their dependency relationships.
 In normal use cases, you'll want to simply put `bootstrap.cfg` in your `resources`
 directory and bundle it as part of your application (e.g. in an uberjar).  However,
 there are cases where you may want to override the list of services (for development,
-customizations, etc.).  To accommodate this, trapperkeeper will actually search
+customizations, etc.).  To accommodate this, Trapperkeeper will actually search
 in three different places for the `bootstrap.cfg` file; the first one it finds
 will be used.  Here they are, listed in order of precedence:
 
@@ -318,7 +318,7 @@ Let's look at a concrete example:
 
 After this `defservice` statement, you will have a var named `foo-service` in
 your namespace that contains the service.  You can reference this from a
-trapperkeeper bootstrap configuration file to include that service in your
+Trapperkeeper bootstrap configuration file to include that service in your
 app, and once you've done that your new service can be referenced as a dependency
 (`{:depends [[:FooService ...`) by other services.
 
@@ -361,7 +361,7 @@ examples (with and without protocols):
 
 ## Referencing Services
 
-One of the most important features of trapperkeeper is the ability to specify dependencies between services, and, thus, to reference functions provided by one service from functions in another service.  Trapperkeeper actually exposes several different ways to reference such functions, since the use cases may vary a great deal depending on the particular services involved.
+One of the most important features of Trapperkeeper is the ability to specify dependencies between services, and, thus, to reference functions provided by one service from functions in another service.  Trapperkeeper actually exposes several different ways to reference such functions, since the use cases may vary a great deal depending on the particular services involved.
 
 ### Individual Functions
 
@@ -436,7 +436,7 @@ can be used to run an embedded REPL in your application, so that you can
 connect to it from a remote process while it is running).
 
 There are some other basic services available that don't ship with the
-trapperkeeper core, in order to keep the dependency tree to a minimum.  Of
+Trapperkeeper core, in order to keep the dependency tree to a minimum.  Of
 particular interest is the [webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9),
 which you can use to run clojure Ring applications or java servlets.
 
@@ -444,7 +444,7 @@ Read on for more details about the built-in services.
 
 ### Configuration Service
 
-The configuration service is built-in to trapperkeeper and is always loaded.  It
+The configuration service is built-in to Trapperkeeper and is always loaded.  It
 performs the following tasks at application startup:
 
 * Reads all application configuration into memory
@@ -458,7 +458,7 @@ In its current form, the configuration service has some fairly rigid behavior.
 
 #### Loading configuration data
 
-All configuration data is read from config files on disk.  When launching a trapperkeeper
+All configuration data is read from config files on disk.  When launching a Trapperkeeper
 application, you specify a ```--config``` command-line argument, whose value is
 a file path.  You may specify the path to a single config file, or you may specify a
 directory of config files.
@@ -524,13 +524,13 @@ see:
 
 Trapperkeeper provides some automatic configuration for logging during application
 startup.  This way, services don't have to deal with that independently, and all
-services running in the same trapperkeeper container will be able to share a
+services running in the same Trapperkeeper container will be able to share a
 common logging configuration.  The built-in logging configuration
 is compatible with `clojure.tools/logging`, so services can just call the
 `clojure.tools/logging` functions and logging will work out of the box.
 
 The logging implementation is based on [`logback`](http://logback.qos.ch/).
-This means that trapperkeeper will look for a `logback.xml` file on the
+This means that Trapperkeeper will look for a `logback.xml` file on the
 classpath, but you can override the location of this file via configuration.
 This is done using the configuration setting `logging-config` in a `global`
 section of your ini files.
@@ -549,7 +549,7 @@ logging-config = /path/to/logback.xml
 
 ### Shutdown Service
 
-The shutdown service is built-in to trapperkeeper and, like the configuration
+The shutdown service is built-in to Trapperkeeper and, like the configuration
 service, is always loaded.  It has two main responsibilities:
 
 * Listen for a shutdown signal to the process, and initiate shutdown of the
@@ -586,9 +586,9 @@ For example:
 ```
 
 Given this service definition, the `bar-shutdown` function would be called
-during shutdown of the trapperkeeper container (during both a normal shutdown
+during shutdown of the Trapperkeeper container (during both a normal shutdown
 or an error shutdown).  Because `bar-service` has a dependency on `foo-service`,
-trapperkeeper would also guarantee that the `bar-shutdown` is called *prior to*
+Trapperkeeper would also guarantee that the `bar-shutdown` is called *prior to*
 the `stop` function for the `foo-service` (assuming `foo-service` provides one).
 
 #### Provided Shutdown Functions
@@ -615,7 +615,7 @@ To use them, you may simply specify a dependency on them:
 
 ##### `request-shutdown`
 
-`request-shutdown` is a no-arg function that will simply cause trapperkeeper to
+`request-shutdown` is a no-arg function that will simply cause Trapperkeeper to
 initiate a normal shutdown of the application container (which will, in turn,
 cause all registered shutdown hooks to be called).  It is asynchronous.
 
@@ -623,7 +623,7 @@ cause all registered shutdown hooks to be called).  It is asynchronous.
 
 `shutdown-on-error` is a higher-order function that is intended to be used as
 a wrapper around some logic in your services; it will basically wrap your application
-logic in a `try/catch` block that will cause trapperkeeper to initiate an error
+logic in a `try/catch` block that will cause Trapperkeeper to initiate an error
 shutdown if an unhandled exception occurs in your block.  (This is generally
 intended to be used on worker threads that your service may launch.)
 
@@ -678,21 +678,21 @@ and then attempt to call all of the normal shutdown hooks in the correct order
 
 ### nREPL Service
 
-To assist in debugging applications, _trapperkeeper_ comes with a service that
+To assist in debugging applications, _Trapperkeeper_ comes with a service that
 allows starting an embedded network REPL (`nREPL`) inside of the running
-_trapperkeeper_ process. See [Configuring the nREPL service](doc/nrepl-config.md)
+_Trapperkeeper_ process. See [Configuring the nREPL service](doc/nrepl-config.md)
 for more information.
 
 ## Service Interfaces
 
-One of the goals of trapperkeeper's "service" model is that a service should
+One of the goals of Trapperkeeper's "service" model is that a service should
 be thought of as simply an interface; any given service provides a
 protocol as its "contract", and the implementation details
 of these functions are not important to consumers.  (This borrows heavily
 from OSGi's concept of a "service".)  This means that you can
 write multiple implementations of a given service and swap them in and out of
 your application by simply modifying your configuration, without having to change
-any of the consuming code.  The trapperkeeper
+any of the consuming code.  The Trapperkeeper
 `webserver` service is an example of this pattern; we provide both a
 [Jetty 7 webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty7)
 and a [Jetty 9 webserver service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9)
@@ -785,12 +785,12 @@ command-line arguments for you.  This is done for a few reasons:
 
 * It needs some data for bootstrapping
 * Since the idea is that you will be composing multiple services together in a
-  trapperkeeper instance, managing command line options across multiple services
+  Trapperkeeper instance, managing command line options across multiple services
   can be tricky; using the configuration service is easier
 * Who wants to process command-line arguments, anyway?
 
 Note that if you absolutely need control over the command line argument processing,
-it is possible to circumvent the built-in handling by calling trapperkeeper's
+it is possible to circumvent the built-in handling by calling Trapperkeeper's
 `bootstrap` function directly; see additional details in the [Bootstrapping](#bootstrapping)
 section below.
 
@@ -799,33 +799,33 @@ Trapperkeeper supports three command-line arguments:
 * `--config/-c`: The path to the configuration file or directory.  This option
   is required, and is used to initialize the configuration service.
 * `--bootstrap-config/-b`: This argument is optional; if specified, the value
-  should be a path to a bootstrap configuration file that trapperkeeper will use
+  should be a path to a bootstrap configuration file that Trapperkeeper will use
   (instead of looking for `bootstrap.cfg` in the current working directory or
   on the classpath)
 * `--debug/-d`: This option is not required; it's a flag, so it will evaluate
   to a boolean.  If `true`, sets the logging level to DEBUG, and also sets the
   `:debug` key in the configuration map provided by the configuration-service.
 
-### `main` and trapperkeeper
+### `main` and Trapperkeeper
 
-There are three different ways that you can initiate trapperkeeper's bootstrapping
+There are three different ways that you can initiate Trapperkeeper's bootstrapping
 process:
 
-#### Defer to trapperkeeper's `main` function
+#### Defer to Trapperkeeper's `main` function
 
-In your leinengen project file, you can simply specify trapperkeeper's `main` as
+In your leinengen project file, you can simply specify Trapperkeeper's `main` as
 your `:main`:
 
     :main puppetlabs.trapperkeeper.main
 
 Then you can simply use `lein run --config ...` to launch your app, or
-`lein uberjar` to build an executable jar file that calls trapperkeeper's `main`.
+`lein uberjar` to build an executable jar file that calls Trapperkeeper's `main`.
 
-#### Call trapperkeeper's `main` function from your code
+#### Call Trapperkeeper's `main` function from your code
 
-If you don't want to defer to trapperkeeper as your `:main` namespace, you can
-simply call trapperkeeper's `main` from your own code.  All that you need to do
-is to pass along the command line arguments, which trapperkeeper needs for
+If you don't want to defer to Trapperkeeper as your `:main` namespace, you can
+simply call Trapperkeeper's `main` from your own code.  All that you need to do
+is to pass along the command line arguments, which Trapperkeeper needs for
 initializing bootstrapping, configuration, etc.  Here's what that might look
 like:
 
@@ -839,14 +839,14 @@ like:
   (apply trapperkeeper/main args))
 ```
 
-#### Call trapperkeeper's `run` function directly
+#### Call Trapperkeeper's `run` function directly
 
 If your application needs to handle command line arguments directly, rather than
-allowing trapperkeeper to handle them, you can circumvent trapperkeeper's `main`
+allowing Trapperkeeper to handle them, you can circumvent Trapperkeeper's `main`
 function and call `run` directly.
 
 *NOTE* that if you intend to write multiple services and load them into the
-same trapperkeeper instance, it can end up being tricky to deal with varying
+same Trapperkeeper instance, it can end up being tricky to deal with varying
 sets of command line options that are supported by the different services.  For
 this reason, it is generably preferable to configure the services via the
 configuration files and not rely on command-line arguments.
@@ -869,8 +869,8 @@ Here's how it can be done:
       (trapperkeeper/run trapperkeeper-options)))
 ```
 
-Note that trapperkeeper's `run` function requires a map as an argument,
-and this map must contain the `:config` key which trapperkeeper will use just
+Note that Trapperkeeper's `run` function requires a map as an argument,
+and this map must contain the `:config` key which Trapperkeeper will use just
 as it would have used the `--config` value from the command line.  You may also
 (optionally) provide `:bootstrap-config` and `:debug` keys, to override the
 path to the bootstrap configuration file and/or enable debugging on the application.
@@ -881,18 +881,18 @@ We use the term `boot` to describe the process of building up an instance of
 a `TrapperkeeperApp`, and then calling `init` and `start` on all of its services
 in the correct order.
 
-It is possible to use the trapperkeeper framework at a slightly lower level.  Using
+It is possible to use the Trapperkeeper framework at a slightly lower level.  Using
 `run` or `main` will boot all of the services and then block the main thread until a
 shutdown is triggered; if you need more control, you'll be getting a reference
 to a `TrapperkeeperApp` directly.
 
 ##### `TrapperkeeperApp` protocol
 
-There is a protocol that represents a trapperkeeper application:
+There is a protocol that represents a Trapperkeeper application:
 
 ```clj
 (defprotocol TrapperkeeperApp
-  "Functions available on a trapperkeeper application instance"
+  "Functions available on a Trapperkeeper application instance"
   (app-context [this] "Returns the application context for this app (an atom containing a map)")
   (init [this] "Initialize the services")
   (start [this] "Start the services")
@@ -909,7 +909,7 @@ these functions:
 * `(boot-services-with-cli-data [services cli-data])`: this function expects you
   to process your own cli args into a map, and also to build up your own list
   of services to pass in as the first arg.  It circumvents the normal
-  trapperkeeper `bootstrap.cfg` process, creates a `TrapperkeeperApp` with all
+  Trapperkeeper `bootstrap.cfg` process, creates a `TrapperkeeperApp` with all
   of your services, boots them, and returns the app.
 * `(boot-services-with-config [services config])`: this function expects you
   to process your own cli args, configuration data, and build up your own list
@@ -944,22 +944,22 @@ on by using a classifier in your project dependencies.
 ```
 
 This library includes some utilities to help test logging functionality, as well
-as to test your services by bootstrapping a _trapperkeeper_ application instance
+as to test your services by bootstrapping a _Trapperkeeper_ application instance
 in your test.  See the [Trapperkeeper Test Utils](doc/test-utils.md) for more
 information.
 
 ## Trapperkeeper Best Practices
 
-Here are some general guidelines for writing trapperkeeper services.
+Here are some general guidelines for writing Trapperkeeper services.
 
 ### To Trapperkeeper Or Not To Trapperkeeper
 
 Trapperkeeper gives us a lot of flexibility on how we decide to package and
 deploy applications and services.  When should you use it?  The easiest rule of
 thumb is: if it's possible to expose your code as a simple library with no
-dependencies on trapperkeeper, it's highly preferable to go that route.  Here are
+dependencies on Trapperkeeper, it's highly preferable to go that route.  Here are
 some things that might be reasonable indicators that you should consider exposing
-your code via a trapperkeeper service:
+your code via a Trapperkeeper service:
 
 * You're writing a clojure web service and there is a greater-than-zero percent
   chance that you will eventually want to be able to run it inside of the same
@@ -971,12 +971,12 @@ your code via a trapperkeeper service:
   shutdown / cleanup
 * Your code has a dependency on some other code that has a managed lifecycle
 * Your code requires external configuration that you would like to make consistent
-  with other puppetlabs / trapperkeeper applications
+  with other puppetlabs / Trapperkeeper applications
 
 ### Separating Logic From Service Definitions
 
 In general, it's a good idea to keep the code that implements your business logic
-completely separated from the trapperkeeper service binding.  This makes it much
+completely separated from the Trapperkeeper service binding.  This makes it much
 easier to test your functions as functions, without the need to boot up the whole
 framework.  It also makes your code more re-usable and portable.  Here's a more
 concrete example.
@@ -1014,7 +1014,7 @@ This is better:
 ```
 
 This way, you can test `calculator.core` directly, and re-use the functions it
-provides in other places without having to worry about trapperkeeper.
+provides in other places without having to worry about Trapperkeeper.
 
 ### On Lifecycles
 
@@ -1044,11 +1044,11 @@ that you must follow for how you use these, but here are some data points:
 As we mentioned before, it's better to separate your business logic from your
 service definitions as much as possible, so that you can test your business
 logic functions directly.  Thus, the vast majority of your tests should not need
-to involve trapperkeeper at all.  However, you probably will want to have a small
-handful of tests that do boot up a full trapperkeeper app, so that you can verify
+to involve Trapperkeeper at all.  However, you probably will want to have a small
+handful of tests that do boot up a full Trapperkeeper app, so that you can verify
 that your dependencies work as expected, etc.
 
-When writing tests that boot a trapperkeeper app, the best way to do it is to
+When writing tests that boot a Trapperkeeper app, the best way to do it is to
 use the helper testutils macros that we describe in the
 [testutils documentation](./doc/test-utils.md).  They will
 take care of things like making sure the application is shut down cleanly after
@@ -1121,54 +1121,54 @@ for duplicate classes or namespaces before it is added, so as to prevent any
 unexpected behavior.
 
 This provides the ability to extend the functionality of a deployed,
-trapperkeeper-based application by simply including one or more services
+Trapperkeeper-based application by simply including one or more services
 packaged into standalone "plugin" .jars, and adding the additional service(s)
 to the bootstrap configuration.
 
 Projects that wish to package themselves as "plugin" .jars should build an
 uberjar containing all of their dependencies.  However, there is one caveat
-here - trapperkeeper *and all of its depenedencies* should be excluded from the
-uberjar.  If the exclusions are not defined correctly, trapperkeeper will fail
+here - Trapperkeeper *and all of its depenedencies* should be excluded from the
+uberjar.  If the exclusions are not defined correctly, Trapperkeeper will fail
 to start because there will be duplicate versions of classes/namespaces on the
 classpath.
 
 Plugins are specified via a command-line argument:
 `--plugins /path/to/plugins/directory`; every .jar file in that directory will
-be added to the classpath by trapperkeeper.
+be added to the classpath by Trapperkeeper.
 
 ## Polyglot Support
 
 It should be possible (when extenuating circumstances necessitate it) to integrate
-code from just about any JVM language into a trapperkeeper application.  At the
+code from just about any JVM language into a Trapperkeeper application.  At the
 time of this writing, the only languages we've really experimented with are Java
 and Ruby (via JRuby).
 
-For Java, the trapperkeeper webserver service contains an
+For Java, the Trapperkeeper webserver service contains an
 [example servlet app](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/servlet_app),
 which illustrates how you can run a Java servlet in trapperkeeper's webserver.
 
-We have also included a simple example of wrapping a Java library in a trapperkeeper
+We have also included a simple example of wrapping a Java library in a Trapperkeeper
 service, so that it can provide functions to other services.  Have a look at
 the code for the [example java service provider app](examples/java_service) for
 more info.
 
 For Ruby, we've been able to write an alternate implementation of a `webserver-service`
 which provides an `add-rack-handler` function for running Rack applications inside
-of trapperkeeper.  We've also been able to illustrate the ability to call clojure
-functions provided by existing clojure trapperkeeper services from the Ruby code
+of Trapperkeeper.  We've also been able to illustrate the ability to call clojure
+functions provided by existing clojure Trapperkeeper services from the Ruby code
 in such a Rack application.  This code isn't necessarily production quality yet,
 but if you're interested, have a look at the
 [trapperkeeper-ruby project on github](https://github.com/puppetlabs/trapperkeeper-ruby).
 
 ## Dev Practices
 
-There's nothing really special about developing a trapperkeeper application as
+There's nothing really special about developing a Trapperkeeper application as
 compared to any other clojure application, but there are a couple of things we've
 found useful:
 
 ### Leinengen's `checkouts` feature
 
-Since trapperkeeper is intended to help modularize applications, it also increases
+Since Trapperkeeper is intended to help modularize applications, it also increases
 the likelihood that you'll end up working with more than one code base / git repo
 at the same time.  When you find yourself in this situation, leinengen's
 [checkouts](http://jakemccrary.com/blog/2012/03/28/working-on-multiple-clojure-projects-at-once/)
@@ -1179,7 +1179,7 @@ feature is very useful.
 If you need to test the shutdown behavior of your application, you may find yourself
 trying to do `lein run` and then sending a CTRL-C or `kill`.  However, due to the
 way leinengen manages JVM processes, this CTRL-C will be handled by the lein process
-and won't actually make it to trapperkeeper.  If you need to test shutdown
+and won't actually make it to Trapperkeeper.  If you need to test shutdown
 functionality, you'll want to use `lein trampoline run`.
 
 However, one quirk that we've discovered is that it does not appear that lein's
@@ -1191,7 +1191,7 @@ projects to copy their jars into your `.m2` directory before running `lein tramp
 ## Hopes and Dreams
 
 Here are some ideas that we've had and things we've played around with a bit for
-improving trapperkeeper in the future.
+improving Trapperkeeper in the future.
 
 ### More flexible configuration service
 

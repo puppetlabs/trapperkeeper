@@ -1,4 +1,4 @@
-# TrapperKeeper Test Utils
+# Trapperkeeper Test Utils
 
 Trapperkeeper provides some [utility code](../test/puppetlabs/trapperkeeper/testutils)
 for use in tests. The code is available in a separate "test" jar that you may depend
@@ -40,23 +40,23 @@ The optional second parameter is a keyword describing a log level to specificall
 
 ## Testing Services
 
-For the most part, your trapperkeeper service definitions should be written as
+For the most part, your Trapperkeeper service definitions should be written as
 very thin wrappers around regular clojure functions.  Thus, the vast majority
 of your tests can be written as normal clojure unit tests that operate on those
 functions directly.
 
-However, it can be useful to have a few tests that actually boot up a trapperkeeper
+However, it can be useful to have a few tests that actually boot up a Trapperkeeper
 application instance; this allows you to, for example, verify that the services
 that you have a dependency on get injected correctly.
 
 To this end, the testutils library code includes some helper functions and macros
-for creating a trapperkeeper application.  The macros should be preferred in
+for creating a Trapperkeeper application.  The macros should be preferred in
 most cases; they generally start with the prefix `with-app-`, and allow you to
-create a temporary trapperkeeper app given a list of services.  They will take
+create a temporary Trapperkeeper app given a list of services.  They will take
 care of some important mechanics for you:
 
 * Making sure that no JVM shutdown hooks are registered during tests, as they
-  would be during a normal trapperkeeper application boot sequence
+  would be during a normal Trapperkeeper application boot sequence
 * Making sure that the app is shut down properly after the test completes.
 
 Here are some of the most useful ones:

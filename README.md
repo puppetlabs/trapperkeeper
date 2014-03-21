@@ -91,7 +91,7 @@ later in this document.
 
 ### Lein Template
 
-A leinengen template is available that shows a suggested project structure:
+A Leiningen template is available that shows a suggested project structure:
 
     lein new trapperkeeper my.namespace/myproject
 
@@ -145,7 +145,7 @@ hello/hello-consumer-service
 hello/hello-service
 ```
 
-Lastly, set Trapperkeeper to be your `:main` in your leinengen project file:
+Lastly, set Trapperkeeper to be your `:main` in your Leiningen project file:
 
 ```clj
 :main puppetlabs.trapperkeeper.main
@@ -705,7 +705,7 @@ exit code.
 If the `init` or `start` function of your service launches a background thread
 to perform some costly initialization computations (like, say, populating a pool
 of objects which are expensive to create), it is advisable to wrap that
-comptuation inside a call to `shutdown-on-error`; however, you should note that
+computation inside a call to `shutdown-on-error`; however, you should note that
 `shutdown-on-error` does *not* short-circuit Trapperkeeper's start-up sequence -
 the app will continue booting.  The `init` and `start` functions 
 of all services will still be run, and once that has completed, all `stop` 
@@ -716,8 +716,8 @@ functions will be called, and the process will terminate.
 Trapperkeeper embraces fail-fast behavior.  With that in mind, we advise
 writing services that also fail-fast.  In particular, it is best practice
 for services to check any needed configuration state and perform
-initilization logic on Trapperkeeper's main thread, inside `init` or `start` - 
-*not* on a background thead, because `Throwables` on the main thread will
+initialization logic on Trapperkeeper's main thread, inside `init` or `start` -
+*not* on a background thread, because `Throwables` on the main thread will
 propagate out of `init` or `start` and cause the application to shut down -
 i.e., it will *fail fast*.  There are different operational semantics for 
 errors thrown on a background thread (see previous section).
@@ -852,7 +852,7 @@ process:
 
 #### Defer to Trapperkeeper's `main` function
 
-In your leinengen project file, you can simply specify Trapperkeeper's `main` as
+In your Leiningen project file, you can simply specify Trapperkeeper's `main` as
 your `:main`:
 
     :main puppetlabs.trapperkeeper.main
@@ -887,7 +887,7 @@ function and call `run` directly.
 *NOTE* that if you intend to write multiple services and load them into the
 same Trapperkeeper instance, it can end up being tricky to deal with varying
 sets of command line options that are supported by the different services.  For
-this reason, it is generably preferable to configure the services via the
+this reason, it is generally preferable to configure the services via the
 configuration files and not rely on command-line arguments.
 
 But, if you absolutely must... :)
@@ -1166,7 +1166,7 @@ to the bootstrap configuration.
 
 Projects that wish to package themselves as "plugin" .jars should build an
 uberjar containing all of their dependencies.  However, there is one caveat
-here - Trapperkeeper *and all of its depenedencies* should be excluded from the
+here - Trapperkeeper *and all of its dependencies* should be excluded from the
 uberjar.  If the exclusions are not defined correctly, Trapperkeeper will fail
 to start because there will be duplicate versions of classes/namespaces on the
 classpath.
@@ -1205,19 +1205,19 @@ There's nothing really special about developing a Trapperkeeper application as
 compared to any other clojure application, but there are a couple of things we've
 found useful:
 
-### Leinengen's `checkouts` feature
+### Leiningen's `checkouts` feature
 
 Since Trapperkeeper is intended to help modularize applications, it also increases
 the likelihood that you'll end up working with more than one code base / git repo
-at the same time.  When you find yourself in this situation, leinengen's
+at the same time.  When you find yourself in this situation, Leiningen's
 [checkouts](http://jakemccrary.com/blog/2012/03/28/working-on-multiple-clojure-projects-at-once/)
 feature is very useful.
 
-### Leinengen's `trampoline` feature
+### Leiningen's `trampoline` feature
 
 If you need to test the shutdown behavior of your application, you may find yourself
 trying to do `lein run` and then sending a CTRL-C or `kill`.  However, due to the
-way leinengen manages JVM processes, this CTRL-C will be handled by the lein process
+way Leiningen manages JVM processes, this CTRL-C will be handled by the lein process
 and won't actually make it to Trapperkeeper.  If you need to test shutdown
 functionality, you'll want to use `lein trampoline run`.
 

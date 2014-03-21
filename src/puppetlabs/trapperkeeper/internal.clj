@@ -236,6 +236,7 @@
 
      (f)
      (catch Throwable t
+       (log/error t "shutdown-on-error triggered because of exception!")
        (deliver shutdown-reason-promise {:cause       :service-error
                                          :error       t
                                          :on-error-fn (when on-error-fn

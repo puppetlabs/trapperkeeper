@@ -714,13 +714,14 @@ functions will be called, and the process will terminate.
 ### Services Should Fail Fast
 
 Trapperkeeper embraces fail-fast behavior.  With that in mind, we advise
-writing services that also fail-fast.  In particular, it is best practice
-for services to check any needed configuration state and perform
-initialization logic on Trapperkeeper's main thread, inside `init` or `start` -
-*not* on a background thread, because `Throwables` on the main thread will
-propagate out of `init` or `start` and cause the application to shut down -
-i.e., it will *fail fast*.  There are different operational semantics for 
-errors thrown on a background thread (see previous section).
+writing services that also fail-fast.  In particular, if your service needs to
+spin-off a background thread to perform some expensive initialization logic,
+it is best practice to push as much code as possible outside of the background
+thread (for example, validating configuration data), because `Throwables` on
+the main thread will propagate out of `init` or `start` and cause the
+application to shut down - i.e., it will *fail fast*.  There are different
+operational semantics for errors thrown on a background thread  (see previous
+section).
 
 ## Service Interfaces
 

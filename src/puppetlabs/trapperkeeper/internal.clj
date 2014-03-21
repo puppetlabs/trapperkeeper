@@ -405,9 +405,13 @@
           (every? #(satisfies? s/ServiceDefinition %) services)
           (map? config-data)]
    :post [(satisfies? a/TrapperkeeperApp %)]}
-  (let [app (build-app* services config-data)]
-    (a/init app)
-    (a/start app)
-    app))
+  (try
+    (let [app (build-app* services config-data)]
+      (a/init app)
+      (a/start app)
+      app)
+    (catch Throwable t
+      (log/error t)
+      (throw t))))
 
 

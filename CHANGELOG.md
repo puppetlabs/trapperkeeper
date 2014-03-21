@@ -1,11 +1,10 @@
 ## 0.3.6
 
-This is a bugfiqx and maintenance release.
+This is a bugfix and maintenance release.
 
- * Move typesafe config code to an external library
- * Improve error handling in shutdown-on-error
- * Improve error logging in shutdown-on-error
-
+ * Move typesafe config code to an external library - https://github.com/puppetlabs/clj-typesafe-config
+ * Improve error handling and logging in `shutdown-on-error`.
+ 
 ## 0.3.5
  * Improved error handling in the `service`/`defservice` macros.
  * Improved error handling in the shutdown logic, particularly when using `shutdown-on-error`.

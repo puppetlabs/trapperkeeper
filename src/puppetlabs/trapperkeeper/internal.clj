@@ -411,7 +411,7 @@
       (a/start app)
       app)
     (catch Throwable t
-      (log/error t)
+      (log/error t "Error during bootstrapping!")
       (throw t))))
 
 

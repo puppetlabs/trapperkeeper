@@ -1,3 +1,9 @@
+## 0.3.8
+
+This is a bugfix and maintenance release.
+
+ * Improve logging of exceptions that occur during bootstrapping.
+
 ## 0.3.7
 
 This is a bugfix and maintenance release.

@@ -13,7 +13,7 @@
                  [prismatic/schema "0.2.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
-                 [ch.qos.logback/logback-classic "1.0.13"]
+                 [ch.qos.logback/logback-classic "1.1.1"]
                  [puppetlabs/typesafe-config "0.1.1"]]
 
   :lein-release {:scm         :git

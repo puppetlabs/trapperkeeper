@@ -1,3 +1,9 @@
+## 0.3.9
+
+This is a maintenance release.
+
+ * Update version number of logback dependency from 1.0.13 to 1.1.1, to resolve a bug in logback that was affecting our jetty9 web server.
+
 ## 0.3.8
 
 This is a bugfix and maintenance release.

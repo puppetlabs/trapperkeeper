@@ -1,3 +1,9 @@
+## 0.3.10
+
+This is a maintenance release.
+
+ * Update version number of kitchensink dependency to 0.6.0, to get rid of transitive dependencies on SSL libraries.
+
 ## 0.3.9
 
 This is a maintenance release.

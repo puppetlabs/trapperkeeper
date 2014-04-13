@@ -12,7 +12,10 @@
                  :enabled?))]
     (testing "Should support string value for `enabled?`"
       (is (= true (process-config-fn "true")))
-      (is (= false (process-config-fn "false"))))))
+      (is (= false (process-config-fn "false"))))
+    (testing "Should support boolean value for `enabled?`"
+      (is (= true (process-config-fn true)))
+      (is (= false (process-config-fn false))))))
 
 (deftest test-nrepl-service
   (testing "An nREPL service has been started"

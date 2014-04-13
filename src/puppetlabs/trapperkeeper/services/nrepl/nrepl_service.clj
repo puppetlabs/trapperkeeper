@@ -10,11 +10,15 @@
 (def ^{:private true} default-nrepl-port 7888)
 (def ^{:private true} default-bind-addr  "0.0.0.0")
 
+(defn process-config
+  [get-in-config]
+  {:enabled? (parse-bool (get-in-config [:nrepl :enabled]))
+   :port     (get-in-config [:nrepl :port] default-nrepl-port)
+   :bind     (get-in-config [:nrepl :host] default-bind-addr)})
+
 (defn- startup-nrepl
   [get-in-config]
-  (let [enabled?     (parse-bool (get-in-config [:nrepl :enabled]))
-        port         (get-in-config [:nrepl :port] default-nrepl-port)
-        bind         (get-in-config [:nrepl :host] default-bind-addr)]
+  (let [{:keys [enabled? port bind]} (process-config get-in-config)]
     (if enabled?
       (do (log/info "Starting nREPL service on" bind "port" port)
           (nrepl/start-server :port port :bind bind))

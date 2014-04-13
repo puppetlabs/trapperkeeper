@@ -4,6 +4,16 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [with-app-with-config]]
             [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]))
 
+(deftest test-nrepl-config
+  (letfn [(process-config-fn [enabled]
+            (->> {:nrepl {:enabled enabled}}
+                 (partial get-in)
+                 process-config
+                 :enabled?))]
+    (testing "Should support string value for `enabled?`"
+      (is (= true (process-config-fn "true")))
+      (is (= false (process-config-fn "false"))))))
+
 (deftest test-nrepl-service
   (testing "An nREPL service has been started"
     (with-app-with-config app

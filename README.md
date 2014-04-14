@@ -151,7 +151,7 @@ Lastly, set Trapperkeeper to be your `:main` in your Leiningen project file:
 :main puppetlabs.trapperkeeper.main
 ```
 
-And now you should be able to run the app via `lein run`.  This example doesn't
+And now you should be able to run the app via `lein run --config ...`.  This example doesn't
 do much; for a more interesting example that shows how you can use Trapperkeeper
 to create a web application, check out the
 [Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/ring_app)

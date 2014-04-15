@@ -1,19 +1,30 @@
 (ns puppetlabs.trapperkeeper.services.nrepl.nrepl-service-test
   (:require [clojure.test :refer :all]
             [clojure.tools.nrepl :as repl]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data]]
-            [puppetlabs.trapperkeeper.app :refer [get-service]]
-            [puppetlabs.trapperkeeper.services :refer [service-def-id stop service-context]]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [with-app-with-config]]
             [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]))
+
+(deftest test-nrepl-config
+  (letfn [(process-config-fn [enabled]
+            (->> {:nrepl {:enabled enabled}}
+                 (partial get-in)
+                 process-config
+                 :enabled?))]
+    (testing "Should support string value for `enabled?`"
+      (is (= true (process-config-fn "true")))
+      (is (= false (process-config-fn "false"))))
+    (testing "Should support boolean value for `enabled?`"
+      (is (= true (process-config-fn true)))
+      (is (= false (process-config-fn false))))))
 
 (deftest test-nrepl-service
   (testing "An nREPL service has been started"
-    (let [app      (bootstrap-services-with-cli-data [nrepl-service] {:config "./test-resources/config/nrepl/nrepl.ini"})
-          si       (get-service app (service-def-id nrepl-service))]
-      (try
-        (is (= [2] (with-open [conn (repl/connect :port 7888)]
-                     (-> (repl/client conn 1000)
-                         (repl/message {:op "eval" :code "(+ 1 1)"})
-                         (repl/response-values)))))
-      (finally
-        (stop si (service-context si)))))))
+    (with-app-with-config app
+      [nrepl-service]
+      {:nrepl {:port    7888
+               :host    "0.0.0.0"
+               :enabled "true"}}
+      (is (= [2] (with-open [conn (repl/connect :port 7888)]
+                   (-> (repl/client conn 1000)
+                       (repl/message {:op "eval" :code "(+ 1 1)"})
+                       (repl/response-values))))))))

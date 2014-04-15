@@ -6,7 +6,7 @@
 
 Add the following dependency to your `project.clj` file:
 
-    [puppetlabs/trapperkeeper "0.3.8"]
+    [puppetlabs/trapperkeeper "0.3.10"]
 
 ## Overview
 
@@ -94,6 +94,10 @@ later in this document.
 A Leiningen template is available that shows a suggested project structure:
 
     lein new trapperkeeper my.namespace/myproject
+    
+Once you've created a project from the template, you can run it via the lein alias:
+
+    lein tk
 
 Note that the template is not intended to suggest a specific namespace organization;
 it's just intended to show you how to write a service, a web service, and tests

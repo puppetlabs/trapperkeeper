@@ -3,6 +3,7 @@
             [puppetlabs.trapperkeeper.internal :refer :all]
             [puppetlabs.trapperkeeper.app :refer [app-context get-service]]
             [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
             [puppetlabs.trapperkeeper.testutils.logging :as logging]
@@ -73,7 +74,8 @@
       (deref main-thread)
       (is (true? @shutdown-called?))))
 
-  (testing "`shutdown-on-error` causes services to be shut down and the error is rethrown from main"
+  (testing (str "`shutdown-on-error` in custom function causes services to be "
+                "shut down and the error is rethrown from main")
     (let [shutdown-called?  (atom false)
           test-service      (service ShutdownTestServiceWithFn
                                      [[:ShutdownService shutdown-on-error]]
@@ -83,9 +85,9 @@
                                      (test-fn [this]
                                               (future (shutdown-on-error (service-id this)
                                                                          #(throw (Throwable. "oops"))))))
-          app                (bootstrap-services-with-empty-config [test-service])
-          test-svc           (get-service app :ShutdownTestServiceWithFn)
-          main-thread        (future (tk/run-app app))]
+          app               (bootstrap-services-with-empty-config [test-service])
+          test-svc          (get-service app :ShutdownTestServiceWithFn)
+          main-thread       (future (tk/run-app app))]
       (is (false? @shutdown-called?))
       (test-fn test-svc)
       (is (thrown-with-msg?
@@ -93,24 +95,169 @@
             (deref main-thread)))
       (is (true? @shutdown-called?))))
 
-  (testing "`shutdown-on-error` will catch errors raised during init"
-    (let [shutdown-called?  (atom false)
-          test-service      (service ShutdownTestService
-                                     [[:ShutdownService shutdown-on-error]]
-                                     (init [this context]
-                                           (shutdown-on-error
-                                             :ShutdownTestService
-                                             #(throw (Throwable. "oops")))
-                                           context)
-                                     (stop [this context]
-                                           (reset! shutdown-called? true)
-                                           context))
-          app                (bootstrap-services-with-empty-config [test-service])
-          main-thread        (future (tk/run-app app))]
-      (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.Throwable: oops"
-            (deref main-thread)))
-      (is (true? @shutdown-called?))))
+  (testing (str "shutdown will be called if a service throws an exception "
+                "during init on main thread, with appropriate errors logged")
+    (logging/with-test-logging
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (init [this context]
+                                             (throw (Throwable. "oops"))
+                                             context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))
+            app               (bootstrap-services-with-empty-config
+                                [test-service])
+            main-thread       (future (tk/run-app app))]
+        (is (thrown-with-msg?
+              java.util.concurrent.ExecutionException
+              #"java.lang.Throwable: oops"
+              (deref main-thread))
+            "tk run-app did not die with expected exception.")
+        (is (true? @shutdown-called?)
+            "Service shutdown was not called.")
+        (is (logged? #"Error during service init or start!" :error)
+            "Error message for service init not logged."))))
+
+  (testing (str "shutdown will be called if a service throws an exception "
+                "during start on main thread, with appropriate errors logged")
+    (logging/with-test-logging
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (start [this context]
+                                              (throw (Throwable. "oops"))
+                                              context)
+                                       (stop  [this context]
+                                              (reset! shutdown-called? true)
+                                              context))
+            app               (bootstrap-services-with-empty-config
+                                [test-service])
+            main-thread       (future (tk/run-app app))]
+        (is (thrown-with-msg?
+              java.util.concurrent.ExecutionException
+              #"java.lang.Throwable: oops"
+              (deref main-thread))
+            "tk run-app did not die with expected exception.")
+        (is (true? @shutdown-called?)
+            "Service shutdown was not called.")
+        (is (logged? #"Error during service init or start!" :error)
+            "Error message for service start not logged."))))
+
+  (testing (str "`shutdown-on-error` will catch and log errors raised during "
+                "init on main thread")
+    (logging/with-test-logging
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (init [this context]
+                                             (shutdown-on-error
+                                               :ShutdownTestService
+                                               #(throw (Throwable. "oops")))
+                                             context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))
+            app               (bootstrap-services-with-empty-config
+                                [test-service])
+            main-thread       (future (tk/run-app app))]
+        (is (thrown-with-msg?
+              java.util.concurrent.ExecutionException
+              #"java.lang.Throwable: oops"
+              (deref main-thread))
+            "tk run-app did not die with expected exception.")
+        (is (true? @shutdown-called?)
+            "Service shutdown was not called.")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged."))))
+
+  (testing (str "`shutdown-on-error` will catch and log errors raised during "
+                "init on future")
+    (logging/with-test-logging
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (init [this context]
+                                             @(future
+                                               (shutdown-on-error
+                                                 :ShutdownTestService
+                                                 #(throw (Throwable. "oops"))))
+                                             context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))
+            app               (bootstrap-services-with-empty-config
+                                [test-service])
+            main-thread       (future (tk/run-app app))]
+        (is (thrown-with-msg?
+              java.util.concurrent.ExecutionException
+              #"java.lang.Throwable: oops"
+              (deref main-thread))
+            "tk run-app did not die with expected exception.")
+        (is (true? @shutdown-called?)
+            "Service shutdown was not called.")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged."))))
+
+  (testing (str "`shutdown-on-error` will catch and log errors raised during"
+                "start on main thread")
+    (logging/with-test-logging
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (start [this context]
+                                             (shutdown-on-error
+                                               :ShutdownTestService
+                                               #(throw (Throwable. "oops")))
+                                             context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))
+            app               (bootstrap-services-with-empty-config
+                                [test-service])
+            main-thread       (future (tk/run-app app))]
+        (is (thrown-with-msg?
+              java.util.concurrent.ExecutionException
+              #"java.lang.Throwable: oops"
+              (deref main-thread))
+             "tk run-app did not die with expected exception.")
+        (is (true? @shutdown-called?)
+            "Service shutdown was not called.")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged."))))
+
+  (testing (str "`shutdown-on-error` will catch and log errors raised during "
+                "start on future")
+    (logging/with-test-logging
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (start [this context]
+                                              @(future
+                                                 (shutdown-on-error
+                                                   :ShutdownTestService
+                                                   #(throw (Throwable. "oops"))))
+                                             context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))
+            app               (bootstrap-services-with-empty-config
+                                [test-service])
+            main-thread       (future (tk/run-app app))]
+        (is (thrown-with-msg?
+              java.util.concurrent.ExecutionException
+              #"java.lang.Throwable: oops"
+              (deref main-thread))
+            "tk run-app did not die with expected exception.")
+        (is (true? @shutdown-called?)
+            "Service shutdown was not called.")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged."))))
 
   (testing "`shutdown-on-error` takes an optional function that is called on error"
     (let [shutdown-called?    (atom false)

@@ -1,9 +1,11 @@
 (ns puppetlabs.trapperkeeper.services-test
+  (:import  (java.lang.reflect Type))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.services :refer
                 [ServiceDefinition Service Lifecycle
                  defservice service service-context]]
             [puppetlabs.trapperkeeper.app :as app]
+            [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
                 [bootstrap-services-with-empty-config
                  with-app-with-empty-config]]
@@ -170,25 +172,50 @@
           s4        (app/get-service app :Service4)]
       (is (= "foo! bar!" (service4-fn2 s4))))))
 
+(defn expected-shutdown-reason?
+  [expected-cause
+   expected-error-type
+   expected-error-message
+   actual-shutdown-reason]
+  {:pre  [(keyword? expected-cause)
+          (instance? Type expected-error-type)
+          (string? expected-error-message)]
+   :post [(instance? Boolean %)]}
+  (and (map? actual-shutdown-reason)
+       (= expected-cause (:cause actual-shutdown-reason))
+       (instance? expected-error-type (:error actual-shutdown-reason))
+       (= expected-error-message (.getMessage (:error
+                                               actual-shutdown-reason)))))
 (deftest context-test
   (testing "should error if lifecycle function doesn't return context"
     (let [service1 (service Service1
                             []
                             (init [this context] "hi")
                             (service1-fn [this] "hi"))]
-      (is (thrown-with-msg?
-            IllegalStateException
-            #"Lifecycle function 'init' for service ':Service1' must return a context map \(got: \"hi\"\)"
-            (bootstrap-services-with-empty-config [service1]))))
-
+      (let [app             (bootstrap-services-with-empty-config
+                              [service1])
+            shutdown-reason (internal/wait-for-app-shutdown app)]
+        (is (expected-shutdown-reason?
+              :service-error
+              IllegalStateException
+              (str "Lifecycle function 'init' for service ':Service1' must "
+                   "return a context map (got: \"hi\")")
+              shutdown-reason)
+            "Unexpected shutdown reason for bootstrap")))
     (let [service1 (service Service1
                             []
                             (start [this context] "hi")
                             (service1-fn [this] "hi"))]
-      (is (thrown-with-msg?
-            IllegalStateException
-            #"Lifecycle function 'start' for service ':Service1' must return a context map \(got: \"hi\"\)"
-            (bootstrap-services-with-empty-config [service1])))))
+      (let [app             (bootstrap-services-with-empty-config
+                              [service1])
+            shutdown-reason (internal/wait-for-app-shutdown app)]
+        (is (expected-shutdown-reason?
+              :service-error
+              IllegalStateException
+              (str "Lifecycle function 'start' for service ':Service1' must "
+                   "return a context map (got: \"hi\")")
+              shutdown-reason)
+            "Unexpected shutdown reason for bootstrap"))))
 
   (testing "context should be available in subsequent lifecycle functions"
     (let [start-context (atom nil)

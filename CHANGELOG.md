@@ -1,3 +1,11 @@
+## 0.3.11
+
+This is a maintenance/bugfix release.
+
+* Fix minor bug in how nrepl service loads its configuration
+* Add CONTRIBUTING.md file
+* Fix a few misleading things in the README (dan@simple.com)
+
 ## 0.3.10
 
 This is a maintenance release.

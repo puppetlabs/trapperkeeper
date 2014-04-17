@@ -1,5 +1,4 @@
 (ns puppetlabs.trapperkeeper.services-test
-  (:import  (java.lang.reflect Type))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.services :refer
                 [ServiceDefinition Service Lifecycle
@@ -174,16 +173,16 @@
 
 (defn expected-shutdown-reason?
   [expected-cause
-   expected-error-type
+   expected-error-class
    expected-error-message
    actual-shutdown-reason]
   {:pre  [(keyword? expected-cause)
-          (instance? Type expected-error-type)
+          (instance? Class expected-error-class)
           (string? expected-error-message)]
    :post [(instance? Boolean %)]}
   (and (map? actual-shutdown-reason)
        (= expected-cause (:cause actual-shutdown-reason))
-       (instance? expected-error-type (:error actual-shutdown-reason))
+       (instance? expected-error-class (:error actual-shutdown-reason))
        (= expected-error-message (.getMessage (:error
                                                actual-shutdown-reason)))))
 (deftest context-test

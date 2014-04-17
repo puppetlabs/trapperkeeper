@@ -8,41 +8,41 @@
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.config :as config]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [reset-logging-config-after-test]]))
+            [puppetlabs.trapperkeeper.testutils.logging :as logging]))
 
-(use-fixtures :each reset-logging-config-after-test)
+(use-fixtures :each logging/reset-logging-config-after-test)
 
 (defprotocol FooService
   (foo [this]))
 
 (deftest dependency-error-handling
-  (testing "missing service dependency throws meaningful message"
+  (testing "missing service dependency throws meaningful message and logs error"
     (let [broken-service (service
                            [[:MissingService f]]
                            (init [this context] (f) context))]
-      (is (thrown-with-msg?
-            RuntimeException #"Service ':MissingService' not found"
-            (testutils/bootstrap-services-with-empty-config [broken-service])))))
+      (logging/with-test-logging
+        (is (thrown-with-msg?
+              RuntimeException #"Service ':MissingService' not found"
+              (testutils/bootstrap-services-with-empty-config [broken-service])))
+        (is (logged? #"Error during app buildup!" :error)
+            "App buildup error message not logged"))))
 
-  (testing "missing service function throws meaningful message"
+  (testing "missing service function throws meaningful message and logs error"
     (let [test-service    (service FooService
                                    []
                                    (foo [this] "foo"))
           broken-service  (service
                             [[:FooService bar]]
                             (init [this context] (bar) context))]
-      (is (thrown-with-msg?
-            RuntimeException #"Service function 'bar' not found in service 'FooService"
-            (testutils/bootstrap-services-with-empty-config [test-service broken-service]))))
-
-    (let [broken-service  (service
-                            []
-                            (init [this context]
-                                  (throw (RuntimeException. "This shouldn't match the regexs"))))]
-      (is (thrown-with-msg?
-            RuntimeException #"This shouldn't match the regexs"
-            (testutils/bootstrap-services-with-empty-config [broken-service]))))
-
+      (logging/with-test-logging
+        (is (thrown-with-msg?
+              RuntimeException
+              #"Service function 'bar' not found in service 'FooService"
+              (testutils/bootstrap-services-with-empty-config
+                [test-service
+                 broken-service])))
+        (is (logged? #"Error during app buildup!" :error)
+            "App buildup error message not logged")))
     (is (thrown-with-msg?
           RuntimeException #"Service does not define function 'foo'"
           (macroexpand '(puppetlabs.trapperkeeper.services/service

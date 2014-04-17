@@ -299,14 +299,14 @@
 
 (defn initialize-shutdown-service!
   "Initialize the shutdown service and add a shutdown hook to the JVM."
-  [app-context]
+  [app-context shutdown-reason-promise]
   {:pre [(instance? Atom app-context)]
    :post [(satisfies? s/ServiceDefinition %)]}
-  (let [shutdown-reason-promise (promise)
-        shutdown-service (shutdown-service shutdown-reason-promise app-context)]
+  (let [shutdown-service        (shutdown-service shutdown-reason-promise
+                                                  app-context)]
     (add-shutdown-hook! (fn []
-                          (log/info "Shutting down due to JVM shutdown hook.")
                           (when-not (realized? shutdown-reason-promise)
+                            (log/info "Shutting down due to JVM shutdown hook.")
                             (shutdown! app-context)
                             (deliver shutdown-reason-promise {:cause :jvm-shutdown-hook}))))
     shutdown-service))
@@ -352,7 +352,7 @@
 (defn build-app*
   "Given a list of services and a map of configuration data, build an instance
   of a TrapperkeeperApp.  Services are not yet initialized or started."
-  [services config-data]
+  [services config-data shutdown-reason-promise]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
           (map? config-data)]
@@ -363,7 +363,8 @@
          app-context (atom {})
          services (conj services
                         (config-service config-data)
-                        (initialize-shutdown-service! app-context))
+                        (initialize-shutdown-service! app-context
+                                                      shutdown-reason-promise))
          service-map (apply merge (map s/service-map services))
          compiled-graph (compile-graph service-map)
         ;; this gives us an ordered graph that we can use to call lifecycle
@@ -405,13 +406,22 @@
           (every? #(satisfies? s/ServiceDefinition %) services)
           (map? config-data)]
    :post [(satisfies? a/TrapperkeeperApp %)]}
-  (try
-    (let [app (build-app* services config-data)]
-      (a/init app)
-      (a/start app)
+  (let [shutdown-reason-promise (promise)
+        app                     (try
+                                  (build-app* services
+                                              config-data
+                                              shutdown-reason-promise)
+                                  (catch Throwable t
+                                    (log/error t "Error during app buildup!")
+                                    (throw t)))]
+      (try
+        (a/init app)
+        (a/start app)
+        (catch Throwable t
+          (log/error t "Error during service init or start!")
+          (deliver shutdown-reason-promise {:cause :service-error
+                                            :error t})))
       app)
-    (catch Throwable t
-      (log/error t "Error during bootstrapping!")
-      (throw t))))
+    )
 
 

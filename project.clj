@@ -1,4 +1,4 @@
-(def ks-version "0.6.0")
+(def ks-version "0.6.1-SNAPSHOT")
 
 (defproject puppetlabs/trapperkeeper "0.3.12-SNAPSHOT"
   :description "We are trapperkeeper.  We are one."
@@ -14,7 +14,8 @@
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.1.1"]
-                 [puppetlabs/typesafe-config "0.1.1"]]
+                 [puppetlabs/typesafe-config "0.1.1"]
+                 [me.raynes/fs "1.4.5"]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}

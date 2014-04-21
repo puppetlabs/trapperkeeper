@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.internal
-  (:import (clojure.lang Atom ExceptionInfo))
+  (:import (clojure.lang Atom ExceptionInfo IBlockingDeref IDeref IFn IPending))
   (:require [clojure.tools.logging :as log]
             [plumbing.map]
             [plumbing.graph :as g]
@@ -9,6 +9,12 @@
             [puppetlabs.trapperkeeper.app :as a]
             [puppetlabs.trapperkeeper.services :as s]))
 
+(defn promise?
+  "Predicate that tests whether or not the argument implements the interfaces
+  of a Clojure promise"
+  [promise]
+  (every? #(instance? % promise)
+          [IPending IFn IBlockingDeref IDeref]))
 
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
@@ -243,6 +249,7 @@
                                                         (partial on-error-fn (get @app-context svc-id)))})))))
 
 (defprotocol ShutdownService
+  (get-shutdown-reason [this])
   (wait-for-shutdown [this])
   (request-shutdown [this] "Asynchronously trigger normal shutdown")
   (shutdown-on-error [this svc-id f] [this svc-id f on-error]
@@ -255,14 +262,21 @@
   this service internally and therefore is always available in the application graph.
 
   Provides:
-  * :request-shutdown  - Asynchronously trigger normal shutdown
-  * :shutdown-on-error - Higher-order function to execute application logic
-                         and trigger shutdown in the event of an exception
+  * :get-shutdown-reason - Get a map containing the shutdown reason delivered
+                           to the shutdown service.  If no shutdown reason has
+                           been delivered, this function would return nil.
+  * :wait-for-shutdown   - Block the calling thread until a shutdown reason
+                           has been delivered to the shutdown service
+  * :request-shutdown    - Asynchronously trigger normal shutdown
+  * :shutdown-on-error   - Higher-order function to execute application logic
+                           and trigger shutdown in the event of an exception
 
   For more information, see `request-shutdown` and `shutdown-on-error`."
   [shutdown-reason-promise app-context]
   (s/service ShutdownService
     []
+    (get-shutdown-reason [this] (when (realized? shutdown-reason-promise)
+                                      @shutdown-reason-promise))
     (wait-for-shutdown [this] (deref shutdown-reason-promise))
     (request-shutdown [this]  (request-shutdown* shutdown-reason-promise))
     (shutdown-on-error [this svc-id f] (shutdown-on-error* shutdown-reason-promise app-context svc-id f))
@@ -300,7 +314,8 @@
 (defn initialize-shutdown-service!
   "Initialize the shutdown service and add a shutdown hook to the JVM."
   [app-context shutdown-reason-promise]
-  {:pre [(instance? Atom app-context)]
+  {:pre [(instance? Atom app-context)
+         (promise? shutdown-reason-promise)]
    :post [(satisfies? s/ServiceDefinition %)]}
   (let [shutdown-service        (shutdown-service shutdown-reason-promise
                                                   app-context)]
@@ -310,6 +325,20 @@
                             (shutdown! app-context)
                             (deliver shutdown-reason-promise {:cause :jvm-shutdown-hook}))))
     shutdown-service))
+
+(defn get-app-shutdown-reason
+  "Get a map containing the shutdown reason delivered to the shutdown service.
+  If no shutdown reason has been delivered, this function would return nil.
+
+  If non-nil, the reason map may contain the following keys:
+  * :cause       - One of :requested, :service-error, or :jvm-shutdown-hook
+  * :error       - The error associated with the :service-error cause
+  * :on-error-fn - An optional error callback associated with the :service-error
+                   cause"
+  [app]
+  {:pre [(satisfies? a/TrapperkeeperApp app)]
+   :post [(or (nil? %) (map? %))]}
+  (get-shutdown-reason (a/get-service app :ShutdownService)))
 
 (defn wait-for-app-shutdown
   "Wait for shutdown to be initiated - either externally (such as Ctrl-C) or
@@ -355,7 +384,8 @@
   [services config-data shutdown-reason-promise]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
-          (map? config-data)]
+          (map? config-data)
+          (promise? shutdown-reason-promise)]
    :post [(satisfies? a/TrapperkeeperApp %)]}
   (let [;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the

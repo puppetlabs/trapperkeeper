@@ -6,7 +6,7 @@
 
 Add the following dependency to your `project.clj` file:
 
-    [puppetlabs/trapperkeeper "0.3.11"]
+    [puppetlabs/trapperkeeper "0.3.12"]
 
 ## Overview
 

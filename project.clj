@@ -1,4 +1,4 @@
-(def ks-version "0.6.0")
+(def ks-version "0.7.0")
 
 (defproject puppetlabs/trapperkeeper "0.3.12-SNAPSHOT"
   :description "We are trapperkeeper.  We are one."
@@ -14,7 +14,8 @@
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.1.1"]
-                 [puppetlabs/typesafe-config "0.1.1"]]
+                 [puppetlabs/typesafe-config "0.1.1"]
+                 [me.raynes/fs "1.4.5"]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}
@@ -23,7 +24,7 @@
                                      :username :env/clojars_jenkins_username
                                      :password :env/clojars_jenkins_password
                                      :sign-releases false}]]
-  
+
   ;; Convenience for manually testing application shutdown support - run `lein test-external-shutdown`
   :aliases {"test-external-shutdown" ["trampoline" "run" "-m" "examples.shutdown-app.test-external-shutdown"]}
 
@@ -45,8 +46,8 @@
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
-                         
-  :plugins [[lein-release "1.0.5"]]                         
+
+  :plugins [[lein-release "1.0.5"]]
 
   :main puppetlabs.trapperkeeper.main
   )

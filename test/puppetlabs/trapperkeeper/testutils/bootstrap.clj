@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.testutils.bootstrap
-  (:require [fs.core :as fs]
+  (:require [me.raynes.fs :as fs]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.app :as tk-app]
             [puppetlabs.kitchensink.testutils :as ks-testutils]

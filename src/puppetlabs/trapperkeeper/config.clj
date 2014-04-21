@@ -20,7 +20,7 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.edn :as edn]
-            [fs.core :as fs]
+            [me.raynes.fs :as fs]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.config.typesafe :as typesafe]
             [puppetlabs.trapperkeeper.services :refer [service]]

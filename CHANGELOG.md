@@ -1,3 +1,9 @@
+## 0.3.12
+
+This is a maintenance release.
+
+* Upgrade fs dependency to 1.4.5 to standardize across projects
+
 ## 0.3.11
 
 This is a maintenance/bugfix release.

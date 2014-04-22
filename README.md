@@ -702,9 +702,16 @@ for more information.
 ### Errors During `init` or `start`
 
 If the `init` or `start` function of any service throws a `Throwable`, it will
-immediately cause Trapperkeeper to shut down.  If you are using Trapperkeeper's
-`main` function, this will result in the process terminating with a non-zero
-exit code.
+cause Trapperkeeper to shut down.  No further `init` or `start` functions of
+any services will be called after the first `Throwable` is thrown.  If you are
+using Trapperkeeper's `main` function, all service `stop` functions will be
+called before the process terminates.  The `stop` functions are called in
+order to give each service a chance to clean up any resources which may have
+only been partially initialized before the `Throwable` was thrown -- e.g.,
+allowing any worker threads which may have been spawned to be gracefully shut
+down so that the process can terminate.  Service `stop` functions must be
+designed such that they could be executed with no adverse effects even if called
+before the service's `init` and `start` functions could successfully complete.
 
 If the `init` or `start` function of your service launches a background thread
 to perform some costly initialization computations (like, say, populating a pool
@@ -724,7 +731,7 @@ it is best practice to push as much code as possible outside of the background
 thread (for example, validating configuration data), because `Throwables` on
 the main thread will propagate out of `init` or `start` and cause the
 application to shut down - i.e., it will *fail fast*.  There are different
-operational semantics for errors thrown on a background thread  (see previous
+operational semantics for errors thrown on a background thread (see previous
 section).
 
 ## Service Interfaces
@@ -1114,24 +1121,37 @@ your app in a REPL:
 (ns examples.my-app.repl
   (:require [puppetlabs.trapperkeeper.services.webserver.jetty9-service :refer [jetty9-service]]
             [examples.my-app.services :refer [count-service foo-service baz-service]]
-            [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.app :as tka]
+            [puppetlabs.trapperkeeper.core :as tkc]
+            [puppetlabs.trapperkeeper.internal :as tki]
             [clojure.tools.namespace.repl :refer (refresh)]))
 
 ;; a var to hold the main `TrapperkeeperApp` instance.
 (def system nil)
 
+(defn- translate-app-shutdown-error-into-throwable
+  [app]
+  (when-let [shutdown-reason (tki/get-app-shutdown-reason app)]
+    (if-let [shutdown-error (:error shutdown-reason)]
+      (if (instance? Throwable shutdown-error)
+        (throw shutdown-error)))
+    (throw Exception (str "Shutdown error encountered: "
+                          shutdown-reason)))
+  app)
+
 (defn init []
   (alter-var-root #'system
-    (fn [_] (let [app (tk/build-app
+    (fn [_] (let [app (tkc/build-app
                         [jetty9-service count-service foo-service baz-service]
                         {:global    {:logging-config "examples/my_app/logback.xml"}
                          :webserver {:port 8080}
                          :example   {:my-app-config-value "FOO"}})]
-              (tka/init app)))))
+              (tka/init app))))
+  (translate-app-shutdown-error-into-throwable system))
 
 (defn start []
-  (alter-var-root #'system tka/start))
+  (alter-var-root #'system tka/start)
+  (translate-app-shutdown-error-into-throwable system))
 
 (defn stop []
   (alter-var-root #'system

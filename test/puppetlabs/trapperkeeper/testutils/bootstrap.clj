@@ -10,20 +10,10 @@
 (def empty-config "./target/empty.ini")
 (fs/touch empty-config)
 
-(defn translate-app-shutdown-error-into-throwable
-  [app]
-  (when-let [shutdown-reason (internal/get-app-shutdown-reason app)]
-    (if-let [shutdown-error (:error shutdown-reason)]
-      (if (instance? Throwable shutdown-error)
-        (throw shutdown-error)))
-    (throw Exception (str "Shutdown error encountered: "
-                          shutdown-reason)))
-  app)
-
 (defmacro with-app-with-config
   [app services config & body]
   `(ks-testutils/with-no-jvm-shutdown-hooks
-     (let [~app (translate-app-shutdown-error-into-throwable
+     (let [~app (internal/app->shutdown-error-throwable-or-app
                   (tk/boot-services-with-config ~services ~config))]
        (try
          ~@body
@@ -39,7 +29,7 @@
                                               cli-data))]
       (if return-app-on-service-error?
         app
-        (translate-app-shutdown-error-into-throwable app)))))
+        (internal/app->shutdown-error-throwable-or-app app)))))
 
 (defmacro with-app-with-cli-data
   [app services cli-data & body]
@@ -96,7 +86,7 @@
                      (tk/boot-with-cli-data))]
        (if return-app-on-service-error?
          app
-         (translate-app-shutdown-error-into-throwable app)))))
+         (internal/app->shutdown-error-throwable-or-app app)))))
 
 (defn parse-and-bootstrap
   ([bootstrap-config]

@@ -9,13 +9,6 @@
             [puppetlabs.trapperkeeper.app :as a]
             [puppetlabs.trapperkeeper.services :as s]))
 
-(defn promise?
-  "Predicate that tests whether or not the argument implements the interfaces
-  of a Clojure promise"
-  [promise]
-  (every? #(instance? % promise)
-          [IPending IFn IBlockingDeref IDeref]))
-
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
   service graph."
@@ -172,8 +165,16 @@
                       depends on will have their corresponding lifecycle fn
                       called first.)"
   [app-context lifecycle-fn lifecycle-fn-name ordered-services]
-  (doseq [[service-id s] ordered-services]
-    (run-lifecycle-fn! app-context lifecycle-fn lifecycle-fn-name service-id s)))
+  (try
+    (doseq [[service-id s] ordered-services]
+      (run-lifecycle-fn! app-context
+                         lifecycle-fn
+                         lifecycle-fn-name
+                         service-id
+                         s))
+    (catch Throwable t
+      (log/errorf t "Error during service %s!!!" lifecycle-fn-name)
+      (throw t))))
 
 ;;;; Application Shutdown Support
 ;;;;
@@ -314,8 +315,7 @@
 (defn initialize-shutdown-service!
   "Initialize the shutdown service and add a shutdown hook to the JVM."
   [app-context shutdown-reason-promise]
-  {:pre [(instance? Atom app-context)
-         (promise? shutdown-reason-promise)]
+  {:pre [(instance? Atom app-context)]
    :post [(satisfies? s/ServiceDefinition %)]}
   (let [shutdown-service        (shutdown-service shutdown-reason-promise
                                                   app-context)]
@@ -339,6 +339,18 @@
   {:pre [(satisfies? a/TrapperkeeperApp app)]
    :post [(or (nil? %) (map? %))]}
   (get-shutdown-reason (a/get-service app :ShutdownService)))
+
+(defn app->shutdown-error-throwable-or-app
+  "For the supplied app, attempt to pull out a shutdown reason error.  If
+  one is available, throw a Throwable with that error.  If not, just return
+  the app instance that was provided."
+  [app]
+  {:pre [(satisfies? a/TrapperkeeperApp app)]
+   :post [(identical? app %)]}
+  (when-let [shutdown-reason (get-app-shutdown-reason app)]
+    (if-let [shutdown-error (:error shutdown-reason)]
+      (throw shutdown-error)))
+  app)
 
 (defn wait-for-app-shutdown
   "Wait for shutdown to be initiated - either externally (such as Ctrl-C) or
@@ -386,8 +398,7 @@
   ([services config-data shutdown-reason-promise]
     {:pre  [(sequential? services)
             (every? #(satisfies? s/ServiceDefinition %) services)
-            (map? config-data)
-            (promise? shutdown-reason-promise)]
+            (map? config-data)]
      :post [(satisfies? a/TrapperkeeperApp %)]}
     (let [;; this is the application context for this app instance.  its keys
           ;; will be the service ids, and values will be maps that represent the
@@ -421,18 +432,10 @@
         (a/service-graph [this] graph-instance)
         (a/app-context [this] app-context)
         (a/init [this]
-          (try
-            (run-lifecycle-fns app-context s/init "init" ordered-services)
-            (catch Throwable t
-              (log/error t "Error during service init!")
-              (throw t)))
+          (run-lifecycle-fns app-context s/init "init" ordered-services)
           this)
         (a/start [this]
-          (try
-            (run-lifecycle-fns app-context s/start "start" ordered-services)
-            (catch Throwable t
-              (log/error t "Error during service start!")
-              (throw t)))
+          (run-lifecycle-fns app-context s/start "start" ordered-services)
           this)
         (a/stop [this]
           (shutdown! app-context)

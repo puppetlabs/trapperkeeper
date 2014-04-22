@@ -129,7 +129,7 @@
           [test-service]
           shutdown-called?
           #"java.lang.Throwable")
-        (is (logged? #"Error during service init" :error)
+        (is (logged? #"Error during service init!!!" :error)
             "Error message for service init not logged."))))
 
   (testing (str "shutdown will be called if a service throws an exception "
@@ -148,7 +148,7 @@
           [test-service]
           shutdown-called?
           #"java.lang.Throwable")
-        (is (logged? #"Error during service start!" :error)
+        (is (logged? #"Error during service start!!!" :error)
             "Error message for service start not logged."))))
 
   (testing (str "`shutdown-on-error` will catch and log errors raised during "

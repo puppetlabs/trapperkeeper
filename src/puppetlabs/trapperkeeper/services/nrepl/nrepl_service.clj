@@ -2,7 +2,7 @@
   (:require
     [clojure.tools.logging :as log]
     [clojure.tools.nrepl.server :as nrepl]
-    [puppetlabs.kitchensink.core :refer [parse-bool boolean?]]
+    [puppetlabs.kitchensink.core :refer [to-bool]]
     [puppetlabs.trapperkeeper.core :refer [defservice]]))
 
 
@@ -12,10 +12,7 @@
 
 (defn process-config
   [get-in-config]
-  {:enabled? (let [enabled? (get-in-config [:nrepl :enabled])]
-               (if (boolean? enabled?)
-                 enabled?
-                 (parse-bool enabled?)))
+  {:enabled? (to-bool (get-in-config [:nrepl :enabled]))
    :port     (get-in-config [:nrepl :port] default-nrepl-port)
    :bind     (get-in-config [:nrepl :host] default-bind-addr)})
 

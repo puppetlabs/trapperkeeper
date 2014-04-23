@@ -1,7 +1,6 @@
 (ns puppetlabs.trapperkeeper.shutdown-test
   (:import (java.util.concurrent ExecutionException))
   (:require [clojure.test :refer :all]
-            [puppetlabs.trapperkeeper.internal :refer :all]
             [puppetlabs.trapperkeeper.app :refer [app-context
                                                   check-for-errors!
                                                   get-service]]
@@ -28,7 +27,7 @@
                                            context))
           app               (bootstrap-services-with-empty-config [test-service])]
       (is (false? @shutdown-called?))
-      (shutdown! (app-context app))
+      (internal/shutdown! (app-context app))
       (is (true? @shutdown-called?))))
 
   (testing "services are shut down in dependency order"
@@ -44,7 +43,7 @@
                                      context))
           app         (bootstrap-services-with-empty-config [service1 service2])]
       (is (empty? @order))
-      (shutdown! (app-context app))
+      (internal/shutdown! (app-context app))
       (is (= @order [2 1]))))
 
   (testing "services continue to shut down when one throws an exception"
@@ -59,7 +58,7 @@
           app               (bootstrap-services-with-empty-config [test-service broken-service])]
       (is (false? @shutdown-called?))
       (logging/with-test-logging
-        (shutdown! (app-context app))
+        (internal/shutdown! (app-context app))
         (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?))))
 
@@ -73,7 +72,7 @@
           shutdown-svc      (get-service app :ShutdownService)
           main-thread       (future (tk/run-app app))]
       (is (false? @shutdown-called?))
-      (request-shutdown shutdown-svc)
+      (internal/request-shutdown shutdown-svc)
       (deref main-thread)
       (is (true? @shutdown-called?))))
 

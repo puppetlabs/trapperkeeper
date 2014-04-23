@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.internal
-  (:import (clojure.lang Atom ExceptionInfo IBlockingDeref IDeref IFn IPending))
+  (:import (clojure.lang Atom ExceptionInfo))
   (:require [clojure.tools.logging :as log]
             [plumbing.map]
             [plumbing.graph :as g]

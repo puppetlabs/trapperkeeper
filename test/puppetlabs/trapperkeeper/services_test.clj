@@ -4,7 +4,6 @@
                 [ServiceDefinition Service Lifecycle
                  defservice service service-context]]
             [puppetlabs.trapperkeeper.app :as app]
-            [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
                 [bootstrap-services-with-empty-config
                  with-app-with-empty-config]]

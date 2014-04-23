@@ -2,7 +2,9 @@
   (:import (java.util.concurrent ExecutionException))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.internal :refer :all]
-            [puppetlabs.trapperkeeper.app :refer [app-context get-service]]
+            [puppetlabs.trapperkeeper.app :refer [app-context
+                                                  check-for-errors!
+                                                  get-service]]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.services :refer [service]]
@@ -301,3 +303,75 @@
                                  context))]
         (is (not (nil? (bootstrap-services-with-empty-config [test-service]
                                                              true))))))))
+
+(deftest app-check-for-errors!-tests
+  (testing "check-for-errors! throws exception for shutdown-on-error in init"
+    (let [test-service     (service ShutdownTestService
+                                    [[:ShutdownService shutdown-on-error]]
+                                    (init [this context]
+                                          (shutdown-on-error
+                                            :ShutdownTestService
+                                            #(throw (Throwable. "oops")))
+                                          context))
+          app              (bootstrap-services-with-empty-config
+                             [test-service]
+                             true)]
+      (is (thrown-with-msg?
+            Throwable
+            #"oops"
+            (check-for-errors! app))
+          "Expected error not thrown for check-for-errors!")))
+  (testing "check-for-errors! throws exception for error in init"
+    (let [test-service     (service ShutdownTestService
+                                    [[:ShutdownService shutdown-on-error]]
+                                    (init [this context]
+                                          (throw (Throwable. "oops"))
+                                          context))
+          app              (bootstrap-services-with-empty-config
+                             [test-service]
+                             true)]
+      (is (thrown-with-msg?
+            Throwable
+            #"oops"
+            (check-for-errors! app))
+          "Expected error not thrown for check-for-errors!")))
+  (testing "check-for-errors! throws exception for shutdown-on-error in start"
+    (let [test-service     (service ShutdownTestService
+                                    [[:ShutdownService shutdown-on-error]]
+                                    (start [this context]
+                                          (shutdown-on-error
+                                            :ShutdownTestService
+                                            #(throw (Throwable. "oops")))
+                                          context))
+          app              (bootstrap-services-with-empty-config
+                             [test-service]
+                             true)]
+      (is (thrown-with-msg?
+            Throwable
+            #"oops"
+            (check-for-errors! app))
+          "Expected error not thrown for check-for-errors!")))
+  (testing "check-for-errors! throws exception for error in start"
+    (let [test-service     (service ShutdownTestService
+                                    [[:ShutdownService shutdown-on-error]]
+                                    (start [this context]
+                                          (throw (Throwable. "oops"))
+                                          context))
+          app              (bootstrap-services-with-empty-config
+                             [test-service]
+                             true)]
+      (is (thrown-with-msg?
+            Throwable
+            #"oops"
+            (check-for-errors! app))
+          "Expected error not thrown for check-for-errors!")))
+  (testing "check-for-errors! returns app when no shutdown-on-error occurs"
+    (let [test-service     (service ShutdownTestService
+                                    [[:ShutdownService shutdown-on-error]]
+                                    (init [this context]
+                                          context))
+          app              (bootstrap-services-with-empty-config
+                             [test-service]
+                             true)]
+      (is (identical? app (check-for-errors! app))
+          "app not returned for check-for-errors!"))))

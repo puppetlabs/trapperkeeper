@@ -945,6 +945,10 @@ There is a protocol that represents a Trapperkeeper application:
 (defprotocol TrapperkeeperApp
   "Functions available on a Trapperkeeper application instance"
   (app-context [this] "Returns the application context for this app (an atom containing a map)")
+  (check-for-errors! [this] (str "Check for any errors which have occurred in "
+                                   "the bootstrap process.  If any have "
+                                   "occurred, throw a `java.lang.Throwable` with "
+                                   "the contents of the error.")
   (init [this] "Initialize the services")
   (start [this] "Start the services")
   (stop [this] "Stop the services"))
@@ -1122,22 +1126,10 @@ your app in a REPL:
   (:require [puppetlabs.trapperkeeper.services.webserver.jetty9-service :refer [jetty9-service]]
             [examples.my-app.services :refer [count-service foo-service baz-service]]
             [puppetlabs.trapperkeeper.app :as tka]
-            [puppetlabs.trapperkeeper.core :as tkc]
-            [puppetlabs.trapperkeeper.internal :as tki]
             [clojure.tools.namespace.repl :refer (refresh)]))
 
 ;; a var to hold the main `TrapperkeeperApp` instance.
 (def system nil)
-
-(defn- translate-app-shutdown-error-into-throwable
-  [app]
-  (when-let [shutdown-reason (tki/get-app-shutdown-reason app)]
-    (if-let [shutdown-error (:error shutdown-reason)]
-      (if (instance? Throwable shutdown-error)
-        (throw shutdown-error)))
-    (throw Exception (str "Shutdown error encountered: "
-                          shutdown-reason)))
-  app)
 
 (defn init []
   (alter-var-root #'system
@@ -1145,13 +1137,13 @@ your app in a REPL:
                         [jetty9-service count-service foo-service baz-service]
                         {:global    {:logging-config "examples/my_app/logback.xml"}
                          :webserver {:port 8080}
-                         :example   {:my-app-config-value "FOO"}})]
-              (tka/init app))))
-  (translate-app-shutdown-error-into-throwable system))
+                         :example   {:my-app-config-value "FOO"}})])))
+  (-> (alter-var-root #'system tka/init)
+      (tka/check-for-errors!)))
 
 (defn start []
-  (alter-var-root #'system tka/start)
-  (translate-app-shutdown-error-into-throwable system))
+  (-> (alter-var-root #'system tka/start)
+      (tka/check-for-errors!)))
 
 (defn stop []
   (alter-var-root #'system

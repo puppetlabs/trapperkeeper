@@ -431,6 +431,8 @@
         (a/get-service [this protocol] (services-by-id (keyword protocol)))
         (a/service-graph [this] graph-instance)
         (a/app-context [this] app-context)
+        (a/check-for-errors! [this] (app->shutdown-error-throwable-or-app
+                                      this))
         (a/init [this]
           (run-lifecycle-fns app-context s/init "init" ordered-services)
           this)

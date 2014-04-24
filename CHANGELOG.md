@@ -2,8 +2,8 @@
 
 This release includes improved error handling and logic for shutting down Trapperkeeper applications.
 
-* All services' `shutdown` functions are now called when an error is thrown by any service's 
-  `init` or `start` function.  This means that `shutdown` implementations must now be resilient
+* All services' `stop` functions are now called when an error is thrown by any service's 
+  `init` or `start` function.  This means that `stop` implementations must now be resilient
   to invocation even when `init` or `start` has not executed.
 * Add `check-for-errors!` function to `TrapperkeeperApp`, which can be used by services to re-throw 
   any errors that were thrown from an `init` or `start` function.

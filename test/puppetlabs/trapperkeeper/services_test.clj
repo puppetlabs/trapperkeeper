@@ -178,17 +178,22 @@
                             (service1-fn [this] "hi"))]
       (is (thrown-with-msg?
             IllegalStateException
-            #"Lifecycle function 'init' for service ':Service1' must return a context map \(got: \"hi\"\)"
-            (bootstrap-services-with-empty-config [service1]))))
-
+            (re-pattern (str "Lifecycle function 'init' for service ':Service1'"
+                             " must return a context map \\(got: \"hi\"\\)"))
+            (bootstrap-services-with-empty-config [service1]))
+          "Unexpected shutdown reason for bootstrap"))
     (let [service1 (service Service1
                             []
                             (start [this context] "hi")
                             (service1-fn [this] "hi"))]
+
       (is (thrown-with-msg?
             IllegalStateException
-            #"Lifecycle function 'start' for service ':Service1' must return a context map \(got: \"hi\"\)"
-            (bootstrap-services-with-empty-config [service1])))))
+            (re-pattern (str "Lifecycle function 'start' for service "
+                             "':Service1' must return a context map "
+                             "\\(got: \"hi\"\\)"))
+            (bootstrap-services-with-empty-config [service1]))
+          "Unexpected shutdown reason for bootstrap")))
 
   (testing "context should be available in subsequent lifecycle functions"
     (let [start-context (atom nil)

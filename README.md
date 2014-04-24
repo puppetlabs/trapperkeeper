@@ -702,9 +702,16 @@ for more information.
 ### Errors During `init` or `start`
 
 If the `init` or `start` function of any service throws a `Throwable`, it will
-immediately cause Trapperkeeper to shut down.  If you are using Trapperkeeper's
-`main` function, this will result in the process terminating with a non-zero
-exit code.
+cause Trapperkeeper to shut down.  No further `init` or `start` functions of
+any services will be called after the first `Throwable` is thrown.  If you are
+using Trapperkeeper's `main` function, all service `stop` functions will be
+called before the process terminates.  The `stop` functions are called in
+order to give each service a chance to clean up any resources which may have
+only been partially initialized before the `Throwable` was thrown -- e.g.,
+allowing any worker threads which may have been spawned to be gracefully shut
+down so that the process can terminate.  Service `stop` functions must be
+designed such that they could be executed with no adverse effects even if called
+before the service's `init` and `start` functions could successfully complete.
 
 If the `init` or `start` function of your service launches a background thread
 to perform some costly initialization computations (like, say, populating a pool
@@ -724,7 +731,7 @@ it is best practice to push as much code as possible outside of the background
 thread (for example, validating configuration data), because `Throwables` on
 the main thread will propagate out of `init` or `start` and cause the
 application to shut down - i.e., it will *fail fast*.  There are different
-operational semantics for errors thrown on a background thread  (see previous
+operational semantics for errors thrown on a background thread (see previous
 section).
 
 ## Service Interfaces
@@ -938,6 +945,11 @@ There is a protocol that represents a Trapperkeeper application:
 (defprotocol TrapperkeeperApp
   "Functions available on a Trapperkeeper application instance"
   (app-context [this] "Returns the application context for this app (an atom containing a map)")
+  (check-for-errors! [this] (str "Check for any errors which have occurred in "
+                                   "the bootstrap process.  If any have "
+                                   "occurred, throw a `java.lang.Throwable` with "
+                                   "the contents of the error.  If none have "
+                                   "occurred, return the input parameter.")
   (init [this] "Initialize the services")
   (start [this] "Start the services")
   (stop [this] "Stop the services"))
@@ -1110,10 +1122,13 @@ that shows some utility functions to use in the REPL to interact with your appli
 Trapperkeeper was designed with this pattern in mind as a goal.  Thus, it's
 entirely possible to write some very similar code that allows you to start/stop/reload
 your app in a REPL:
+
 ```clj
 (ns examples.my-app.repl
-  (:require [puppetlabs.trapperkeeper.services.webserver.jetty9-service :refer [jetty9-service]]
-            [examples.my-app.services :refer [count-service foo-service baz-service]]
+  (:require [puppetlabs.trapperkeeper.services.webserver.jetty9-service
+              :refer [jetty9-service]]
+            [examples.my-app.services
+              :refer [count-service foo-service baz-service]]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.app :as tka]
             [clojure.tools.namespace.repl :refer (refresh)]))
@@ -1123,19 +1138,26 @@ your app in a REPL:
 
 (defn init []
   (alter-var-root #'system
-    (fn [_] (let [app (tk/build-app
-                        [jetty9-service count-service foo-service baz-service]
-                        {:global    {:logging-config "examples/my_app/logback.xml"}
-                         :webserver {:port 8080}
-                         :example   {:my-app-config-value "FOO"}})]
-              (tka/init app)))))
+                  (fn [_] (tk/build-app
+                            [jetty9-service
+                             count-service
+                             foo-service
+                             baz-service]
+                            {:global
+                              {:logging-config "examples/my_app/logback.xml"}
+                             :webserver {:port 8080}
+                             :example   {:my-app-config-value "FOO"}})))
+  (alter-var-root #'system tka/init)
+  (tka/check-for-errors! system))
 
 (defn start []
-  (alter-var-root #'system tka/start))
+  (alter-var-root #'system
+                  (fn [s] (if s (tka/start s))))
+  (tka/check-for-errors! system))
 
 (defn stop []
   (alter-var-root #'system
-    (fn [s] (when s (tka/stop s)))))
+                  (fn [s] (when s (tka/stop s)))))
 
 (defn go []
   (init)
@@ -1150,7 +1172,7 @@ your app in a REPL:
 
 (defn reset []
   (stop)
-  (refresh :after 'examples.ring-app.repl/go))
+  (refresh :after 'examples.my-app.repl/go))
 ```
 
 For a working example, see the `repl` namespace in the

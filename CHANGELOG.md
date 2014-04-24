@@ -1,3 +1,17 @@
+## 0.4.0
+
+This release includes improved error handling and logic for shutting down Trapperkeeper applications.
+
+* Improved handling of errors during a service's `init` or `start` functions:
+  * All services' `stop` functions are now called, even when an error is thrown by any service's 
+    `init` or `start` function.  This means that `stop` implementations must now be resilient
+    to invocation even when `init` or `start` has not executed.
+  * Updated `boot-services-with-cli-data`, `boot-services-with-config`, and `boot-with-cli-data`
+    to return the `TrapperkeeperApp` instance rather than propagating the `Throwable`.
+* Updated example "Reloaded" pattern usage to use the new `check-for-errors!` 
+  function on the `TrapperkeeperApp` instance to detect any errors that may have occurred 
+  while services were being bootstrapped.
+
 ## 0.3.12
 
 This is a maintenance release.

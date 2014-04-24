@@ -1147,12 +1147,13 @@ your app in a REPL:
                               {:logging-config "examples/my_app/logback.xml"}
                              :webserver {:port 8080}
                              :example   {:my-app-config-value "FOO"}})))
-  (tka/check-for-errors! (alter-var-root #'system tka/init)))
+  (alter-var-root #'system tka/init)
+  (tka/check-for-errors! system))
 
 (defn start []
-  (tka/check-for-errors!
-    (alter-var-root #'system
-                    (fn [s] (if s (tka/start s))))))
+  (alter-var-root #'system
+                  (fn [s] (if s (tka/start s))))
+  (tka/check-for-errors! system))
 
 (defn stop []
   (alter-var-root #'system

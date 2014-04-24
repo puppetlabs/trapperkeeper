@@ -90,9 +90,7 @@
                                                         #(throw
                                                           (Throwable.
                                                             "oops"))))))
-          app               (bootstrap-services-with-empty-config
-                              [test-service]
-                              true)
+          app               (tk/boot-services-with-config [test-service] {})
           test-svc          (get-service app :ShutdownTestServiceWithFn)
           main-thread       (future (tk/run-app app))]
       (is (false? @shutdown-called?))
@@ -104,7 +102,7 @@
 
   (defn bootstrap-and-validate-shutdown
     [services shutdown-called? expected-exception-message]
-    (let [app         (bootstrap-services-with-empty-config services true)
+    (let [app         (tk/boot-services-with-config services {})
           main-thread (future (tk/run-app app))]
         (is (thrown-with-msg?
               ExecutionException
@@ -119,7 +117,7 @@
     (logging/with-test-logging
       (let [shutdown-called? (atom false)
             test-service     (service ShutdownTestService
-                                      [[:ShutdownService shutdown-on-error]]
+                                      []
                                       (init [this context]
                                             (throw (Throwable. "oops"))
                                             context)
@@ -138,7 +136,7 @@
     (logging/with-test-logging
       (let [shutdown-called?  (atom false)
             test-service      (service ShutdownTestService
-                                       [[:ShutdownService shutdown-on-error]]
+                                       []
                                        (start [this context]
                                               (throw (Throwable. "oops"))
                                               context)
@@ -291,8 +289,7 @@
                            (init [this context]
                                  (shutdown-on-error nil nil nil)
                                  context))]
-        (is (not (nil? (bootstrap-services-with-empty-config [test-service]
-                                                             true))))))
+        (is (not (nil? (tk/boot-services-with-config [test-service] {}))))))
 
     (testing "passing `nil` instead of a function"
       (let [test-service (tk/service
@@ -300,8 +297,7 @@
                            (init [this context]
                                  (shutdown-on-error context nil)
                                  context))]
-        (is (not (nil? (bootstrap-services-with-empty-config [test-service]
-                                                             true))))))))
+        (is (not (nil? (tk/boot-services-with-config [test-service] {}))))))))
 
 (deftest app-check-for-errors!-tests
   (testing "check-for-errors! throws exception for shutdown-on-error in init"
@@ -312,9 +308,7 @@
                                             :ShutdownTestService
                                             #(throw (Throwable. "oops")))
                                           context))
-          app              (bootstrap-services-with-empty-config
-                             [test-service]
-                             true)]
+          app              (tk/boot-services-with-config [test-service] {})]
       (is (thrown-with-msg?
             Throwable
             #"oops"
@@ -322,13 +316,11 @@
           "Expected error not thrown for check-for-errors!")))
   (testing "check-for-errors! throws exception for error in init"
     (let [test-service     (service ShutdownTestService
-                                    [[:ShutdownService shutdown-on-error]]
+                                    []
                                     (init [this context]
                                           (throw (Throwable. "oops"))
                                           context))
-          app              (bootstrap-services-with-empty-config
-                             [test-service]
-                             true)]
+          app              (tk/boot-services-with-config [test-service] {})]
       (is (thrown-with-msg?
             Throwable
             #"oops"
@@ -342,9 +334,7 @@
                                             :ShutdownTestService
                                             #(throw (Throwable. "oops")))
                                           context))
-          app              (bootstrap-services-with-empty-config
-                             [test-service]
-                             true)]
+          app              (tk/boot-services-with-config [test-service] {})]
       (is (thrown-with-msg?
             Throwable
             #"oops"
@@ -352,13 +342,11 @@
           "Expected error not thrown for check-for-errors!")))
   (testing "check-for-errors! throws exception for error in start"
     (let [test-service     (service ShutdownTestService
-                                    [[:ShutdownService shutdown-on-error]]
+                                    []
                                     (start [this context]
                                           (throw (Throwable. "oops"))
                                           context))
-          app              (bootstrap-services-with-empty-config
-                             [test-service]
-                             true)]
+          app              (tk/boot-services-with-config [test-service] {})]
       (is (thrown-with-msg?
             Throwable
             #"oops"
@@ -366,11 +354,9 @@
           "Expected error not thrown for check-for-errors!")))
   (testing "check-for-errors! returns app when no shutdown-on-error occurs"
     (let [test-service     (service ShutdownTestService
-                                    [[:ShutdownService shutdown-on-error]]
+                                    []
                                     (init [this context]
                                           context))
-          app              (bootstrap-services-with-empty-config
-                             [test-service]
-                             true)]
+          app              (tk/boot-services-with-config [test-service] {})]
       (is (identical? app (check-for-errors! app))
           "app not returned for check-for-errors!"))))

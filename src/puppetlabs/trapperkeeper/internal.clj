@@ -340,7 +340,7 @@
    :post [(or (nil? %) (map? %))]}
   (get-shutdown-reason (a/get-service app :ShutdownService)))
 
-(defn app->shutdown-error-throwable-or-app
+(defn throw-app-error-if-exists!
   "For the supplied app, attempt to pull out a shutdown reason error.  If
   one is available, throw a Throwable with that error.  If not, just return
   the app instance that was provided."
@@ -393,55 +393,53 @@
 (defn build-app*
   "Given a list of services and a map of configuration data, build an instance
   of a TrapperkeeperApp.  Services are not yet initialized or started."
-  ([services config-data]
-    (build-app* services config-data (promise)))
-  ([services config-data shutdown-reason-promise]
-    {:pre  [(sequential? services)
-            (every? #(satisfies? s/ServiceDefinition %) services)
-            (map? config-data)]
-     :post [(satisfies? a/TrapperkeeperApp %)]}
-    (let [;; this is the application context for this app instance.  its keys
-          ;; will be the service ids, and values will be maps that represent the
-          ;; context for each individual service
-           app-context (atom {})
-           services (conj services
-                          (config-service config-data)
-                          (initialize-shutdown-service! app-context
-                                                        shutdown-reason-promise))
-           service-map (apply merge (map s/service-map services))
-           compiled-graph (compile-graph service-map)
-          ;; this gives us an ordered graph that we can use to call lifecycle
-          ;; functions in the correct order later
-           graph (g/->graph service-map)
-          ;; when we instantiate the graph, we pass in the context atom.
-           graph-instance (instantiate compiled-graph {:context app-context})
-          ;; here we build up a map of all of the services by calling the
-          ;; constructor for each one
-           services-by-id (into {} (map
-                                     (fn [sd] [(s/service-def-id sd)
-                                               ((s/service-constructor sd) graph-instance app-context)])
-                                     services))
-           ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
-      (swap! app-context assoc :services-by-id services-by-id)
-      (swap! app-context assoc :ordered-services ordered-services)
-      (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
-      ;; finally, create the app instance
-      (reify
-        a/TrapperkeeperApp
-        (a/get-service [this protocol] (services-by-id (keyword protocol)))
-        (a/service-graph [this] graph-instance)
-        (a/app-context [this] app-context)
-        (a/check-for-errors! [this] (app->shutdown-error-throwable-or-app
-                                      this))
-        (a/init [this]
-          (run-lifecycle-fns app-context s/init "init" ordered-services)
-          this)
-        (a/start [this]
-          (run-lifecycle-fns app-context s/start "start" ordered-services)
-          this)
-        (a/stop [this]
-          (shutdown! app-context)
-          this)))))
+  [services config-data shutdown-reason-promise]
+  {:pre  [(sequential? services)
+          (every? #(satisfies? s/ServiceDefinition %) services)
+          (map? config-data)]
+   :post [(satisfies? a/TrapperkeeperApp %)]}
+  (let [;; this is the application context for this app instance.  its keys
+        ;; will be the service ids, and values will be maps that represent the
+        ;; context for each individual service
+         app-context (atom {})
+         services (conj services
+                        (config-service config-data)
+                        (initialize-shutdown-service! app-context
+                                                      shutdown-reason-promise))
+         service-map (apply merge (map s/service-map services))
+         compiled-graph (compile-graph service-map)
+        ;; this gives us an ordered graph that we can use to call lifecycle
+        ;; functions in the correct order later
+         graph (g/->graph service-map)
+        ;; when we instantiate the graph, we pass in the context atom.
+         graph-instance (instantiate compiled-graph {:context app-context})
+        ;; here we build up a map of all of the services by calling the
+        ;; constructor for each one
+         services-by-id (into {} (map
+                                   (fn [sd] [(s/service-def-id sd)
+                                             ((s/service-constructor sd) graph-instance app-context)])
+                                   services))
+         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
+    (swap! app-context assoc :services-by-id services-by-id)
+    (swap! app-context assoc :ordered-services ordered-services)
+    (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
+    ;; finally, create the app instance
+    (reify
+      a/TrapperkeeperApp
+      (a/get-service [this protocol] (services-by-id (keyword protocol)))
+      (a/service-graph [this] graph-instance)
+      (a/app-context [this] app-context)
+      (a/check-for-errors! [this] (throw-app-error-if-exists!
+                                    this))
+      (a/init [this]
+        (run-lifecycle-fns app-context s/init "init" ordered-services)
+        this)
+      (a/start [this]
+        (run-lifecycle-fns app-context s/start "start" ordered-services)
+        this)
+      (a/stop [this]
+        (shutdown! app-context)
+        this))))
 
 (defn boot-services*
   "Given the services to run and the map of configuration data, create the

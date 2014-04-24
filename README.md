@@ -948,7 +948,8 @@ There is a protocol that represents a Trapperkeeper application:
   (check-for-errors! [this] (str "Check for any errors which have occurred in "
                                    "the bootstrap process.  If any have "
                                    "occurred, throw a `java.lang.Throwable` with "
-                                   "the contents of the error.")
+                                   "the contents of the error.  If none have "
+                                   "occurred, return the input parameter.")
   (init [this] "Initialize the services")
   (start [this] "Start the services")
   (stop [this] "Stop the services"))
@@ -1121,10 +1122,14 @@ that shows some utility functions to use in the REPL to interact with your appli
 Trapperkeeper was designed with this pattern in mind as a goal.  Thus, it's
 entirely possible to write some very similar code that allows you to start/stop/reload
 your app in a REPL:
+
 ```clj
 (ns examples.my-app.repl
-  (:require [puppetlabs.trapperkeeper.services.webserver.jetty9-service :refer [jetty9-service]]
-            [examples.my-app.services :refer [count-service foo-service baz-service]]
+  (:require [puppetlabs.trapperkeeper.services.webserver.jetty9-service
+              :refer [jetty9-service]]
+            [examples.my-app.services
+              :refer [count-service foo-service baz-service]]
+            [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.app :as tka]
             [clojure.tools.namespace.repl :refer (refresh)]))
 
@@ -1133,21 +1138,25 @@ your app in a REPL:
 
 (defn init []
   (alter-var-root #'system
-    (fn [_] (let [app (tkc/build-app
-                        [jetty9-service count-service foo-service baz-service]
-                        {:global    {:logging-config "examples/my_app/logback.xml"}
-                         :webserver {:port 8080}
-                         :example   {:my-app-config-value "FOO"}})])))
-  (-> (alter-var-root #'system tka/init)
-      (tka/check-for-errors!)))
+                  (fn [_] (tk/build-app
+                            [jetty9-service
+                             count-service
+                             foo-service
+                             baz-service]
+                            {:global
+                              {:logging-config "examples/my_app/logback.xml"}
+                             :webserver {:port 8080}
+                             :example   {:my-app-config-value "FOO"}})))
+  (tka/check-for-errors! (alter-var-root #'system tka/init)))
 
 (defn start []
-  (-> (alter-var-root #'system tka/start)
-      (tka/check-for-errors!)))
+  (tka/check-for-errors!
+    (alter-var-root #'system
+                    (fn [s] (if s (tka/start s))))))
 
 (defn stop []
   (alter-var-root #'system
-    (fn [s] (when s (tka/stop s)))))
+                  (fn [s] (when s (tka/stop s)))))
 
 (defn go []
   (init)
@@ -1162,7 +1171,7 @@ your app in a REPL:
 
 (defn reset []
   (stop)
-  (refresh :after 'examples.ring-app.repl/go))
+  (refresh :after 'examples.my-app.repl/go))
 ```
 
 For a working example, see the `repl` namespace in the

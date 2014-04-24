@@ -8,7 +8,8 @@
   (check-for-errors! [this] (str "Check for any errors which have occurred in "
                                  "the bootstrap process.  If any have "
                                  "occurred, throw a `java.lang.Throwable` with "
-                                 "the contents of the error."))
+                                 "the contents of the error.  If none have "
+                                 "occurred, return the input parameter."))
   (init [this] "Initialize the services")
   (start [this] "Start the services")
   (stop [this] "Stop the services"))

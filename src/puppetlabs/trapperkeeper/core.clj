@@ -164,4 +164,6 @@
       (println (:message m))
       (case (without-ns (:type m))
         :cli-error (System/exit 1)
-        :cli-help  (System/exit 0)))))
+        :cli-help  (System/exit 0)))
+    (finally
+      (shutdown-agents))))

@@ -8,7 +8,7 @@ freenode: #trapperkeeper
 
 Add the following dependency to your `project.clj` file:
 
-    [puppetlabs/trapperkeeper "0.3.12"]
+    [puppetlabs/trapperkeeper "0.4.0"]
 
 ## Overview
 

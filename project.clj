@@ -1,6 +1,6 @@
 (def ks-version "0.7.1")
 
-(defproject puppetlabs/trapperkeeper "0.4.1-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "0.4.1"
   :description "We are trapperkeeper.  We are one."
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.

@@ -1,3 +1,12 @@
+## 0.4.1
+
+This is a maintenance/bugfix release.
+
+* Fix a minor bug in testutils/logging where we inadvertently changed the return value of
+  log statements.
+* Add an explicit call to `shutdown-agents` on trapperkeeper exit, to prevent the JVM from
+  hanging for 60 seconds on shutdown (if any services were using `future`).
+
 ## 0.4.0
 
 This release includes improved error handling and logic for shutting down Trapperkeeper applications.

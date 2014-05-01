@@ -53,7 +53,8 @@
          (write! [_ lvl ex msg]
            (let [entry [(str log-ns) lvl ex msg]]
              (when debug (log-to-console entry))
-             (swap! output-atom conj entry))))))))
+             (swap! output-atom conj entry)
+             nil)))))))
 
 (defn atom-appender
   "Creates a logback appender that writes log messages to the supplied atom"

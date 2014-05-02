@@ -7,8 +7,22 @@
 
 
 ;; If no port is specified in the config then 7888 is used
-(def ^{:private true} default-nrepl-port 7888)
-(def ^{:private true} default-bind-addr  "0.0.0.0")
+(def ^{:private true} default-nrepl-port  7888)
+(def ^{:private true} default-bind-addr   "0.0.0.0")
+(def ^{:private true} default-middlewares "[]")
+
+(defn- parse-middlewares-if-necessary
+  [middlewares]
+  (if (string? middlewares)
+    (read-string middlewares)
+    middlewares))
+
+(defn- process-middlewares [middlewares]
+  (let [middlewares (parse-middlewares-if-necessary middlewares)]
+    (doseq [middleware (map #(symbol (namespace %)) middlewares)]
+      (require middleware))
+    (let [resolved (map #(resolve %) middlewares)]
+      (apply nrepl/default-handler resolved))))
 
 (defn process-config
   [get-in-config]
@@ -17,14 +31,15 @@
                  enabled?
                  (parse-bool enabled?)))
    :port     (get-in-config [:nrepl :port] default-nrepl-port)
-   :bind     (get-in-config [:nrepl :host] default-bind-addr)})
+   :bind     (get-in-config [:nrepl :host] default-bind-addr)
+   :handler  (process-middlewares (get-in-config [:nrepl :middlewares] default-middlewares))})
 
 (defn- startup-nrepl
   [get-in-config]
-  (let [{:keys [enabled? port bind]} (process-config get-in-config)]
+  (let [{:keys [enabled? port bind handler]} (process-config get-in-config)]
     (if enabled?
       (do (log/info "Starting nREPL service on" bind "port" port)
-          (nrepl/start-server :port port :bind bind))
+        (nrepl/start-server :port port :bind bind :handler handler))
       (log/info "nREPL service disabled, not starting"))))
 
 (defn- shutdown-nrepl

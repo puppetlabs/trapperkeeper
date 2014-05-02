@@ -28,3 +28,16 @@
                    (-> (repl/client conn 1000)
                        (repl/message {:op "eval" :code "(+ 1 1)"})
                        (repl/response-values))))))))
+
+(deftest test-nrepl-service
+  (testing "An nREPL service without middlewares has been started"
+    (with-app-with-config app
+      [nrepl-service]
+      {:nrepl {:port        7888
+               :host        "0.0.0.0"
+               :enabled     "true"
+               :middlewares []}}
+      (is (= [2] (with-open [conn (repl/connect :port 7888)]
+                   (-> (repl/client conn 1000)
+                       (repl/message {:op "eval" :code "(+ 1 1)"})
+                       (repl/response-values))))))))

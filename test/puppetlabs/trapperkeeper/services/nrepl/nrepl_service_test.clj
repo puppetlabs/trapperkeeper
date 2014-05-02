@@ -41,3 +41,15 @@
                    (-> (repl/client conn 1000)
                        (repl/message {:op "eval" :code "(+ 1 1)"})
                        (repl/response-values))))))))
+
+(deftest test-nrepl-service
+  (testing "An nREPL service with test middleware has been started"
+    (with-app-with-config app
+      [nrepl-service]
+      {:nrepl {:port        7888
+               :host        "0.0.0.0"
+               :enabled     "true"
+               :middlewares "[puppetlabs.trapperkeeper.services.nrepl.nrepl-test-send-middleware/send-test]"}}
+      (is (= "success" (with-open [conn (repl/connect :port 7888)]
+                         (:test (first (-> (repl/client conn 1000)
+                                           (repl/message {:op "middlewaretest"}))))))))))

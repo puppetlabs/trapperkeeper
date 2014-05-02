@@ -9,13 +9,13 @@
 ;; If no port is specified in the config then 7888 is used
 (def ^{:private true} default-nrepl-port  7888)
 (def ^{:private true} default-bind-addr   "0.0.0.0")
-(def ^{:private true} default-middlewares "[]")
+(def ^{:private true} default-middlewares [])
 
 (defn- parse-middlewares-if-necessary
   [middlewares]
   (if (string? middlewares)
     (read-string middlewares)
-    middlewares))
+    (map symbol middlewares)))
 
 (defn- process-middlewares [middlewares]
   (let [middlewares (parse-middlewares-if-necessary middlewares)]

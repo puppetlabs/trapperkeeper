@@ -23,12 +23,18 @@ indicates binding to all available interfaces.
 The port that the `nREPL` server is bound to. If no port is defined then the default value
 of `7888` is used.
 
+### `middlewares`
+
+A list of nREPL middlewares to load; for example, for compatibility with LightTable
+or other editors.
+
 ## Typical `config.ini` for nREPL
 
 ```ini
 [nrepl]
 port = 12345
 enabled = true
+middlewares = [lighttable.nrepl.handler/lighttable-ops]
 ```
 
 ## The `nREPL` server

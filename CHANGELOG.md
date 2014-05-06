@@ -1,3 +1,11 @@
+## 0.4.2
+
+This is a minor feature release.
+
+* Add a new configuration setting `middlewares` to the nREPL service, to allow
+  registration of nREPL middleware (e.g. for compatibility with LightTable).
+  (Thanks to `exi` for this contribution!)
+
 ## 0.4.1
 
 This is a maintenance/bugfix release.

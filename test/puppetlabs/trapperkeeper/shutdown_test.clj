@@ -69,11 +69,10 @@
                                            (reset! shutdown-called? true)
                                            context))
           app               (bootstrap-services-with-empty-config [test-service])
-          shutdown-svc      (get-service app :ShutdownService)
-          main-thread       (future (tk/run-app app))]
+          shutdown-svc      (get-service app :ShutdownService)]
       (is (false? @shutdown-called?))
       (internal/request-shutdown shutdown-svc)
-      (deref main-thread)
+      (tk/run-app app)
       (is (true? @shutdown-called?))))
 
   (testing (str "`shutdown-on-error` in custom function causes services to be "
@@ -91,23 +90,22 @@
                                                           (Throwable.
                                                             "oops"))))))
           app               (tk/boot-services-with-config [test-service] {})
-          test-svc          (get-service app :ShutdownTestServiceWithFn)
-          main-thread       (future (tk/run-app app))]
+          test-svc          (get-service app :ShutdownTestServiceWithFn)]
       (is (false? @shutdown-called?))
       (test-fn test-svc)
       (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.Throwable: oops"
-            (deref main-thread)))
+            Throwable
+            #"oops"
+            (tk/run-app app)))
       (is (true? @shutdown-called?))))
 
   (defn bootstrap-and-validate-shutdown
     [services shutdown-called? expected-exception-message]
-    (let [app         (tk/boot-services-with-config services {})
-          main-thread (future (tk/run-app app))]
+    (let [app         (tk/boot-services-with-config services {})]
         (is (thrown-with-msg?
-              ExecutionException
+              Throwable
               expected-exception-message
-              (deref main-thread))
+              (tk/run-app app))
             "tk run-app did not die with expected exception.")
         (is (true? @shutdown-called?)
             "Service shutdown was not called.")))
@@ -127,7 +125,7 @@
         (bootstrap-and-validate-shutdown
           [test-service]
           shutdown-called?
-          #"java.lang.Throwable")
+          #"oops")
         (is (logged? #"Error during service init!!!" :error)
             "Error message for service init not logged."))))
 
@@ -146,7 +144,7 @@
         (bootstrap-and-validate-shutdown
           [test-service]
           shutdown-called?
-          #"java.lang.Throwable")
+          #"oops")
         (is (logged? #"Error during service start!!!" :error)
             "Error message for service start not logged."))))
 
@@ -167,7 +165,7 @@
         (bootstrap-and-validate-shutdown
           [test-service]
           shutdown-called?
-          #"java.lang.Throwable")
+          #"oops")
         (is (logged? #"shutdown-on-error triggered because of exception!"
                      :error)
             "Error message for shutdown-on-error not logged."))))
@@ -190,7 +188,7 @@
         (bootstrap-and-validate-shutdown
           [test-service]
           shutdown-called?
-          #"java.lang.Throwable")
+          #"oops")
         (is (logged? #"shutdown-on-error triggered because of exception!"
                      :error)
             "Error message for shutdown-on-error not logged."))))
@@ -212,7 +210,7 @@
         (bootstrap-and-validate-shutdown
           [test-service]
           shutdown-called?
-          #"java.lang.Throwable")
+          #"oops")
         (is (logged? #"shutdown-on-error triggered because of exception!"
                      :error)
             "Error message for shutdown-on-error not logged."))))
@@ -235,7 +233,7 @@
         (bootstrap-and-validate-shutdown
           [test-service]
           shutdown-called?
-          #"java.lang.Throwable")
+          #"oops")
         (is (logged? #"shutdown-on-error triggered because of exception!"
                      :error)
             "Error message for shutdown-on-error not logged."))))
@@ -253,14 +251,14 @@
                                                                    #(throw (RuntimeException. "uh oh"))
                                                                    (fn [ctxt] (reset! on-error-fn-called? true)))))
           app                 (bootstrap-services-with-empty-config [broken-service])
-          test-svc            (get-service app :ShutdownTestServiceWithFn)
-          main-thread         (future (tk/run-app app))]
+          test-svc            (get-service app :ShutdownTestServiceWithFn)]
       (is (false? @shutdown-called?))
       (is (false? @on-error-fn-called?))
       (test-fn test-svc)
       (is (thrown-with-msg?
-            java.util.concurrent.ExecutionException #"java.lang.RuntimeException: uh oh"
-            (deref main-thread)))
+            RuntimeException
+            #"uh oh"
+            (tk/run-app app)))
       (is (true? @shutdown-called?))
       (is (true? @on-error-fn-called?))))
 
@@ -274,12 +272,12 @@
           app             (bootstrap-services-with-empty-config [broken-service])
           test-svc        (get-service app :ShutdownTestServiceWithFn)]
       (logging/with-test-logging
-        (let [main-thread (future (tk/run-app app))]
-          (test-fn test-svc)
-          (is (thrown-with-msg?
-                java.util.concurrent.ExecutionException #"java.lang.Throwable: foo"
-                (deref main-thread)))
-          (is (logged? #"Error occurred during shutdown" :error)))))))
+        (test-fn test-svc)
+        (is (thrown-with-msg?
+              Throwable
+              #"foo"
+              (tk/run-app app)))
+        (is (logged? #"Error occurred during shutdown" :error))))))
 
 (deftest shutdown-on-error-error-handling
   (testing "Shutdown-on-error should never throw an exception."

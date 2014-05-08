@@ -1,5 +1,4 @@
 (ns puppetlabs.trapperkeeper.shutdown-test
-  (:import (java.util.concurrent ExecutionException))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.app :refer [app-context
                                                   check-for-errors!

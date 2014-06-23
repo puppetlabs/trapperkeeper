@@ -39,7 +39,6 @@
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
                    :dependencies [[spyscope "0.1.4"]
-                                  [clj-http "0.5.3"]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]
                    :injections [(require 'spyscope.core)]}
 

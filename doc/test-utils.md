@@ -105,7 +105,7 @@ should be processed to build the actual application configuration:
 ```clj
 (with-app-with-cli-data app
    [test-service1 test-service2]
-   {:config "./test-resources/config.ini"}
+   {:config "./dev-resources/config.ini"}
    (let [test-svc  (get-service app :TestService1)]
       (is (= "baz" (t1/test-fn test-svc))))
 ```
@@ -117,7 +117,7 @@ This version accepts a vector of command line args:
 ```clj
 (with-app-with-cli-args app
    [test-service1 test-service2]
-   ["--config" "./test-resources/config.ini" "--debug"]
+   ["--config" "./dev-resources/config.ini" "--debug"]
    (let [test-svc  (get-service app :TestService1)]
       (is (= "baz" (t1/test-fn test-svc))))
 ```

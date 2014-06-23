@@ -19,12 +19,12 @@
 
 (deftest test-logging-configuration
   (testing "Calling `configure-logging!` with a logback.xml file"
-    (configure-logging! "./test-resources/logging/logback-debug.xml")
+    (configure-logging! "./dev-resources/logging/logback-debug.xml")
     (is (= (Level/DEBUG) (.getLevel (root-logger)))))
 
   (testing "Calling `configure-logging!` with another logback.xml file
             in case the default logging level is DEBUG"
-    (configure-logging! "./test-resources/logging/logback-warn.xml")
+    (configure-logging! "./dev-resources/logging/logback-warn.xml")
     (is (= (Level/WARN) (.getLevel (root-logger)))))
 
   (testing "a logging config file isn't required"

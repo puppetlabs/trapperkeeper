@@ -35,7 +35,7 @@
   (testing "TK can load and use service defined in plugin .jar"
     (let [app (bootstrap-with-empty-config
                 ["--plugins" "./plugin-test-resources/plugins"
-                 "--bootstrap-config" "./test-resources/bootstrapping/plugin/bootstrap.cfg"])
+                 "--bootstrap-config" "./dev-resources/bootstrapping/plugin/bootstrap.cfg"])
           service-fn (-> (service-graph app)
                          :PluginTestService
                          :moo)]

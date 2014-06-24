@@ -34,8 +34,7 @@
   ;; code that we have.
   :classifiers [["test" :testutils]]
 
-  :profiles {:dev {:test-paths ["test-resources"]
-                   :source-paths ["examples/shutdown_app/src"
+  :profiles {:dev {:source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
                    :dependencies [[spyscope "0.1.4"]

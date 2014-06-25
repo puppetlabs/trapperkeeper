@@ -79,11 +79,13 @@
 
   (testing "TK should allow the user to omit the --config arg"
     ;; Make sure args will be parsed if no --config arg is provided; will throw an exception if not
-    (parse-cli-args! []))
+    (parse-cli-args! [])
+    (is (true? true)))
 
   (testing "TK should use an empty config if none is specified"
     ;; Make sure data will be parsed if no path is provided; will throw an exception if not.
-    (config/parse-config-data {})))
+    (config/parse-config-data {})
+    (is (true? true))))
 
 (deftest test-cli-args
   (testing "debug mode is off by default"

@@ -87,8 +87,10 @@
            (get-in-config [this ks default] (get-in config ks default))))
 
 (defn parse-config-data
-  "Parses the .ini, .edn, .conf, .json, or .properties configuration file(s) and returns a map of configuration data.
-   If no configuration file is explicitly specified, will act as if it was given an empty configuration file."
+  "Parses the .ini, .edn, .conf, .json, or .properties configuration file(s)
+   and returns a map of configuration data. If no configuration file is
+   explicitly specified, will act as if it was given an empty configuration
+   file."
   [cli-data]
   {:post [(map? %)]}
   (let [debug? (or (:debug cli-data) false)]

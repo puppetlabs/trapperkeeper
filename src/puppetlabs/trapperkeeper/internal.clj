@@ -118,7 +118,7 @@
                      ["-b" "--bootstrap-config BOOTSTRAP-CONFIG-FILE" "Path to bootstrap config file"]
                      ["-c" "--config CONFIG-PATH" "Path to .ini file or directory of .ini files to be read and consumed by services"]
                      ["-p" "--plugins PLUGINS-DIRECTORY" "Path to directory plugin .jars"]]
-        required    [:config]]
+        required    []]
     (first (cli! cli-args specs required))))
 
 (defn run-lifecycle-fn!

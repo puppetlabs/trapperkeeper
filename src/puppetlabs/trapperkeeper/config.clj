@@ -91,9 +91,11 @@
   [cli-data]
   {:post [(map? %)]}
   (let [debug? (or (:debug cli-data) false)]
-    (-> (:config cli-data)
-        (parse-config-path)
-        (assoc :debug debug?))))
+    (if-not (contains? cli-data :config)
+      {:debug debug?}
+      (-> (:config cli-data)
+         (parse-config-path)
+         (assoc :debug debug?)))))
 
 (defn initialize-logging!
   "Initializes the logging system based on the configuration data."

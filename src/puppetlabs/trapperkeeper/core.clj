@@ -99,8 +99,7 @@
   Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
   block the main thread to wait for a shutdown event."
   [cli-data]
-  {:pre  [(map? cli-data)
-          (contains? cli-data :config)]
+  {:pre  [(map? cli-data)]
    :post [(satisfies? app/TrapperkeeperApp %)]}
   ;; There is a strict order of operations that need to happen here:
   ;; 1. parse config files

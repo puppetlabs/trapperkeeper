@@ -77,21 +77,13 @@
           (reset! got-expected-exception true)))
       (is (true? @got-expected-exception))))
 
-  (testing "Fails if config CLI arg is not specified"
-    ;; looks like `thrown-with-msg?` can't be used with slingshot. :(
-    (let [got-expected-exception (atom false)]
-      (try+
-        (parse-cli-args! [])
-        (catch map? m
-          (is (contains? m :type))
-          (is (= :cli-error (without-ns (:type m))))
-          (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
-          (is (contains? m :message))
-          (is (re-find
-                #"Missing required argument '--config'"
-                (m :message)))
-          (reset! got-expected-exception true)))
-      (is (true? @got-expected-exception)))))
+  (testing "TK should allow the user to omit the --config arg"
+    ;; Make sure args will be parsed if no --config arg is provided; will throw an exception if not
+    (parse-cli-args! []))
+
+  (testing "TK should use an empty config if none is specified"
+    ;; Make sure data will be parsed if no path is provided; will throw an exception if not.
+    (config/parse-config-data {})))
 
 (deftest test-cli-args
   (testing "debug mode is off by default"

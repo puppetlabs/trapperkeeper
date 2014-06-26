@@ -116,7 +116,9 @@
    :post [(map? %)]}
   (let [specs       [["-d" "--debug" "Turns on debug mode"]
                      ["-b" "--bootstrap-config BOOTSTRAP-CONFIG-FILE" "Path to bootstrap config file"]
-                     ["-c" "--config CONFIG-PATH" "Path to .ini file or directory of .ini files to be read and consumed by services"]
+                     ["-c" "--config CONFIG-PATH"
+                      (str "Path to a configuration file or directory of configuration files. "
+                           "See the documentation for a list of supported file types.")]
                      ["-p" "--plugins PLUGINS-DIRECTORY" "Path to directory plugin .jars"]]
         required    []]
     (first (cli! cli-args specs required))))

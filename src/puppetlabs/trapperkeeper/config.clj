@@ -87,13 +87,18 @@
            (get-in-config [this ks default] (get-in config ks default))))
 
 (defn parse-config-data
-  "Parses the .ini configuration file(s) and returns a map of configuration data."
+  "Parses the .ini, .edn, .conf, .json, or .properties configuration file(s)
+   and returns a map of configuration data. If no configuration file is
+   explicitly specified, will act as if it was given an empty configuration
+   file."
   [cli-data]
   {:post [(map? %)]}
   (let [debug? (or (:debug cli-data) false)]
-    (-> (:config cli-data)
-        (parse-config-path)
-        (assoc :debug debug?))))
+    (if-not (contains? cli-data :config)
+      {:debug debug?}
+      (-> (:config cli-data)
+         (parse-config-path)
+         (assoc :debug debug?)))))
 
 (defn initialize-logging!
   "Initializes the logging system based on the configuration data."

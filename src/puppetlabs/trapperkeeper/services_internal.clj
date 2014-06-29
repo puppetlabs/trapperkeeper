@@ -2,8 +2,15 @@
   (:require [clojure.walk :refer [postwalk]]
             [clojure.set :refer [difference union intersection]]
             [plumbing.core :refer [fnk]]
+            [schema.core :as schema]
             [puppetlabs.kitchensink.core :as ks]))
 
+(def ServiceSymbol
+  "For internal use only; this schema gives us a way to differentiate between
+  a symbol representing the name of a service, and a symbol representing the
+  name of the *protocol* for a service.  This is necessary because the `service`
+  macro accepts both as optional leading arguments when defining a service."
+  {:service-symbol (schema/pred symbol?)})
 
 (defn protocol?
   "A predicate to determine whether or not an object is a protocol definition"
@@ -81,6 +88,25 @@
                      (format
                        "Invalid service definition; first form must be protocol or dependency list; found '%s'"
                        (pr-str f)))))))
+
+(defn parse-service-forms!*
+  "Given the forms passed to the service macro, find the service symbol (if one
+  is provided), the service protocol (if one is provided), the dependency list,
+  and the function definitions.  Throws `IllegalArgumentException` if the forms
+  do not represent a valid service.  Returns a vector containing the symbol,
+  protocol, dependency list, and fn forms."
+  [forms]
+  {:pre [(seq? forms)]
+   :post [(seq? %)
+          (= 4 (count %))
+          ((some-fn nil? symbol?) (first %))
+          ((some-fn nil? symbol?) (second %))
+          (vector? (nth % 2))
+          (seq? (nth % 3))]}
+  (let [f (first forms)]
+    (if (nil? (schema/check ServiceSymbol f))
+      (cons (:service-symbol f) (find-prot-and-deps-forms! (rest forms)))
+      (cons nil (find-prot-and-deps-forms! forms)))))
 
 (defn validate-protocol-sym!
   "Given a var, validate that the var exists and that its value is a protocol.
@@ -272,10 +298,10 @@
   {:pre [(every? symbol? lifecycle-fn-names)
          (seq? forms)]
    :post [(map? %)
-          (= #{:service-protocol-sym :service-id :service-fn-names
+          (= #{:service-sym :service-protocol-sym :service-id :service-fn-names
                :dependencies :fns-map} (ks/keyset %))]}
-  (let [[service-protocol-sym dependencies fns]
-                          (find-prot-and-deps-forms! forms)
+  (let [[service-sym service-protocol-sym dependencies fns]
+                          (parse-service-forms!* forms)
         service-id        (get-service-id service-protocol-sym)
         service-fn-names  (get-service-fn-names service-protocol-sym)
 
@@ -285,7 +311,8 @@
                             lifecycle-fn-names
                             fns)]
 
-    {:service-protocol-sym  service-protocol-sym
+    {:service-sym           service-sym
+     :service-protocol-sym  service-protocol-sym
      :service-id            service-id
      :service-fn-names      service-fn-names
      :dependencies          dependencies

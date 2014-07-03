@@ -24,7 +24,10 @@
   "Common functions available to all services"
   (service-id [this] "An identifier for the service")
   (service-context [this] "Returns the context map for this service")
-  (get-service [this service-id] "Returns the service with the given service id"))
+  (get-service [this service-id] "Returns the service with the given service id")
+  (get-services [this] "Returns a sequence containing all of the services in the app")
+  (service-symbol [this] "The namespaced symbol of the service definition, or `nil`
+                          if no service symbol was provided."))
 
 (defprotocol ServiceDefinition
   "A service definition.  This protocol is for internal use only.  The service
@@ -53,7 +56,7 @@
   that may be specified includes whatever functions are defined by this service's
   protocol (if it has one), plus the list of functions in the `Lifecycle` protocol."
   [& forms]
-  (let [{:keys [service-protocol-sym service-id service-fn-names
+  (let [{:keys [service-sym service-protocol-sym service-id service-fn-names
                 dependencies fns-map]}
                       (si/parse-service-forms!
                         lifecycle-fn-names
@@ -109,6 +112,12 @@
                               (format
                                 "Call to 'get-service' failed; service '%s' does not exist."
                                 service-id)))))
+               (get-services [this]
+                 (-> @context#
+                     :services-by-id
+                     (dissoc :ConfigService :ShutdownService)
+                     vals))
+               (service-symbol [this] '~service-sym)
 
                Lifecycle
                ~@(si/protocol-fns lifecycle-fn-names fns-map)
@@ -119,6 +128,7 @@
 
 (defmacro defservice
   [svc-name & forms]
-  (let [[svc-name forms] (name-with-attributes svc-name forms)]
-    `(def ~svc-name (service ~@forms))))
+  (let [service-sym      (symbol (name (ns-name *ns*)) (name svc-name))
+        [svc-name forms] (name-with-attributes svc-name forms)]
+    `(def ~svc-name (service {:service-symbol ~service-sym} ~@forms))))
 

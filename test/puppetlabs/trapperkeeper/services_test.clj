@@ -1,8 +1,7 @@
 (ns puppetlabs.trapperkeeper.services-test
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.services :refer
-                [ServiceDefinition Service Lifecycle
-                 defservice service service-context]]
+                [defservice service] :as svcs]
             [puppetlabs.trapperkeeper.app :as app]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
                 [bootstrap-services-with-empty-config
@@ -11,6 +10,8 @@
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
+
+(defprotocol EmptyService)
 
 (defprotocol HelloService
   (hello [this msg]))
@@ -24,7 +25,7 @@
 
 (deftest test-satisfies-protocols
   (testing "creates a service definition"
-    (satisfies? ServiceDefinition hello-service))
+    (satisfies? svcs/ServiceDefinition hello-service))
 
   (let [app (bootstrap-services-with-empty-config [hello-service])]
     (testing "app satisfies protocol"
@@ -32,8 +33,8 @@
 
     (let [h-s (app/get-service app :HelloService)]
       (testing "service satisfies all protocols"
-        (is (satisfies? Lifecycle h-s))
-        (is (satisfies? Service h-s))
+        (is (satisfies? svcs/Lifecycle h-s))
+        (is (satisfies? svcs/Service h-s))
         (is (satisfies? HelloService h-s)))
 
       (testing "service functions behave as expected"
@@ -215,7 +216,7 @@
           s1  (app/get-service app :Service1)]
       (service1-fn s1)
       (is (= {:foo :bar} @sfn-context))
-      (is (= {:foo :bar} (service-context s1)))))
+      (is (= {:foo :bar} (svcs/service-context s1)))))
 
   (testing "context works correctly in injected functions"
     (let [service1 (service Service1
@@ -252,6 +253,32 @@
 
           app (bootstrap-services-with-empty-config [service1 service2])]
       (is (= {} @s2-context)))))
+
+(deftest service-symbol-test
+  (testing "service defined via `defservice` has a service symbol"
+    (with-app-with-empty-config app [hello-service]
+      (let [svc (app/get-service app :HelloService)]
+        (is (= (symbol "puppetlabs.trapperkeeper.services-test" "hello-service")
+               (svcs/service-symbol svc))))))
+  (testing "service defined via `service` does not have a service symbol"
+    (let [empty-svc (service EmptyService [])]
+      (with-app-with-empty-config app [empty-svc]
+        (let [svc (app/get-service app :EmptyService)]
+          (is (= :EmptyService (svcs/service-id svc)))
+          (is (nil? (svcs/service-symbol svc))))))))
+
+(deftest get-services-test
+  (testing "get-services should return all services"
+    (let [empty-service (service EmptyService [])]
+      (with-app-with-empty-config app [empty-service hello-service]
+        (let [empty (app/get-service app :EmptyService)
+              hello (app/get-service app :HelloService)]
+          (doseq [s [empty hello]]
+            (let [all-services (svcs/get-services s)]
+              (is (= 2 (count all-services)))
+              (is (every? #(satisfies? svcs/Service %) all-services))
+              (is (= #{:EmptyService :HelloService}
+                     (set (map svcs/service-id all-services)))))))))))
 
 (deftest minimal-services-test
   (testing "minimal services can be defined without a protocol"

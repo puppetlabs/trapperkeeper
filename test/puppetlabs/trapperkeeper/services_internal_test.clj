@@ -3,8 +3,11 @@
             [plumbing.fnk.pfnk :as pfnk]
             [schema.core :as schema]
             [schema.test :as schema-test]
-            [puppetlabs.trapperkeeper.services :refer [service service-map]]
-            [puppetlabs.trapperkeeper.services-internal :as si]))
+            [puppetlabs.trapperkeeper.app :as app]
+            [puppetlabs.trapperkeeper.services :refer [service service-map] :as svcs]
+            [puppetlabs.trapperkeeper.services-internal :as si]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer
+             [with-app-with-empty-config]]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -159,3 +162,13 @@
         (is (= provides {:init schema/Any, :service2-fn schema/Any,
                          :start schema/Any, :stop schema/Any}))
         (is (= "Bar!" (s2-fn)))))))
+
+(defprotocol EmptyService)
+
+(deftest explicit-service-symbol-test
+  (testing "can explicitly pass `service` a service symbol via internal API"
+    (let [empty-service (service {:service-symbol foo/bar} EmptyService [])]
+      (with-app-with-empty-config app [empty-service]
+        (let [svc (app/get-service app :EmptyService)]
+          (is (= :EmptyService (svcs/service-id svc)))
+          (is (= (symbol "foo" "bar") (svcs/service-symbol svc))))))))

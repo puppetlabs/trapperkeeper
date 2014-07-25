@@ -1,3 +1,12 @@
+## 0.4.3
+
+This is a minor feature release.
+
+* Moved documentation to github wiki
+* Get rid of requirement for `--config` command-line argument
+* Add new `service-symbol` and `get-services` functions to protocols
+* Update dependencies
+
 ## 0.4.2
 
 This is a minor feature release.

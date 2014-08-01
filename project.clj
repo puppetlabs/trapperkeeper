@@ -10,7 +10,7 @@
                  [org.clojure/tools.logging "0.2.6"]
                  [puppetlabs/kitchensink ~ks-version]
                  [prismatic/plumbing "0.2.1"]
-                 [prismatic/schema "0.2.0"]
+                 [prismatic/schema "0.2.2"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.1.1"]

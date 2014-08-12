@@ -1,4 +1,5 @@
 (ns puppetlabs.trapperkeeper.services-internal-test
+  (:import (clojure.lang IFn))
   (:require [clojure.test :refer :all]
             [plumbing.fnk.pfnk :as pfnk]
             [schema.core :as schema]
@@ -13,16 +14,24 @@
 
 (deftest service-forms-test
   (testing "should support forms that include protocol"
-    (is (= ['Foo [] '()]
+    (is (= {:dependencies         []
+            :fns                  '()
+            :service-protocol-sym 'Foo}
            (si/find-prot-and-deps-forms! '(Foo [])))))
   (testing "should support forms that do not include protocol"
-    (is (= [nil [] '()]
+    (is (= {:dependencies         []
+            :fns                  '()
+            :service-protocol-sym nil}
            (si/find-prot-and-deps-forms! '([])))))
   (testing "result should include vector of fn forms if provided"
-    (is (= ['Foo [] '((fn1 [] "fn1") (fn2 [] "fn2"))]
+    (is (= {:dependencies         []
+            :fns                  '((fn1 [] "fn1") (fn2 [] "fn2"))
+            :service-protocol-sym 'Foo}
            (si/find-prot-and-deps-forms!
              '(Foo [] (fn1 [] "fn1") (fn2 [] "fn2")))))
-    (is (= [nil [] '((fn1 [] "fn1") (fn2 [] "fn2"))]
+    (is (= {:dependencies         []
+            :fns                  '((fn1 [] "fn1") (fn2 [] "fn2"))
+            :service-protocol-sym nil}
            (si/find-prot-and-deps-forms!
              '([] (fn1 [] "fn1") (fn2 [] "fn2"))))))
   (testing "should throw exception if the first form is not the protocol symbol or dependency vector"
@@ -139,9 +148,10 @@
             depends      (pfnk/input-schema service-fnk)
             provides     (pfnk/output-schema service-fnk)]
         (is (ifn? service-fnk))
-        (is (= depends  {schema/Keyword schema/Any, :context schema/Any}))
-        (is (= provides {:init schema/Any, :start schema/Any,
-                         :stop schema/Any, :service1-fn schema/Any})))
+        (is (= depends  {schema/Keyword schema/Any
+                         :tk-app-context schema/Any
+                         :tk-service-refs schema/Any}))
+        (is (= provides {:service1-fn IFn})))
 
       (is (map? s2-graph))
       (let [graph-keys (keys s2-graph)]
@@ -152,15 +162,16 @@
             depends      (pfnk/input-schema service-fnk)
             provides     (pfnk/output-schema service-fnk)
             fnk-instance (service-fnk {:Service1 {:service1-fn identity}
-                                       :context (atom {})})
+                                       :tk-app-context (atom {})
+                                       :tk-service-refs (atom {})})
             s2-fn        (:service2-fn fnk-instance)]
         (is (ifn? service-fnk))
-        (is (= depends {schema/Keyword schema/Any,
-                        :context schema/Any,
-                        :Service1 {schema/Keyword schema/Any,
-                                   :service1-fn schema/Any}}))
-        (is (= provides {:init schema/Any, :service2-fn schema/Any,
-                         :start schema/Any, :stop schema/Any}))
+        (is (= depends {schema/Keyword schema/Any
+                        :tk-app-context schema/Any
+                        :tk-service-refs schema/Any
+                        :Service1 {schema/Keyword schema/Any
+                                   :service1-fn   schema/Any}}))
+        (is (= provides {:service2-fn IFn}))
         (is (= "Bar!" (s2-fn)))))))
 
 (defprotocol EmptyService)

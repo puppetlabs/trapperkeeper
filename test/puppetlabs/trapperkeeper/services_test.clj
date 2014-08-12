@@ -25,7 +25,7 @@
 
 (deftest test-satisfies-protocols
   (testing "creates a service definition"
-    (satisfies? svcs/ServiceDefinition hello-service))
+    (is (satisfies? svcs/ServiceDefinition hello-service)))
 
   (let [app (bootstrap-services-with-empty-config [hello-service])]
     (testing "app satisfies protocol"
@@ -90,13 +90,13 @@
           service1 (service Service1
                             []
                             (init [this context]
-                                  (swap! test-context assoc :init-service-id (service-id this))
+                                  (swap! test-context assoc :init-service-id (svcs/service-id this))
                                   context)
                             (start [this context]
-                                   (swap! test-context assoc :start-service-id (service-id this))
+                                   (swap! test-context assoc :start-service-id (svcs/service-id this))
                                    context)
                             (stop [this context]
-                                  (swap! test-context assoc :stop-service-id (service-id this))
+                                  (swap! test-context assoc :stop-service-id (svcs/service-id this))
                                   context)
                             (service1-fn [this] nil))]
       (with-app-with-empty-config app [service1]
@@ -125,9 +125,9 @@
           service2 (service Service2
                             [[:Service1 service1-fn]]
                             (init [this context]
-                                  (let [s1 (get-service this :Service1)]
+                                  (let [s1 (svcs/get-service this :Service1)]
                                     (assoc context :s1 s1)))
-                            (service2-fn [this] ((service-context this) :s1)))
+                            (service2-fn [this] ((svcs/service-context this) :s1)))
           app               (bootstrap-services-with-empty-config [service1 service2])
           s2                (app/get-service app :Service2)
           s1                (service2-fn s2)]
@@ -137,7 +137,7 @@
   (testing "an error should be thrown if calling get-service on a non-existent service"
     (let [service1 (service Service1
                             []
-                            (service1-fn [this] (get-service this :NonExistent)))
+                            (service1-fn [this] (svcs/get-service this :NonExistent)))
           app               (bootstrap-services-with-empty-config [service1])
           s1                (app/get-service app :Service1)]
       (is (thrown-with-msg?
@@ -211,7 +211,7 @@
           service1 (service Service1
                             []
                             (init [this context] (assoc context :foo :bar))
-                            (service1-fn [this] (reset! sfn-context (service-context this))))
+                            (service1-fn [this] (reset! sfn-context (svcs/service-context this))))
           app (bootstrap-services-with-empty-config [service1])
           s1  (app/get-service app :Service1)]
       (service1-fn s1)
@@ -222,7 +222,7 @@
     (let [service1 (service Service1
                             []
                             (init [this context] (assoc context :foo :bar))
-                            (service1-fn [this] ((service-context this) :foo)))
+                            (service1-fn [this] ((svcs/service-context this) :foo)))
           service2 (service Service2
                             [[:Service1 service1-fn]]
                             (service2-fn [this] (service1-fn)))
@@ -234,7 +234,7 @@
     (let [service4 (service Service4
                             []
                             (init [this context] (assoc context :foo :bar))
-                            (service4-fn1 [this] ((service-context this) :foo))
+                            (service4-fn1 [this] ((svcs/service-context this) :foo))
                             (service4-fn2 [this] (service4-fn1 this)))
           app (bootstrap-services-with-empty-config [service4])
           s4  (app/get-service app :Service4)]
@@ -248,7 +248,7 @@
                             (service1-fn [this] "hi"))
           service2 (service Service2
                             [[:Service1 service1-fn]]
-                            (start [this context] (reset! s2-context (service-context this)))
+                            (start [this context] (reset! s2-context (svcs/service-context this)))
                             (service2-fn [this] "hi"))
 
           app (bootstrap-services-with-empty-config [service1 service2])]

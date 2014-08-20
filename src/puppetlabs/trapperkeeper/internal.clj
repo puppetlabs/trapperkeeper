@@ -417,8 +417,8 @@
         ;; when we instantiate the graph, we pass in the context atom.
          graph-instance (instantiate compiled-graph {:tk-app-context app-context
                                                      :tk-service-refs service-refs})
-        ;; here we build up a map of all of the services by calling the
-        ;; constructor for each one
+        ;; dereference the atom of service references, since we don't need to update it
+        ;; any further
          services-by-id @service-refs
          ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
     (swap! app-context assoc :services-by-id services-by-id)

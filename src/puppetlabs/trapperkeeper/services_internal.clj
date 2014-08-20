@@ -101,7 +101,6 @@
           (= #{:fns :dependencies :service-protocol-sym :service-sym}
              (set (keys %)))
           ((some-fn nil? symbol?) (:service-sym %))
-          ((some-fn nil? symbol?) (:service-sym %))
           ((some-fn nil? symbol?) (:service-protocol-sym %))
           (vector? (:dependencies %))
           (seq? (:fns %))]}

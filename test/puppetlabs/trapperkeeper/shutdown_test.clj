@@ -5,7 +5,7 @@
                                                   get-service]]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.internal :as internal]
-            [puppetlabs.trapperkeeper.services :refer [service]]
+            [puppetlabs.trapperkeeper.services :refer [service service-id]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
             [puppetlabs.trapperkeeper.testutils.logging :as logging]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))

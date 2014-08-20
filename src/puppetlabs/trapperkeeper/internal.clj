@@ -404,6 +404,7 @@
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service
          app-context (atom {})
+         service-refs (atom {})
          services (conj services
                         (config-service config-data)
                         (initialize-shutdown-service! app-context
@@ -414,13 +415,11 @@
         ;; functions in the correct order later
          graph (g/->graph service-map)
         ;; when we instantiate the graph, we pass in the context atom.
-         graph-instance (instantiate compiled-graph {:context app-context})
-        ;; here we build up a map of all of the services by calling the
-        ;; constructor for each one
-         services-by-id (into {} (map
-                                   (fn [sd] [(s/service-def-id sd)
-                                             ((s/service-constructor sd) graph-instance app-context)])
-                                   services))
+         graph-instance (instantiate compiled-graph {:tk-app-context app-context
+                                                     :tk-service-refs service-refs})
+        ;; dereference the atom of service references, since we don't need to update it
+        ;; any further
+         services-by-id @service-refs
          ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
     (swap! app-context assoc :services-by-id services-by-id)
     (swap! app-context assoc :ordered-services ordered-services)

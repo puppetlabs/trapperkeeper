@@ -3,7 +3,8 @@
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data with-app-with-cli-data]]
             [puppetlabs.trapperkeeper.app :refer [get-service]]
-            [puppetlabs.trapperkeeper.services :refer [defservice]]))
+            [puppetlabs.trapperkeeper.services :refer [defservice]]
+            [puppetlabs.trapperkeeper.config :refer [load-config]]))
 
 (defprotocol ConfigTestService
   (test-fn [this ks])
@@ -88,4 +89,17 @@
       (is (thrown-with-msg?
             IllegalArgumentException
             #"Duplicate configuration entry: \[:foo :baz\]"
-            (bootstrap-services-with-cli-data [test-service] {:config invalid-config-dir}))))))
+            (bootstrap-services-with-cli-data [test-service] {:config invalid-config-dir})))))
+
+  (testing "Can call load-config directly"
+    (is (= {:taco  {:burrito         [1, 2]
+                    :nacho           "cheese"}
+            :foo   {:bar             "barbar"
+                    :baz             "bazbaz"
+                    :meaningoflife   42}
+            :baz   {:setting1        "baz1"
+                    :setting2        "baz2"}
+            :bar   {:nesty           {:mappy {:hi "there"
+                                              :stuff [1 2 {:how "areyou"} 3]}}
+                    :junk            "thingz"}}
+           (load-config "./dev-resources/config/mixeddir")))))

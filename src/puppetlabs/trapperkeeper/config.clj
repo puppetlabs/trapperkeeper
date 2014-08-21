@@ -56,6 +56,10 @@
 ;;; Public
 
 (defn load-config
+  "Given a path to a configuration file or directory of configuration files,
+  parse the config files and build up a trapperkeeper config map.  Can be used
+  to implement CLI tools that need access to trapperkeeper config data but
+  don't need to boot the full TK framework."
   [path]
   (when-not (.canRead (io/file path))
     (throw (FileNotFoundException.

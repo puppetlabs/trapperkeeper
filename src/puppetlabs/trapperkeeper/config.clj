@@ -52,7 +52,10 @@
     #{".edn"}
     (edn/read (PushbackReader. (io/reader file)))))
 
-(defn parse-config-path
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
+
+(defn load-config
   [path]
   (when-not (.canRead (io/file path))
     (throw (FileNotFoundException.
@@ -71,9 +74,6 @@
                   (throw (IllegalArgumentException.
                            (str "Duplicate configuration entry: " ks)))))
          (merge {}))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Public
 
 (defn config-service
   "Returns trapperkeeper's configuration service.  Expects
@@ -97,7 +97,7 @@
     (if-not (contains? cli-data :config)
       {:debug debug?}
       (-> (:config cli-data)
-         (parse-config-path)
+         (load-config)
          (assoc :debug debug?)))))
 
 (defn initialize-logging!

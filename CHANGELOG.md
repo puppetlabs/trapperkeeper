@@ -1,3 +1,11 @@
+## 0.5.0
+
+This is a feature release with a minor breaking API change.
+
+* Changed schema version to support the Bool type
+* Improve implementation of the `service` macro
+* Formalize public function for loading config
+
 ## 0.4.3
 
 This is a minor feature release.

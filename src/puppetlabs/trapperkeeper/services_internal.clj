@@ -40,7 +40,7 @@
        (every? fn-sig? (apply concat (vals m)))))
 
 (defn var->symbol
-  "Returns a symbol with the namespace name of a given var"
+  "Returns a symbol for the var, including its namespace"
   [fn-var]
   {:pre [(var? fn-var)]
    :post [(symbol? %)]}

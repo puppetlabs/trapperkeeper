@@ -39,6 +39,14 @@
        (every? seq? (vals m))
        (every? fn-sig? (apply concat (vals m)))))
 
+(defn var->symbol
+  "Returns a symbol for the var, including its namespace"
+  [fn-var]
+  {:pre [(var? fn-var)]
+   :post [(symbol? %)]}
+  (symbol (str (-> fn-var meta :ns .name))
+          (str (-> fn-var meta :name))))
+
 (defn validate-fn-forms!
   "Validate that all of the fn forms in the service body appear to be
   valid fn definitions.  Throws `IllegalArgumentException` otherwise."
@@ -134,13 +142,13 @@
   {:pre [(symbol? service-protocol-sym)
          (every? symbol? service-fn-names)
          (every? symbol? lifecycle-fn-names)]}
-  (let [collisions (intersection (set service-fn-names)
-                                 (set lifecycle-fn-names))]
+  (let [collisions (intersection (set (map name service-fn-names))
+                                 (set (map name lifecycle-fn-names)))]
     (if-not (empty? collisions)
       (throw (IllegalArgumentException.
                (format "Service protocol '%s' includes function named '%s', which conflicts with lifecycle function by same name"
                        (name service-protocol-sym)
-                       (name (first collisions))))))))
+                       (first collisions)))))))
 
 (defn validate-provided-fns!
   "Validate that the seq of fns specified in a service body does not include
@@ -158,7 +166,7 @@
              (format
                "Service attempts to define function '%s', but does not provide protocol"
                (name (first provided-fns))))))
-  (let [extras (difference provided-fns ^{:fs 3} service-fns)]
+  (let [extras (difference provided-fns service-fns)]
     (when-not (empty? extras)
       (throw (IllegalArgumentException.
                (format
@@ -175,10 +183,11 @@
          (every? symbol? required-fn-names)
          (symbol? protocol-sym)]}
   (doseq [fn-name required-fn-names]
-    (if-not (contains? fns-map (keyword fn-name))
-      (throw (IllegalArgumentException.
-               (format "Service does not define function '%s', which is required by protocol '%s'"
-                       fn-name (name protocol-sym)))))))
+    (let [fn-name (ks/without-ns (keyword fn-name))]
+      (if-not (contains? fns-map fn-name)
+        (throw (IllegalArgumentException.
+                 (format "Service does not define function '%s', which is required by protocol '%s'"
+                         (name fn-name) (name protocol-sym))))))))
 
 (defn add-default-lifecycle-fn
   "Given a map of fns defined by a service, and the name of a lifecycle function,
@@ -220,7 +229,7 @@
           (every? seq? %)]}
   (reduce
     (fn [acc fn-name]
-      (let [sigs (fns-map (keyword fn-name))]
+      (let [sigs (fns-map (ks/without-ns (keyword fn-name)))]
         (concat acc sigs)))
     '()
     fn-names))
@@ -270,7 +279,7 @@
          (every? seq? fns)]
    :post [(fns-map? %)
           (= (ks/keyset %)
-             (union (set (map keyword service-fn-names))
+             (union (set (map (comp ks/without-ns keyword) service-fn-names))
                     (set (map keyword lifecycle-fn-names))))]}
 
   (when service-protocol-sym
@@ -299,9 +308,9 @@
                   (add-default-lifecycle-fns lifecycle-fn-names))]
     (validate-provided-fns!
       service-protocol-sym
-      (set (map keyword service-fn-names))
+      (set (map (comp ks/without-ns keyword) service-fn-names))
       (difference (ks/keyset fns-map)
-                  (set (map keyword lifecycle-fn-names))))
+                  (set (map (comp ks/without-ns keyword) lifecycle-fn-names))))
     (when service-protocol-sym
       (validate-required-fns! service-protocol-sym service-fn-names fns-map))
     fns-map))
@@ -326,17 +335,17 @@
   {:pre [((some-fn nil? symbol?) service-protocol-sym)]
    :post [(map? %)
           (every? keyword? (keys %))
-          (every? ifn? (vals %))]}
-  (let [service-protocol  (if service-protocol-sym
-                            (validate-protocol-sym!
-                              service-protocol-sym
-                              (resolve service-protocol-sym)))]
-    (if service-protocol
+          (every? symbol? (vals %))]}
+  (if service-protocol-sym
+    (let [service-protocol-var  (resolve service-protocol-sym)
+          service-protocol      (validate-protocol-sym!
+                                  service-protocol-sym
+                                  service-protocol-var)]
       (reduce (fn [acc fn-name]
-                (assoc acc (keyword fn-name) fn-name))
+                (assoc acc (keyword (name fn-name)) fn-name))
               {}
-              (mapv :name (vals (:sigs service-protocol))))
-      {})))
+              (mapv var->symbol (keys (:method-builders service-protocol)))))
+    {}))
 
 (defn parse-service-forms!
   "Parse the forms provided to the `service` macro.  Return a map
@@ -344,7 +353,7 @@
 
   :service-protocol-sym - the service protocol symbol (or nil if there is no protocol)
   :service-id           - a unique identifier (keyword) for the service
-  :service-fn-names     - a list of symbols for the names of the functions provided by the protocol
+  :service-fn-map       - a map of symbols for the names of the functions provided by the protocol
   :dependencies         - a vector specifying the dependencies of the service
   :fns-map              - a map of all of the fn definition forms in the service"
   [lifecycle-fn-names forms]

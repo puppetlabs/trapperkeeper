@@ -1,3 +1,8 @@
+## 0.5.1
+
+This is a bugfix release.
+* Fix a bug that prevented `defservice` from working with protocols that were defined in a different namespace.
+
 ## 0.5.0
 
 This is a feature release with a minor breaking API change.

@@ -171,30 +171,35 @@
           s4        (app/get-service app :Service4)]
       (is (= "foo! bar!" (service4-fn2 s4))))))
 
+(defservice service1
+  Service1
+  []
+  (init [this context] "hi")
+  (service1-fn [this] "hi"))
+
+(defservice service1-alt
+  Service1
+  []
+  (start [this context] "hi")
+  (service1-fn [this] "hi"))
+
 (deftest context-test
   (testing "should error if lifecycle function doesn't return context"
-    (let [service1 (service Service1
-                            []
-                            (init [this context] "hi")
-                            (service1-fn [this] "hi"))]
-      (is (thrown-with-msg?
-            IllegalStateException
-            (re-pattern (str "Lifecycle function 'init' for service ':Service1'"
-                             " must return a context map \\(got: \"hi\"\\)"))
-            (bootstrap-services-with-empty-config [service1]))
-          "Unexpected shutdown reason for bootstrap"))
-    (let [service1 (service Service1
-                            []
-                            (start [this context] "hi")
-                            (service1-fn [this] "hi"))]
-
-      (is (thrown-with-msg?
-            IllegalStateException
-            (re-pattern (str "Lifecycle function 'start' for service "
-                             "':Service1' must return a context map "
-                             "\\(got: \"hi\"\\)"))
-            (bootstrap-services-with-empty-config [service1]))
-          "Unexpected shutdown reason for bootstrap")))
+    (is (thrown-with-msg?
+          IllegalStateException
+          (re-pattern (str "Lifecycle function 'init' for service "
+                           "'puppetlabs.trapperkeeper.services-test/service1'"
+                           " must return a context map \\(got: \"hi\"\\)"))
+          (bootstrap-services-with-empty-config [service1]))
+        "Unexpected shutdown reason for bootstrap")
+    (is (thrown-with-msg?
+          IllegalStateException
+          (re-pattern (str "Lifecycle function 'start' for service "
+                           "'puppetlabs.trapperkeeper.services-test/service1-alt'"
+                           " must return a context map "
+                           "\\(got: \"hi\"\\)"))
+          (bootstrap-services-with-empty-config [service1-alt]))
+        "Unexpected shutdown reason for bootstrap"))
 
   (testing "context should be available in subsequent lifecycle functions"
     (let [start-context (atom nil)

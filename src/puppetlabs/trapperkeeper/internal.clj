@@ -147,7 +147,7 @@
                (format
                  "Lifecycle function '%s' for service '%s' must return a context map (got: %s)"
                  lifecycle-fn-name
-                 service-id
+                 (str (s/service-symbol s))
                  (pr-str updated-ctxt)))))
     ;; store the updated service context map in the application context atom
     (swap! app-context assoc service-id updated-ctxt)))

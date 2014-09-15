@@ -7,6 +7,12 @@ This is a bugfix release.
 
 This is a feature release with a minor breaking API change.
 
+* The breaking API change affects the functions defined in the
+  `puppetlabs.trapperkeeper.services/Service` protocol - namely, `service-context`.
+  References to these functions are no longer automatically in scope inside a 
+  `service` or `defservice` definition as they were previously (via macro magic),
+  and they must be `require`d like any other function - 
+  `(require '[puppetlabs.trapperkeeper.services :refer [service-context]])`.
 * Changed schema version to support the Bool type
 * Improve implementation of the `service` macro
 * Formalize public function for loading config

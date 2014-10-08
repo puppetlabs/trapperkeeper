@@ -9,9 +9,7 @@ You can think of it as a sort of "binder" for Ring applications and other modula
 
 Add the following dependency to your `project.clj` file:
 
-```clj
-[puppetlabs/trapperkeeper "0.5.0"]
-```
+[![Clojars Project](http://clojars.org/puppetlabs/trapperkeeper/latest-version.svg)](http://clojars.org/puppetlabs/trapperkeeper)
 
 ## Community
 

@@ -1,6 +1,6 @@
 (ns puppetlabs.trapperkeeper.core
   (:require [clojure.tools.logging :as log]
-            [slingshot.slingshot :refer [try+]]
+            [slingshot.slingshot :refer [try+ throw+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.app :as app]
@@ -160,9 +160,11 @@
         (internal/parse-cli-args!)
         (run))
     (catch map? m
-      (println (:message m))
       (case (without-ns (:type m))
-        :cli-error (System/exit 1)
-        :cli-help  (System/exit 0)))
+        :cli-error ((println (:message m))
+                    (System/exit 1))
+        :cli-help ((println (:message m))
+                   (System/exit 0))
+        (throw+ m)))
     (finally
       (shutdown-agents))))

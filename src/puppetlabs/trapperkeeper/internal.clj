@@ -413,24 +413,24 @@
   (let [;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service
-         app-context (atom {})
-         service-refs (atom {})
-         services (conj services
-                        (config-service config-data)
-                        (initialize-shutdown-service! app-context
-                                                      shutdown-reason-promise))
-         service-map (apply merge (map s/service-map services))
-         compiled-graph (compile-graph service-map)
+        app-context (atom {})
+        service-refs (atom {})
+        services (conj services
+                       (config-service config-data)
+                       (initialize-shutdown-service! app-context
+                                                     shutdown-reason-promise))
+        service-map (apply merge (map s/service-map services))
+        compiled-graph (compile-graph service-map)
         ;; this gives us an ordered graph that we can use to call lifecycle
         ;; functions in the correct order later
-         graph (g/->graph service-map)
+        graph (g/->graph service-map)
         ;; when we instantiate the graph, we pass in the context atom.
-         graph-instance (instantiate compiled-graph {:tk-app-context app-context
-                                                     :tk-service-refs service-refs})
+        graph-instance (instantiate compiled-graph {:tk-app-context app-context
+                                                    :tk-service-refs service-refs})
         ;; dereference the atom of service references, since we don't need to update it
         ;; any further
-         services-by-id @service-refs
-         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
+        services-by-id @service-refs
+        ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
     (swap! app-context assoc :services-by-id services-by-id)
     (swap! app-context assoc :ordered-services ordered-services)
     (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))

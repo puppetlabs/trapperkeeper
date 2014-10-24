@@ -4,7 +4,10 @@
             [puppetlabs.trapperkeeper.plugins :refer :all]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.app :refer [get-service service-graph]]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config]]))
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config]]
+            [schema.test :as schema-test]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (deftest test-jars-in-dir
   (let [jars (jars-in-dir (file "plugin-test-resources/plugins"))]

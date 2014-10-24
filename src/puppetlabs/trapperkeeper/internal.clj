@@ -7,7 +7,8 @@
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
-            [puppetlabs.trapperkeeper.services :as s]))
+            [puppetlabs.trapperkeeper.services :as s]
+            [puppetlabs.kitchensink.core :as ks]))
 
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
@@ -77,7 +78,16 @@
                                           (:service-name error-info))))
         (throw e))
 
-      (throw e))))
+      (if (sequential? (:error data))
+        (let [missing-services (keys (ks/filter-map
+                                       (fn [_ v] (= v 'missing-required-key))
+                                       (.error (first (:error data)))))]
+          (if (= 1 (count missing-services))
+            (throw (RuntimeException.
+                     (format "Service '%s' not found" (first missing-services))))
+            (throw (RuntimeException.
+                     (format "Services '%s' not found" missing-services)))))
+        (throw e)))))
 
 (defn compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.

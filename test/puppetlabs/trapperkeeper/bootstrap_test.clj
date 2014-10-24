@@ -10,7 +10,10 @@
             [puppetlabs.trapperkeeper.bootstrap :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]
-            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn hello-world]]))
+            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn hello-world]]
+            [schema.test :as schema-test]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (deftest bootstrapping
   (testing "Valid bootstrap configurations"

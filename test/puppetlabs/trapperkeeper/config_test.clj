@@ -4,7 +4,10 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data with-app-with-cli-data]]
             [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.services :refer [defservice]]
-            [puppetlabs.trapperkeeper.config :refer [load-config]]))
+            [puppetlabs.trapperkeeper.config :refer [load-config]]
+            [schema.test :as schema-test]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (defprotocol ConfigTestService
   (test-fn [this ks])

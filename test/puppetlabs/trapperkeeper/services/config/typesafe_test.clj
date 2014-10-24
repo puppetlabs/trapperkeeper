@@ -1,6 +1,9 @@
 (ns puppetlabs.trapperkeeper.services.config.typesafe-test
   (:require [puppetlabs.config.typesafe :as ts]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [schema.test :as schema-test]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (deftest configfile->map-test
   (testing "can parse .properties file with nested data structures"

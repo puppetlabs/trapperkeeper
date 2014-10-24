@@ -2,7 +2,10 @@
   (:require [clojure.test :refer :all]
             [clojure.tools.nrepl :as repl]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [with-app-with-config]]
-            [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]))
+            [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]
+            [schema.test :as schema-test]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (deftest test-nrepl-config
   (letfn [(process-config-fn [enabled]

@@ -8,9 +8,10 @@
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.config :as config]
-            [puppetlabs.trapperkeeper.testutils.logging :as logging]))
+            [puppetlabs.trapperkeeper.testutils.logging :as logging]
+            [schema.test :as schema-test]))
 
-(use-fixtures :each logging/reset-logging-config-after-test)
+(use-fixtures :each schema-test/validate-schemas logging/reset-logging-config-after-test)
 
 (defprotocol FooService
   (foo [this]))

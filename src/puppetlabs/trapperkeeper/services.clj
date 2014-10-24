@@ -7,8 +7,6 @@
             [puppetlabs.kitchensink.core :refer [select-values keyset]]
             [puppetlabs.trapperkeeper.services-internal :as si]))
 
-;; Look into re-using an existing protocol for the life cycle instead of
-;; creating our own; just didn't want to introduce the dependency for now.
 (defprotocol Lifecycle
   "Lifecycle functions for a service.  All services satisfy this protocol, and
   the lifecycle functions for each service will be called at the appropriate
@@ -36,7 +34,6 @@
   (service-map [this] "The map of service functions for the graph"))
 
 (def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
-(def tk-service-fn-names (map :name (vals (:sigs Service))))
 
 (defmacro service
   "Create a Trapperkeeper ServiceDefinition.

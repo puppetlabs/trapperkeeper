@@ -77,7 +77,6 @@
                                           (:service-name error-info))))
         (throw e))
 
-      :else
       (throw e))))
 
 (defn compile-graph

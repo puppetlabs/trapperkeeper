@@ -55,21 +55,27 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(defn load-config
-  "Given a path to a configuration file or directory of configuration files,
-  parse the config files and build up a trapperkeeper config map.  Can be used
-  to implement CLI tools that need access to trapperkeeper config data but
-  don't need to boot the full TK framework."
+(defn get-files-from-config
+  "Given a path to a file or directory, return a list of all files
+   contained that have valid extensions for a TK config."
   [path]
   (when-not (.canRead (io/file path))
     (throw (FileNotFoundException.
              (format "Configuration path '%s' must exist and must be readable."
                      path))))
-  (let [files (if-not (fs/directory? path)
-                [path]
-                (mapcat
-                  #(fs/glob (fs/file path %))
-                  ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"]))]
+  (if-not (fs/directory? path)
+    [path]
+    (mapcat
+      #(fs/glob (fs/file path %))
+      ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"])))
+
+(defn load-config
+  "Given a path to a configuration file or directory of configuration files,
+   or a string of multiple paths separated by comma, parse the config files and build
+   up a trapperkeeper config map.  Can be used to implement CLI tools that need
+   access to trapperkeeper config data but don't need to boot the full TK framework."
+  [paths]
+  (let [files (flatten (map get-files-from-config (str/split paths #",")))]
     (->> files
          (map fs/absolute-path)
          (map config-file->map)

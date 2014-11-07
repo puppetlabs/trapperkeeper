@@ -117,7 +117,8 @@
   (let [specs       [["-d" "--debug" "Turns on debug mode"]
                      ["-b" "--bootstrap-config BOOTSTRAP-CONFIG-FILE" "Path to bootstrap config file"]
                      ["-c" "--config CONFIG-PATH"
-                      (str "Path to a configuration file or directory of configuration files. "
+                      (str "Path to a configuration file or directory of configuration files, "
+                           "or a comma-separated list of such paths."
                            "See the documentation for a list of supported file types.")]
                      ["-p" "--plugins PLUGINS-DIRECTORY" "Path to directory plugin .jars"]]
         required    []]

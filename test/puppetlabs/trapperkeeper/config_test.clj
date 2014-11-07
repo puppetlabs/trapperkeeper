@@ -51,6 +51,32 @@
                               :bip [1 2 {:hi "there"} 3]}}}
                  (test-fn2 test-svc)))))))
 
+  (testing "Can parse comma-separated configs"
+    (with-app-with-cli-data app [test-service]
+      {:config (str "./dev-resources/config/mixeddir/baz.ini,"
+                    "./dev-resources/config/mixeddir/bar.conf")}
+      (let [test-svc  (get-service app :ConfigTestService)]
+          (is (= {:debug false, :baz  {:setting1 "baz1", :setting2 "baz2"}
+                  :bar  {:junk "thingz"
+                         :nesty {:mappy {:hi "there":stuff [1 2  {:how "areyou"} 3]}}}}
+                (test-fn2 test-svc))))))
+
+  (testing "Conflicting comma-separated configs fail with error"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Duplicate configuration entry: \[:foo :baz\]"
+          (bootstrap-services-with-cli-data [test-service]
+                                            {:config (str "./dev-resources/config/conflictdir1/config.ini,"
+                                                          "./dev-resources/config/conflictdir1/config.conf")}))))
+
+  (testing "Error results when second of two comma-separated configs is malformed"
+    (is (thrown-with-msg?
+          FileNotFoundException
+          #"Configuration path 'blob.conf' must exist and must be readable."
+          (bootstrap-services-with-cli-data [test-service]
+                                            {:config (str "./dev-resources/config/conflictdir1/config.ini,"
+                                                          "blob.conf")}))))
+
   ;; NOTE: other individual file formats are tested in `typesafe-test`
 
   (testing "Can read values from a directory of .ini files"

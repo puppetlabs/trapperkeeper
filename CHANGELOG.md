@@ -1,3 +1,14 @@
+## 0.5.2
+
+This is a minor feature and bugfix release.
+
+* Call the `service-symbol` function in lifecycle error messages to make it easier
+  to determine which service caused the error
+* Fix an IllegalArgumentException that would occur when catching a slingshot exception
+  in the TK `main` function.
+* Allow multiple comma-separated config files and directories to be specified
+  in the --config CLI argument.
+
 ## 0.5.1
 
 This is a bugfix release.

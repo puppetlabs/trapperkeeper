@@ -3,9 +3,10 @@
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.logging :refer :all]
-            [puppetlabs.trapperkeeper.logging :refer :all]))
+            [puppetlabs.trapperkeeper.logging :refer :all]
+            [schema.test :as schema-test]))
 
-(use-fixtures :each reset-logging-config-after-test)
+(use-fixtures :each reset-logging-config-after-test schema-test/validate-schemas)
 
 (deftest test-catch-all-logger
   (testing "catch-all-logger ensures that message from an exception is logged"

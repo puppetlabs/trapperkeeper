@@ -1,15 +1,12 @@
 (ns puppetlabs.trapperkeeper.bootstrap
   (:import (java.io Reader FileNotFoundException)
            (java.net URI))
-  (:require [clojure.java.io :refer [IOFactory]]
-            [clojure.string :as string]
-            [clojure.java.io :refer [reader resource file input-stream]]
+  (:require [clojure.string :as string]
+            [clojure.java.io :as io]
             [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.plugins :as plugins]
-            [puppetlabs.trapperkeeper.config :refer [parse-config-data
-                                                     initialize-logging!]]
-            [puppetlabs.trapperkeeper.internal :as i]
-            [puppetlabs.trapperkeeper.services :as s]))
+            [puppetlabs.trapperkeeper.internal :as internal]
+            [puppetlabs.trapperkeeper.services :as services]))
 
 (def bootstrap-config-file-name "bootstrap.cfg")
 
@@ -40,14 +37,14 @@
   [resolve-ns service-name]
   {:pre  [(string? resolve-ns)
           (string? service-name)]
-   :post [(satisfies? s/ServiceDefinition %)]}
+   :post [(satisfies? services/ServiceDefinition %)]}
   (try (require (symbol resolve-ns))
        (catch FileNotFoundException e
          (throw (IllegalArgumentException.
                   (str "Unable to load service: " resolve-ns "/" service-name)
                   e))))
   (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
-    (i/validate-service-graph! (var-get service-def))
+    (internal/validate-service-graph! (var-get service-def))
     (throw (IllegalArgumentException.
              (str "Unable to load service: " resolve-ns "/" service-name)))))
 
@@ -64,14 +61,14 @@
 
 (defn- get-config-source
   [config-path]
-  (let [config-file (file config-path)]
+  (let [config-file (io/file config-path)]
     (if (.exists config-file)
       config-file
 
       ;; if that didn't work (won't for a URI of a file inside a .jar),
       ;; get a bigger hammer
       (try
-        (input-stream (URI. config-path))
+        (io/input-stream (URI. config-path))
         (catch Exception ignored
           ;; If that didn't work either, we can't read it.  Don't wrap and
           ;; re-throw here, as `ignored` may be misleading (in the case of a
@@ -90,7 +87,7 @@
   [cli-data]
   {:pre  [(map? cli-data)]
    :post [(or (nil? %)
-              (satisfies? IOFactory %))]}
+              (satisfies? io/IOFactory %))]}
   (when (contains? cli-data :bootstrap-config)
     (when-let [config-path (cli-data :bootstrap-config)]
       (let [config-file (get-config-source config-path)]
@@ -104,9 +101,9 @@
   directory;  if so, return it."
   []
   {:post [(or (nil? %)
-              (satisfies? IOFactory %))]}
+              (satisfies? io/IOFactory %))]}
   (let [config-file (-> bootstrap-config-file-name
-                        (file)
+                        (io/file)
                         (.getAbsoluteFile))]
     (when (.exists config-file)
       (log/debug (str "Loading bootstrap config from current working directory: '"
@@ -118,8 +115,8 @@
   if so, return it."
   []
   {:post [(or (nil? %)
-              (satisfies? IOFactory %))]}
-  (when-let [classpath-config (resource bootstrap-config-file-name)]
+              (satisfies? io/IOFactory %))]}
+  (when-let [classpath-config (io/resource bootstrap-config-file-name)]
     (log/debug (str "Loading bootstrap config from classpath: '" classpath-config "'"))
     classpath-config))
 
@@ -132,7 +129,7 @@
   [cli-data]
   {:pre  [(map? cli-data)]
    :post [(or (nil? %)
-              (satisfies? IOFactory %))]}
+              (satisfies? io/IOFactory %))]}
   (if-let [bootstrap-config (or (config-from-cli cli-data)
                                 (config-from-cwd)
                                 (config-from-classpath))]
@@ -146,10 +143,10 @@
   that is the result of merging the graphs of all of the services specified in
   the configuration."
   [config]
-  {:pre  [(satisfies? IOFactory config)]
+  {:pre  [(satisfies? io/IOFactory config)]
    :post [(sequential? %)
-          (every? #(satisfies? s/ServiceDefinition %) %)]}
-  (let [lines (line-seq (reader config))]
+          (every? #(satisfies? services/ServiceDefinition %) %)]}
+  (let [lines (line-seq (io/reader config))]
     (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
     (for [line (map remove-comments lines)
           :when (not (empty? line))]

@@ -1,4 +1,5 @@
-(def ks-version "0.7.2")
+; TODO update to 0.7.3 once it exists
+(def ks-version "0.7.3-SNAPSHOT")
 
 (defproject puppetlabs/trapperkeeper "0.5.3-SNAPSHOT"
   :description "We are trapperkeeper.  We are one."
@@ -37,7 +38,7 @@
   :profiles {:dev {:source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
-                   :dependencies [[spyscope "0.1.4"]
+                   :dependencies [[spyscope "0.1.4" :exclusions [clj-time]]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]
                    :injections [(require 'spyscope.core)]}
 

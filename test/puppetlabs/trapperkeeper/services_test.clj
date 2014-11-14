@@ -442,7 +442,7 @@
     (is (thrown-with-msg?
           IllegalArgumentException
           #"Service attempts to define function 'foo', but does not provide protocol"
-          (build-fns-map! nil [] ['init 'start]
+          (build-fns-map! nil []
                              '((init [this context] context)
                                (start [this context] context)
                                (foo [this] "foo")))))))
@@ -453,7 +453,6 @@
           IllegalArgumentException
           #"Service does not define function 'service1-fn', which is required by protocol 'Service1'"
           (parse-service-forms!
-            ['init 'start]
             (cons 'puppetlabs.trapperkeeper.services-test/Service1
                   '([] (init [this context] context)))))))
   (testing "should throw an exception if there is a definition for a function that is not in the protocol"
@@ -461,7 +460,6 @@
           IllegalArgumentException
           #"Service attempts to define function 'foo', which does not exist in protocol 'Service1'"
           (parse-service-forms!
-            ['init 'start]
             (cons 'puppetlabs.trapperkeeper.services-test/Service1
                   '([] (foo [this] "foo")))))))
   (testing "should throw an exception if the protocol includes a function with the same name as a lifecycle function"
@@ -469,7 +467,6 @@
           IllegalArgumentException
           #"Service protocol 'BadServiceProtocol' includes function named 'start', which conflicts with lifecycle function by same name"
           (parse-service-forms!
-            ['init 'start]
             (cons 'puppetlabs.trapperkeeper.testutils.services/BadServiceProtocol
                   '([] (start [this] "foo"))))))))
 

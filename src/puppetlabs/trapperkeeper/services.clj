@@ -7,12 +7,55 @@
             [plumbing.core :as plumbing]
             [plumbing.graph :as graph]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Protocols
+
+(defprotocol Lifecycle
+  "Lifecycle functions for a service.  All services satisfy this protocol, and
+  the lifecycle functions for each service will be called at the appropriate
+  phase during the application lifecycle."
+  (init [this context] "Initialize the service, given a context map.
+                        Must return the (possibly modified) context map.")
+  (start [this context] "Start the service, given a context map.
+                         Must return the (possibly modified) context map.")
+  (stop [this context] "Stop the service, given a context map.
+                         Must return the (possibly modified) context map."))
+
+(defprotocol Service
+  "Common functions available to all services"
+  (service-id [this] "An identifier for the service")
+  (service-context [this] "Returns the context map for this service")
+  (get-service [this service-id] "Returns the service with the given service id")
+  (get-services [this] "Returns a sequence containing all of the services in the app")
+  (service-symbol [this] "The namespaced symbol of the service definition, or `nil`
+                          if no service symbol was provided."))
+
+(defprotocol ServiceDefinition
+  "A service definition.  This protocol is for internal use only.  The service
+  is not usable until it is instantiated (via `boot!`)."
+  (service-def-id [this] "An identifier for the service")
+  (service-map [this] "The map of service functions for the graph"))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Constants
+
+(def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Schemas
+
 (def ServiceSymbol
   "For internal use only; this schema gives us a way to differentiate between
   a symbol representing the name of a service, and a symbol representing the
   name of the *protocol* for a service.  This is necessary because the `service`
   macro accepts both as optional leading arguments when defining a service."
   {:service-symbol (schema/pred symbol?)})
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 'helper' functions for the implementation of the 'service' macro
 
 (defn protocol?
   "A predicate to determine whether or not an object is a protocol definition"
@@ -139,10 +182,9 @@
 (defn validate-protocol-fn-names!
   "Validate that the service protocol does not define any functions that have the
   same name as a lifecycle function.  Throws `IllegalArgumentException` if it does."
-  [service-protocol-sym service-fn-names lifecycle-fn-names]
+  [service-protocol-sym service-fn-names]
   {:pre [(symbol? service-protocol-sym)
-         (every? symbol? service-fn-names)
-         (every? symbol? lifecycle-fn-names)]}
+         (every? symbol? service-fn-names)]}
   (let [collisions (set/intersection (set (map name service-fn-names))
                                  (set (map name lifecycle-fn-names)))]
     (if-not (empty? collisions)
@@ -207,10 +249,8 @@
 (defn add-default-lifecycle-fns
   "Given a map of fns comprising a service body, add in a default implementation
   for any lifecycle functions that are not overridden."
-  [lifecycle-fn-names fns-map]
-  {:pre [(coll? lifecycle-fn-names)
-         (every? symbol? lifecycle-fn-names)
-         (fns-map? fns-map)]
+  [fns-map]
+  {:pre [(fns-map? fns-map)]
    :post [(map? %)
           (= (ks/keyset %)
              (set/union (ks/keyset fns-map)
@@ -271,12 +311,10 @@
   map will include default implementations of any lifecycle functions that
   aren't overridden in the service body.  Throws `IllegalArgumentException`
   if the fn forms do not match the protocol."
-  [service-protocol-sym service-fn-names lifecycle-fn-names fns]
+  [service-protocol-sym service-fn-names fns]
   {:pre [((some-fn nil? symbol?) service-protocol-sym)
          ((some-fn nil? coll?) service-fn-names)
          (every? symbol? service-fn-names)
-         (coll? lifecycle-fn-names)
-         (every? symbol? lifecycle-fn-names)
          (every? seq? fns)]
    :post [(fns-map? %)
           (= (ks/keyset %)
@@ -284,7 +322,7 @@
                     (set (map keyword lifecycle-fn-names))))]}
 
   (when service-protocol-sym
-    (validate-protocol-fn-names! service-protocol-sym service-fn-names lifecycle-fn-names))
+    (validate-protocol-fn-names! service-protocol-sym service-fn-names))
 
   (let [fns-map (->> (reduce
                        (fn [acc f]
@@ -306,7 +344,7 @@
                              (assoc acc k (list f)))))
                        {}
                        fns)
-                     (add-default-lifecycle-fns lifecycle-fn-names))]
+                     (add-default-lifecycle-fns))]
     (validate-provided-fns!
       service-protocol-sym
       (set (map (comp ks/without-ns keyword) service-fn-names))
@@ -357,9 +395,8 @@
   :service-fn-map       - a map of symbols for the names of the functions provided by the protocol
   :dependencies         - a vector specifying the dependencies of the service
   :fns-map              - a map of all of the fn definition forms in the service"
-  [lifecycle-fn-names forms]
-  {:pre [(every? symbol? lifecycle-fn-names)
-         (seq? forms)]
+  [forms]
+  {:pre [(seq? forms)]
    :post [(map? %)
           (= #{:service-sym :service-protocol-sym :service-id :service-fn-map
                :dependencies :fns-map} (ks/keyset %))]}
@@ -371,7 +408,6 @@
         fns-map (build-fns-map!
                   service-protocol-sym
                   (vals service-fn-map)
-                  lifecycle-fn-names
                   fns)]
 
     {:service-sym          service-sym
@@ -381,33 +417,9 @@
      :dependencies         dependencies
      :fns-map              fns-map}))
 
-(defprotocol Lifecycle
-  "Lifecycle functions for a service.  All services satisfy this protocol, and
-  the lifecycle functions for each service will be called at the appropriate
-  phase during the application lifecycle."
-  (init [this context] "Initialize the service, given a context map.
-                        Must return the (possibly modified) context map.")
-  (start [this context] "Start the service, given a context map.
-                         Must return the (possibly modified) context map.")
-  (stop [this context] "Stop the service, given a context map.
-                         Must return the (possibly modified) context map."))
 
-(defprotocol Service
-  "Common functions available to all services"
-  (service-id [this] "An identifier for the service")
-  (service-context [this] "Returns the context map for this service")
-  (get-service [this service-id] "Returns the service with the given service id")
-  (get-services [this] "Returns a sequence containing all of the services in the app")
-  (service-symbol [this] "The namespaced symbol of the service definition, or `nil`
-                          if no service symbol was provided."))
-
-(defprotocol ServiceDefinition
-  "A service definition.  This protocol is for internal use only.  The service
-  is not usable until it is instantiated (via `boot!`)."
-  (service-def-id [this] "An identifier for the service")
-  (service-map [this] "The map of service functions for the graph"))
-
-(def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Macros
 
 (defmacro service
   "Create a Trapperkeeper ServiceDefinition.
@@ -428,9 +440,7 @@
   [& forms]
   (let [{:keys [service-sym service-protocol-sym service-id service-fn-map
                 dependencies fns-map]}
-        (parse-service-forms!
-          lifecycle-fn-names
-          forms)
+        (parse-service-forms! forms)
         output-schema (build-output-schema (keys service-fn-map))]
     `(reify ServiceDefinition
        (service-def-id [this] ~service-id)

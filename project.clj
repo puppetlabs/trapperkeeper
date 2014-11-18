@@ -1,7 +1,7 @@
-(def ks-version "0.7.2")
+(def ks-version "1.0.0")
 
-(defproject puppetlabs/trapperkeeper "0.5.3-SNAPSHOT"
-  :description "We are trapperkeeper.  We are one."
+(defproject puppetlabs/trapperkeeper "1.0.0-SNAPSHOT"
+  :description "A framework for configuring, composing, and running Clojure services."
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.
   ;; requires lein 2.2.0+.

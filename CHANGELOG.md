@@ -1,3 +1,8 @@
+## 1.0.0
+
+* Promoting previous release to 1.0.0, so that we can begin to be more deliberate
+  about adhering to semver from here on out.
+
 ## 0.5.2
 
 This is a minor feature and bugfix release.

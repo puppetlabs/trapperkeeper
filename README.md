@@ -1,3 +1,6 @@
+<img src="http://images4.fanpop.com/image/photos/21500000/4x12-Trapper-Keeper-south-park-21568387-720-540.jpg"
+ alt="Trapperkeeper logo" title="hold it" align="right" height="300px" />
+
 # Trapperkeeper
 
 [![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper.png?branch=master)](https://travis-ci.org/puppetlabs/trapperkeeper)

@@ -45,7 +45,10 @@
   ([level]
    {:pre [(instance? Level level)]}
    (let [layout (PatternLayout.)]
-     (.setPattern layout "%d %-5p [%t] [%c{2}] %m%n")
+     (doto layout
+       (.setContext (logging-context))
+       (.setPattern "%d %-5p [%t] [%c{2}] %m%n")
+       (.start))
      (doto (ConsoleAppender.)
        (.setContext (logging-context))
        (.setLayout layout)

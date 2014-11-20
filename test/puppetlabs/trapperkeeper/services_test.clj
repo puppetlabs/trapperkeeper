@@ -1,13 +1,14 @@
 (ns puppetlabs.trapperkeeper.services-test
+  (:import (clojure.lang IFn))
   (:require [clojure.test :refer :all]
-            [puppetlabs.trapperkeeper.services :refer
-                [defservice service] :as svcs]
+            [puppetlabs.trapperkeeper.services :refer :all]
             [puppetlabs.trapperkeeper.app :as app]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer
-                [bootstrap-services-with-empty-config
-                 with-app-with-empty-config]]
+            [puppetlabs.trapperkeeper.testutils.bootstrap
+             :refer [bootstrap-services-with-empty-config with-app-with-empty-config]]
+            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
+            [schema.core :as schema]
             [schema.test :as schema-test]
-            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
+            [plumbing.fnk.pfnk :as pfnk]))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
 
@@ -25,7 +26,7 @@
 
 (deftest test-satisfies-protocols
   (testing "creates a service definition"
-    (is (satisfies? svcs/ServiceDefinition hello-service)))
+    (is (satisfies? ServiceDefinition hello-service)))
 
   (let [app (bootstrap-services-with-empty-config [hello-service])]
     (testing "app satisfies protocol"
@@ -33,8 +34,8 @@
 
     (let [h-s (app/get-service app :HelloService)]
       (testing "service satisfies all protocols"
-        (is (satisfies? svcs/Lifecycle h-s))
-        (is (satisfies? svcs/Service h-s))
+        (is (satisfies? Lifecycle h-s))
+        (is (satisfies? Service h-s))
         (is (satisfies? HelloService h-s)))
 
       (testing "service functions behave as expected"
@@ -90,13 +91,13 @@
           service1 (service Service1
                             []
                             (init [this context]
-                                  (swap! test-context assoc :init-service-id (svcs/service-id this))
+                                  (swap! test-context assoc :init-service-id (service-id this))
                                   context)
                             (start [this context]
-                                   (swap! test-context assoc :start-service-id (svcs/service-id this))
+                                   (swap! test-context assoc :start-service-id (service-id this))
                                    context)
                             (stop [this context]
-                                  (swap! test-context assoc :stop-service-id (svcs/service-id this))
+                                  (swap! test-context assoc :stop-service-id (service-id this))
                                   context)
                             (service1-fn [this] nil))]
       (with-app-with-empty-config app [service1]
@@ -125,9 +126,9 @@
           service2 (service Service2
                             [[:Service1 service1-fn]]
                             (init [this context]
-                                  (let [s1 (svcs/get-service this :Service1)]
+                                  (let [s1 (get-service this :Service1)]
                                     (assoc context :s1 s1)))
-                            (service2-fn [this] ((svcs/service-context this) :s1)))
+                            (service2-fn [this] ((service-context this) :s1)))
           app               (bootstrap-services-with-empty-config [service1 service2])
           s2                (app/get-service app :Service2)
           s1                (service2-fn s2)]
@@ -137,7 +138,7 @@
   (testing "an error should be thrown if calling get-service on a non-existent service"
     (let [service1 (service Service1
                             []
-                            (service1-fn [this] (svcs/get-service this :NonExistent)))
+                            (service1-fn [this] (get-service this :NonExistent)))
           app               (bootstrap-services-with-empty-config [service1])
           s1                (app/get-service app :Service1)]
       (is (thrown-with-msg?
@@ -240,18 +241,18 @@
           service1 (service Service1
                             []
                             (init [this context] (assoc context :foo :bar))
-                            (service1-fn [this] (reset! sfn-context (svcs/service-context this))))
+                            (service1-fn [this] (reset! sfn-context (service-context this))))
           app (bootstrap-services-with-empty-config [service1])
           s1  (app/get-service app :Service1)]
       (service1-fn s1)
       (is (= {:foo :bar} @sfn-context))
-      (is (= {:foo :bar} (svcs/service-context s1)))))
+      (is (= {:foo :bar} (service-context s1)))))
 
   (testing "context works correctly in injected functions"
     (let [service1 (service Service1
                             []
                             (init [this context] (assoc context :foo :bar))
-                            (service1-fn [this] ((svcs/service-context this) :foo)))
+                            (service1-fn [this] ((service-context this) :foo)))
           service2 (service Service2
                             [[:Service1 service1-fn]]
                             (service2-fn [this] (service1-fn)))
@@ -263,7 +264,7 @@
     (let [service4 (service Service4
                             []
                             (init [this context] (assoc context :foo :bar))
-                            (service4-fn1 [this] ((svcs/service-context this) :foo))
+                            (service4-fn1 [this] ((service-context this) :foo))
                             (service4-fn2 [this] (service4-fn1 this)))
           app (bootstrap-services-with-empty-config [service4])
           s4  (app/get-service app :Service4)]
@@ -277,7 +278,7 @@
                             (service1-fn [this] "hi"))
           service2 (service Service2
                             [[:Service1 service1-fn]]
-                            (start [this context] (reset! s2-context (svcs/service-context this)))
+                            (start [this context] (reset! s2-context (service-context this)))
                             (service2-fn [this] "hi"))
 
           app (bootstrap-services-with-empty-config [service1 service2])]
@@ -288,13 +289,13 @@
     (with-app-with-empty-config app [hello-service]
       (let [svc (app/get-service app :HelloService)]
         (is (= (symbol "puppetlabs.trapperkeeper.services-test" "hello-service")
-               (svcs/service-symbol svc))))))
+               (service-symbol svc))))))
   (testing "service defined via `service` does not have a service symbol"
     (let [empty-svc (service EmptyService [])]
       (with-app-with-empty-config app [empty-svc]
         (let [svc (app/get-service app :EmptyService)]
-          (is (= :EmptyService (svcs/service-id svc)))
-          (is (nil? (svcs/service-symbol svc))))))))
+          (is (= :EmptyService (service-id svc)))
+          (is (nil? (service-symbol svc))))))))
 
 (deftest get-services-test
   (testing "get-services should return all services"
@@ -303,11 +304,11 @@
         (let [empty (app/get-service app :EmptyService)
               hello (app/get-service app :HelloService)]
           (doseq [s [empty hello]]
-            (let [all-services (svcs/get-services s)]
+            (let [all-services (get-services s)]
               (is (= 2 (count all-services)))
-              (is (every? #(satisfies? svcs/Service %) all-services))
+              (is (every? #(satisfies? Service %) all-services))
               (is (= #{:EmptyService :HelloService}
-                     (set (map svcs/service-id all-services)))))))))))
+                     (set (map service-id all-services)))))))))))
 
 (deftest minimal-services-test
   (testing "minimal services can be defined without a protocol"
@@ -366,3 +367,164 @@
                           (service1-fn
                             "This is an example of an invalid docstring"
                             [this] nil)))))))
+
+
+(deftest service-forms-test
+  (testing "should support forms that include protocol"
+    (is (= {:dependencies         []
+            :fns                  '()
+            :service-protocol-sym 'Foo}
+           (find-prot-and-deps-forms! '(Foo [])))))
+  (testing "should support forms that do not include protocol"
+    (is (= {:dependencies         []
+            :fns                  '()
+            :service-protocol-sym nil}
+           (find-prot-and-deps-forms! '([])))))
+  (testing "result should include vector of fn forms if provided"
+    (is (= {:dependencies         []
+            :fns                  '((fn1 [] "fn1") (fn2 [] "fn2"))
+            :service-protocol-sym 'Foo}
+           (find-prot-and-deps-forms!
+             '(Foo [] (fn1 [] "fn1") (fn2 [] "fn2")))))
+    (is (= {:dependencies         []
+            :fns                  '((fn1 [] "fn1") (fn2 [] "fn2"))
+            :service-protocol-sym nil}
+           (find-prot-and-deps-forms!
+             '([] (fn1 [] "fn1") (fn2 [] "fn2"))))))
+  (testing "should throw exception if the first form is not the protocol symbol or dependency vector"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Invalid service definition; first form must be protocol or dependency list; found '\"hi\"'"
+          (find-prot-and-deps-forms! '("hi" [])))))
+  (testing "should throw exception if the first form is a protocol sym and the second is not a dependency vector"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Invalid service definition; expected dependency list following protocol, found: '\"hi\"'"
+          (find-prot-and-deps-forms! '(Foo "hi")))))
+  (testing "should throw an exception if all remaining forms are not seqs"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Invalid service definition; expected function definitions following dependency list, invalid value: '\"hi\"'"
+          (find-prot-and-deps-forms! '(Foo [] (fn1 [] "fn1") "hi"))))))
+
+(defn local-resolve
+  "Resolve symbol in current (services-internal-test) namespace"
+  [sym]
+  {:pre [(symbol? sym)]}
+  (ns-resolve
+    'puppetlabs.trapperkeeper.services-test
+    sym))
+
+(defprotocol EmptyProtocol)
+(def NonProtocolSym "hi")
+
+(deftest protocol-syms-test
+  (testing "should not throw exception if protocol exists"
+    (is (protocol?
+          (validate-protocol-sym!
+            'EmptyProtocol
+            (local-resolve 'EmptyProtocol)))))
+
+  (testing "should throw exception if service protocol sym is not resolvable"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Unrecognized service protocol 'UndefinedSym'"
+          (validate-protocol-sym! 'UndefinedSym (local-resolve 'UndefinedSym)))))
+
+  (testing "should throw exception if service protocol symbol is resolveable but does not resolve to a protocol"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Specified service protocol 'NonProtocolSym' does not appear to be a protocol!"
+          (validate-protocol-sym! 'NonProtocolSym (local-resolve 'NonProtocolSym))))))
+
+(deftest build-fns-map-test
+  (testing "minimal services may not define functions other than lifecycle functions"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Service attempts to define function 'foo', but does not provide protocol"
+          (build-fns-map! nil []
+                             '((init [this context] context)
+                               (start [this context] context)
+                               (foo [this] "foo")))))))
+
+(deftest invalid-fns-test
+  (testing "should throw an exception if there is no definition of a function in the protocol"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Service does not define function 'service1-fn', which is required by protocol 'Service1'"
+          (parse-service-forms!
+            (cons 'puppetlabs.trapperkeeper.services-test/Service1
+                  '([] (init [this context] context)))))))
+  (testing "should throw an exception if there is a definition for a function that is not in the protocol"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Service attempts to define function 'foo', which does not exist in protocol 'Service1'"
+          (parse-service-forms!
+            (cons 'puppetlabs.trapperkeeper.services-test/Service1
+                  '([] (foo [this] "foo")))))))
+  (testing "should throw an exception if the protocol includes a function with the same name as a lifecycle function"
+    (is (thrown-with-msg?
+          IllegalArgumentException
+          #"Service protocol 'BadServiceProtocol' includes function named 'start', which conflicts with lifecycle function by same name"
+          (parse-service-forms!
+            (cons 'puppetlabs.trapperkeeper.testutils.services/BadServiceProtocol
+                  '([] (start [this] "foo"))))))))
+
+(deftest prismatic-functionality-test
+  (testing "prismatic fnk is initialized properly"
+    (let [service1 (service Service1
+                            []
+                            (init [this context] context)
+                            (start [this context] context)
+                            (service1-fn [this] "Foo!"))
+          service2 (service Service2
+                            [[:Service1 service1-fn]]
+                            (init [this context] context)
+                            (start [this context] context)
+                            (service2-fn [this] "Bar!"))
+          s1-graph (service-map service1)
+          s2-graph (service-map service2)]
+      (is (map? s1-graph))
+      (let [graph-keys (keys s1-graph)]
+        (is (= (count graph-keys) 1))
+        (is (= (first graph-keys) :Service1)))
+
+      (let [service-fnk (:Service1 s1-graph)
+            depends (pfnk/input-schema service-fnk)
+            provides (pfnk/output-schema service-fnk)]
+        (is (ifn? service-fnk))
+        (is (= depends {schema/Keyword   schema/Any
+                        :tk-app-context  schema/Any
+                        :tk-service-refs schema/Any}))
+        (is (= provides {:service1-fn IFn})))
+
+      (is (map? s2-graph))
+      (let [graph-keys (keys s2-graph)]
+        (is (= (count graph-keys) 1))
+        (is (= (first graph-keys) :Service2)))
+
+      (let [service-fnk (:Service2 s2-graph)
+            depends (pfnk/input-schema service-fnk)
+            provides (pfnk/output-schema service-fnk)
+            fnk-instance (service-fnk {:Service1       {:service1-fn identity}
+                                       :tk-app-context (atom {})
+                                       :tk-service-refs (atom {})})
+            s2-fn (:service2-fn fnk-instance)]
+        (is (ifn? service-fnk))
+        (is (= depends {schema/Keyword  schema/Any
+                        :tk-app-context schema/Any
+                        :tk-service-refs schema/Any
+                        :Service1       {schema/Keyword schema/Any
+                                         :service1-fn   schema/Any}}))
+        (is (= provides {:service2-fn IFn}))
+        (is (= "Bar!" (s2-fn)))))))
+
+(defprotocol EmptyService)
+
+(deftest explicit-service-symbol-test
+  (testing "can explicitly pass `service` a service symbol via internal API"
+    (let [empty-service (service {:service-symbol foo/bar} EmptyService [])]
+      (with-app-with-empty-config app [empty-service]
+                                  (let [svc (app/get-service app :EmptyService)]
+                                    (is (= :EmptyService (service-id svc)))
+                                    (is (= (symbol "foo" "bar") (service-symbol svc))))))))

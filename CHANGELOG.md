@@ -1,3 +1,8 @@
+## 1.0.1
+
+* Fix an issue wherein nothing would be logged to the console when the
+  --debug flag was set
+
 ## 1.0.0
 
 * Promoting previous release to 1.0.0, so that we can begin to be more deliberate

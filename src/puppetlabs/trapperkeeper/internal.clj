@@ -7,7 +7,8 @@
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
-            [puppetlabs.trapperkeeper.services :as s]))
+            [puppetlabs.trapperkeeper.services :as s]
+            [puppetlabs.kitchensink.core :as ks]))
 
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
@@ -77,8 +78,16 @@
                                           (:service-name error-info))))
         (throw e))
 
-      :else
-      (throw e))))
+      (if (sequential? (:error data))
+        (let [missing-services (keys (ks/filter-map
+                                       (fn [_ v] (= v 'missing-required-key))
+                                       (.error (first (:error data)))))]
+          (if (= 1 (count missing-services))
+            (throw (RuntimeException.
+                     (format "Service '%s' not found" (first missing-services))))
+            (throw (RuntimeException.
+                     (format "Services '%s' not found" missing-services)))))
+        (throw e)))))
 
 (defn compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.
@@ -404,24 +413,24 @@
   (let [;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service
-         app-context (atom {})
-         service-refs (atom {})
-         services (conj services
-                        (config-service config-data)
-                        (initialize-shutdown-service! app-context
-                                                      shutdown-reason-promise))
-         service-map (apply merge (map s/service-map services))
-         compiled-graph (compile-graph service-map)
+        app-context (atom {})
+        service-refs (atom {})
+        services (conj services
+                       (config-service config-data)
+                       (initialize-shutdown-service! app-context
+                                                     shutdown-reason-promise))
+        service-map (apply merge (map s/service-map services))
+        compiled-graph (compile-graph service-map)
         ;; this gives us an ordered graph that we can use to call lifecycle
         ;; functions in the correct order later
-         graph (g/->graph service-map)
+        graph (g/->graph service-map)
         ;; when we instantiate the graph, we pass in the context atom.
-         graph-instance (instantiate compiled-graph {:tk-app-context app-context
-                                                     :tk-service-refs service-refs})
+        graph-instance (instantiate compiled-graph {:tk-app-context app-context
+                                                    :tk-service-refs service-refs})
         ;; dereference the atom of service references, since we don't need to update it
         ;; any further
-         services-by-id @service-refs
-         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
+        services-by-id @service-refs
+        ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
     (swap! app-context assoc :services-by-id services-by-id)
     (swap! app-context assoc :ordered-services ordered-services)
     (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))

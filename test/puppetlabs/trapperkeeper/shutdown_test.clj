@@ -8,9 +8,10 @@
             [puppetlabs.trapperkeeper.services :refer [service service-id]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
             [puppetlabs.trapperkeeper.testutils.logging :as logging]
-            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
+            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
+            [schema.test :as schema-test]))
 
-(use-fixtures :once with-no-jvm-shutdown-hooks)
+(use-fixtures :once with-no-jvm-shutdown-hooks schema-test/validate-schemas)
 
 (defprotocol ShutdownTestService)
 

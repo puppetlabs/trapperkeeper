@@ -22,6 +22,8 @@ Add the following dependency to your `project.clj` file:
 
 ## Documentation
 
+There is lots and lots of documentation available on our:
+
 * [Wiki](https://github.com/puppetlabs/trapperkeeper/wiki)
 
 

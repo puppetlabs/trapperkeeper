@@ -75,7 +75,7 @@
 (defn configure-logger!
   "Reconfigures the current logger based on the supplied configuration."
   [logging-conf]
-  {:pre [(#{String java.io.File java.net.URL java.io.InputStream org.xml.sax.InputSource} logging-conf)]}
+  {:pre [(#{String java.io.File java.net.URL java.io.InputStream org.xml.sax.InputSource} (type logging-conf))]}
   (let [configurator (JoranConfigurator.)
         context      (LoggerFactory/getILoggerFactory)]
     (.setContext configurator (LoggerFactory/getILoggerFactory))

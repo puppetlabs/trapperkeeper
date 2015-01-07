@@ -72,25 +72,26 @@
             (.toInt level))
        (.setLevel root level)))))
 
-(defn configure-logger-via-file!
-  "Reconfigures the current logger based on the supplied configuration
-  file."
-  [logging-conf-file]
-  {:pre [(string? logging-conf-file)]}
+(defn configure-logger!
+  "Reconfigures the current logger based on the supplied configuration."
+  [logging-conf]
+  {:pre [(#{String java.io.File java.net.URL java.io.InputStream org.xml.sax.InputSource} logging-conf)]}
   (let [configurator (JoranConfigurator.)
         context      (LoggerFactory/getILoggerFactory)]
     (.setContext configurator (LoggerFactory/getILoggerFactory))
     (.reset context)
-    (.doConfigure configurator logging-conf-file)))
+    (.doConfigure configurator logging-conf)))
 
 (defn configure-logging!
-  "Takes a file path which can define how to configure the logging system.
+  "Takes a file path, url, file, or InputStream which can define how to
+  configure the logging system.
+  
   Also takes an optional `debug` flag which turns on debug logging."
-  ([logging-conf-file]
-   (configure-logging! logging-conf-file false))
-  ([logging-conf-file debug]
-   (when logging-conf-file
-     (configure-logger-via-file! logging-conf-file))
+  ([logging-conf]
+   (configure-logging! logging-conf false))
+  ([logging-conf debug]
+   (when logging-conf
+     (configure-logger! logging-conf))
    (when debug
      (add-console-logger! Level/DEBUG)
      (log/debug "Debug logging enabled"))))

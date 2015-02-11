@@ -4,7 +4,9 @@
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.logging :refer :all]
             [puppetlabs.trapperkeeper.logging :refer :all]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test]
+            [clojure.tools.logging :as log]
+            [clojure.java.io :as io]))
 
 (use-fixtures :each reset-logging-config-after-test schema-test/validate-schemas)
 
@@ -31,4 +33,16 @@
   (testing "a logging config file isn't required"
     ;; This looks strange, but we're trying to make sure that there are
     ;; no exceptions thrown when we configure logging without a log config file.
-    (is (= nil (configure-logging! nil)))))
+    (is (= nil (configure-logging! nil))))
+
+  (testing "support for logback evaluator filters"
+    ;; This logging config file configures some fancy logback EvaluatorFilters,
+    ;; and writes the log output to a file in `target/test`.
+    (configure-logging! "./dev-resources/logging/logback-evaluator-filter.xml")
+    (log/info "Hi! I should get filtered.")
+    (log/info "Hi! I shouldn't get filtered.")
+    (log/info (IllegalStateException. "OMGOMG") "Hi! I have an exception that should get filtered.")
+    (with-open [reader (io/reader "./target/test/logback-evaluator-filter-test.log")]
+      (let [lines (line-seq reader)]
+        (is (= 1 (count lines)))
+        (is (re-matches #".*Hi! I shouldn't get filtered\..*" (first lines)))))))

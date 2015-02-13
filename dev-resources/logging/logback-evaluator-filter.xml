@@ -1,0 +1,37 @@
+<!-- This is only used as a test file, not for actually configuring logging during tests -->
+<configuration>
+    <appender name="F1" class="ch.qos.logback.core.FileAppender">
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <matcher>
+                    <Name>matcher</Name>
+                    <regex>should get filtered</regex>
+                </matcher>
+                <expression>matcher.matches(formattedMessage)</expression>
+            </evaluator>
+            <OnMismatch>NEUTRAL</OnMismatch>
+            <OnMatch>DENY</OnMatch>
+        </filter>
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <matcher>
+                    <Name>omgMatcher</Name>
+                    <regex>OMGOMG</regex>
+                </matcher>
+                <expression>omgMatcher.matches(throwable.getMessage())</expression>
+            </evaluator>
+            <OnMismatch>NEUTRAL</OnMismatch>
+            <OnMatch>DENY</OnMatch>
+        </filter>
+
+        <file>./target/test/logback-evaluator-filter-test.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%d %-5p [%c{2}] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="F1" />
+    </root>
+</configuration>

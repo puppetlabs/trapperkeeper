@@ -1,3 +1,10 @@
+## 1.1.0
+
+This is a minor feature release.
+
+* Add support for logback's `EvaluatorFilter`, which allows users to configure
+  the logging to filter log messages based on regular expression patterns.
+
 ## 1.0.1
 
 * Fix an issue wherein nothing would be logged to the console when the

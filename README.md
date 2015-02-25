@@ -19,7 +19,6 @@ Add the following dependency to your `project.clj` file:
 ## Community
 
 * Bug reports and feature requests: you can submit a Github issue, but we use [JIRA](https://tickets.puppetlabs.com/browse/TK) as our main issue tracker.
-* freenode: #trapperkeeper
 
 
 ## Documentation

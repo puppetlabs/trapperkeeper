@@ -3,8 +3,6 @@
 
 # Trapperkeeper
 
-[![Join the chat at https://gitter.im/puppetlabs/trapperkeeper](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/puppetlabs/trapperkeeper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 [![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper.png?branch=master)](https://travis-ci.org/puppetlabs/trapperkeeper)
 
 Trapperkeeper is a Clojure framework for hosting long-running applications and services.
@@ -20,6 +18,8 @@ Add the following dependency to your `project.clj` file:
 
 * Bug reports and feature requests: you can submit a Github issue, but we use [JIRA](https://tickets.puppetlabs.com/browse/TK) as our main issue tracker.
 * freenode: #trapperkeeper
+* [![Join the chat at https://gitter.im/puppetlabs/trapperkeeper](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/puppetlabs/trapperkeeper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 
 
 ## Documentation

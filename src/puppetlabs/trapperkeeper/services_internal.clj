@@ -2,7 +2,6 @@
   (:import (clojure.lang IFn))
   (:require [clojure.walk :refer [postwalk]]
             [clojure.set :refer [difference union intersection]]
-            [plumbing.core :refer [fnk]]
             [schema.core :as schema]
             [puppetlabs.kitchensink.core :as ks]))
 

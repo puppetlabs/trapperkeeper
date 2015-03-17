@@ -2,8 +2,6 @@
   (:require [clojure.tools.macro :refer [name-with-attributes]]
             [clojure.set :refer [difference]]
             [plumbing.core :refer [fnk]]
-            [schema.core :as schema]
-            [plumbing.graph :as g]
             [puppetlabs.kitchensink.core :refer [select-values keyset]]
             [puppetlabs.trapperkeeper.services-internal :as si]))
 

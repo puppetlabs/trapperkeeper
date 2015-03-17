@@ -1,6 +1,5 @@
 (ns puppetlabs.trapperkeeper.examples.bootstrapping.test-services
-  (:require [plumbing.core :refer [fnk]]
-            [puppetlabs.trapperkeeper.core :refer [defservice]]))
+  (:require [puppetlabs.trapperkeeper.core :refer [defservice]]))
 
 (defn invalid-service-graph-service
   []

@@ -1,9 +1,7 @@
 (ns puppetlabs.trapperkeeper.internal
   (:import (clojure.lang Atom ExceptionInfo))
   (:require [clojure.tools.logging :as log]
-            [plumbing.map]
-            [plumbing.graph :as g]
-            [plumbing.fnk.pfnk :refer [input-schema output-schema fn->fnk]]
+            [plumbing.graph :as graph]
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
@@ -96,7 +94,7 @@
   {:pre  [(service-graph? graph-map)]
    :post [(ifn? %)]}
   (try
-    (g/eager-compile graph-map)
+    (graph/eager-compile graph-map)
     (catch ExceptionInfo e
       (handle-prismatic-exception! e))))
 
@@ -423,7 +421,7 @@
         compiled-graph (compile-graph service-map)
         ;; this gives us an ordered graph that we can use to call lifecycle
         ;; functions in the correct order later
-        graph (g/->graph service-map)
+        graph (graph/->graph service-map)
         ;; when we instantiate the graph, we pass in the context atom.
         graph-instance (instantiate compiled-graph {:tk-app-context app-context
                                                     :tk-service-refs service-refs})

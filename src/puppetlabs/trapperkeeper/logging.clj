@@ -73,9 +73,13 @@
        (.setLevel root level)))))
 
 (defn configure-logger!
-  "Reconfigures the current logger based on the supplied configuration."
+  "Reconfigures the current logger based on the supplied configuration.
+
+  Supplied configuration can be a file path, url, file, InputStream, or
+  InputSource. It is passed along unchanged to `doConfigure` for
+  JoranConfigurator. For more information, see the documentation for
+  ch.qos.logback.core.classic.joran.JoranConfigurator."
   [logging-conf]
-  {:pre [(#{String java.io.File java.net.URL java.io.InputStream org.xml.sax.InputSource} (type logging-conf))]}
   (let [configurator (JoranConfigurator.)
         context      (LoggerFactory/getILoggerFactory)]
     (.setContext configurator (LoggerFactory/getILoggerFactory))
@@ -83,9 +87,11 @@
     (.doConfigure configurator logging-conf)))
 
 (defn configure-logging!
-  "Takes a file path, url, file, or InputStream which can define how to
-  configure the logging system.
-  
+  "Takes a file path, url, file, InputStream, or InputSource which can
+  define how to configure the logging system. This is passed unchanged
+  to the `doConfigure` method for the underlying JoranConfigurator
+  class.
+
   Also takes an optional `debug` flag which turns on debug logging."
   ([logging-conf]
    (configure-logging! logging-conf false))

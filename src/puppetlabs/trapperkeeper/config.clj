@@ -71,7 +71,7 @@
     [path]
     (mapcat
       #(fs/glob (fs/file path %))
-      ["*.ini" "*.conf" "*.json" "*.properties" "*.edn" ".yaml" ".yml"])))
+      ["*.ini" "*.conf" "*.json" "*.properties" "*.edn" "*.yaml" "*.yml"])))
 
 (defn load-config
   "Given a path to a configuration file or directory of configuration files,

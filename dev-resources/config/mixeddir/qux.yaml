@@ -1,0 +1,7 @@
+qux:
+  first:
+    list:
+      - 1
+      - 2
+  second:
+    key: value

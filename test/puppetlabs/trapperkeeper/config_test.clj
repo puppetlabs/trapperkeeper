@@ -120,7 +120,9 @@
                         :setting2        "baz2"}
                 :bar   {:nesty           {:mappy {:hi "there"
                                                  :stuff [1 2 {:how "areyou"} 3]}}
-                        :junk            "thingz"}}
+                        :junk            "thingz"}
+                :qux   {:first           {:list [1 2]}
+                        :second          {:key "value"}}}
                cfg)))))
 
   (testing "An error is thrown if duplicate settings exist"
@@ -142,5 +144,7 @@
                     :setting2        "baz2"}
             :bar   {:nesty           {:mappy {:hi "there"
                                               :stuff [1 2 {:how "areyou"} 3]}}
-                    :junk            "thingz"}}
+                    :junk            "thingz"}
+            :qux   {:first           {:list [1 2]}
+                    :second          {:key "value"}}}
            (load-config "./dev-resources/config/mixeddir")))))

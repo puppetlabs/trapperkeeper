@@ -23,6 +23,7 @@
             [me.raynes.fs :as fs]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.config.typesafe :as typesafe]
+            [clj-yaml.core :as yaml]
             [puppetlabs.trapperkeeper.services :refer [service]]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
 
@@ -50,7 +51,10 @@
     (typesafe/config-file->map file)
 
     #{".edn"}
-    (edn/read (PushbackReader. (io/reader file)))))
+    (edn/read (PushbackReader. (io/reader file)))
+
+    #{".yaml" ".yml"}
+    (yaml/parse-string (slurp file))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -67,7 +71,7 @@
     [path]
     (mapcat
       #(fs/glob (fs/file path %))
-      ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"])))
+      ["*.ini" "*.conf" "*.json" "*.properties" "*.edn" "*.yaml" "*.yml"])))
 
 (defn load-config
   "Given a path to a configuration file or directory of configuration files,

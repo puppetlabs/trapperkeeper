@@ -10,8 +10,8 @@
                  [org.clojure/tools.logging "0.2.6"]
                  [clj-time "0.5.1"]
                  [puppetlabs/kitchensink ~ks-version]
-                 [prismatic/plumbing "0.2.1"]
-                 [prismatic/schema "0.2.2"]
+                 [prismatic/plumbing "0.4.2"]
+                 [prismatic/schema "0.4.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.1.1"]
@@ -48,7 +48,7 @@
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
 
-  :plugins [[lein-release "1.0.5"]]
+  :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]]
 
   :main puppetlabs.trapperkeeper.main
   )

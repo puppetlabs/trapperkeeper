@@ -1,3 +1,10 @@
+## 1.1.1
+
+This is a maintenance release.
+
+* [TK-197](https://tickets.puppetlabs.com/browse/TK-197) - update prismatic
+  dependencies to latest versions.
+
 ## 1.1.0
 
 This is a minor feature release.

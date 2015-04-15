@@ -1,9 +1,11 @@
 ## 1.1.1
 
-This is a maintenance release.
+This is a maintenance / minor feature release.
 
 * [TK-197](https://tickets.puppetlabs.com/browse/TK-197) - update prismatic
   dependencies to latest versions.
+* Add support for yaml config files
+* [TK-131](https://tickets.puppetlabs.com/browse/TK131) Relax preconditions on logging configuration
 
 ## 1.1.0
 

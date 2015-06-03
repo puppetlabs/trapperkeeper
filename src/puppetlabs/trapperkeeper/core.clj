@@ -155,16 +155,17 @@
   [& args]
   {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
-  (try+
-    (-> (or args '())
-        (internal/parse-cli-args!)
-        (run))
-    (catch map? m
-      (case (without-ns (:type m))
-        :cli-error ((println (:message m))
-                    (System/exit 1))
-        :cli-help ((println (:message m))
-                   (System/exit 0))
-        (throw+ m)))
-    (finally
-      (shutdown-agents))))
+  (let [quit (fn [status msg stream]
+               (binding [*out* stream] (println msg) (flush))
+               (System/exit status))]
+    (try+
+     (-> (or args '())
+         (internal/parse-cli-args!)
+         (run))
+     (catch map? m
+       (case (without-ns (:type m))
+         :cli-error (quit 1 (:message m) *err*)
+         :cli-help (quit 0 (:message m) *out*)
+         (throw+ m)))
+     (finally
+       (shutdown-agents)))))

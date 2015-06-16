@@ -166,6 +166,6 @@
        (case (without-ns (:type m))
          :cli-error (quit 1 (:message m) *err*)
          :cli-help (quit 0 (:message m) *out*)
-         (throw+ m)))
+         (throw+)))
      (finally
        (shutdown-agents)))))

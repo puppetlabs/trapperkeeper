@@ -59,3 +59,8 @@ other related functionality:
 Copyright © 2013 Puppet Labs
 
 Distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
+
+## Support
+
+Please log tickets and issues at our [JIRA tracker](https://tickets.puppetlabs.com/browse/TK).
+There is also a #trapperkeeper channel on Freenode as well as [![Join the chat at https://gitter.im/puppetlabs/trapperkeeper](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/puppetlabs/trapperkeeper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).

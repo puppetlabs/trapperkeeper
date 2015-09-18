@@ -13,6 +13,8 @@
   *test-logs*
   nil)
 
+(def legal-levels #{nil :trace :debug :info :warn :error :fatal})
+
 (defn- log-entry->map
   [log-entry]
   {:namespace (get log-entry 0)
@@ -21,19 +23,26 @@
    :message   (get log-entry 3)})
 
 (defn logs-matching
-  "Given a regular expression pattern and a sequence of log messages (in the format
-  used by `clojure.tools.logging`, return only the logs whose message matches the
-  specified regular expression pattern.  (Intended to be used alongside
-  `with-log-output` for tests that are validating log output.)  The result is
-  a sequence of maps, each of which contains the following keys:
-  `:namespace`, `:level`, `:exception`, and `:message`."
-  [pattern logs]
-  {:pre  [(instance? java.util.regex.Pattern pattern)
-          (coll? logs)]}
-  ;; the logs are formatted as sequences, where the string at index 3 contains
-  ;; the actual log message.
-  (let [matches (filter #(re-find pattern (get % 3)) logs)]
-    (map log-entry->map matches)))
+  "Given a regular expression pattern, a sequence of log messages (in the format
+  used by `clojure.tools.logging`, and (optionally) a log level (as a keyword
+  that corresponds to those in `clojure.tools.logging`) return only the logs
+  whose message matches the specified regular expression pattern that were
+  logged at the given level (or at any level if not specified). (Intended to
+  be used alongside `with-log-output` for tests that are validating log
+  output.) The result is a sequence of maps, each of which contains the
+  following keys: `:namespace`, `:level`, `:exception`, and `:message`."
+  ([pattern logs] (logs-matching pattern logs nil))
+  ([pattern logs level]
+   {:pre  [(instance? java.util.regex.Pattern pattern)
+           (coll? logs)
+           (contains? legal-levels level)]}
+   ;; the logs are formatted as sequences, where the keyword at index 1
+   ;; contains the level and the string at index 3 contains the actual
+   ;; log message.
+   (let [matches-level? (fn [log-entry] (or (nil? level) (= level (get log-entry 1))))
+         matches-msg? (fn [log-entry] (re-find pattern (get log-entry 3)))
+         matches (filter #(and (matches-level? %) (matches-msg? %)) logs)]
+     (map log-entry->map matches))))
 
 (defn log-to-console
   "Utility function called by atom-logger and atom-appender to log entries to the
@@ -164,7 +173,6 @@
         (is (logged? #\"^hi$\" :info)))"
   (let [pattern       (nth form 1)
         level         (nth form 2 nil)
-        legal-levels  #{nil :trace :debug :info :warn :error :fatal}
         debug-msg     "; `with-test-logging-debug` may be useful for debugging tests."]
     (when-not (instance? Pattern pattern)
       (throw (IllegalArgumentException.
@@ -174,25 +182,16 @@
                (str "Optional second argument to `logged?` must be one of "
                     legal-levels "; illegal value: '" level "'"))))
     `(let [logs#    @puppetlabs.trapperkeeper.testutils.logging/*test-logs*
-           matches# (logs-matching ~pattern logs#)]
-       (cond
-         (not (= 1 (count matches#)))
+           matches# (logs-matching ~pattern logs# ~level)]
+       (if-not (= 1 (count matches#))
          (clojure.test/do-report
            {:type      :fail
             :message   ~msg
             :expected  (str "Exactly one log message matching the pattern '"
-                            ~pattern "'")
+                            ~pattern "'"
+                            (when ~level (format " at '%s' level" (name ~level))))
             :actual    (str (count matches#) " matches" ~debug-msg)})
 
-         (and ~level (not (= ~level (-> matches# first :level))))
-         (clojure.test/do-report
-           {:type      :fail
-            :message   ~msg
-            :expected  (str "Expected level " ~level " for log message matching pattern '"
-                            ~pattern "'")
-            :actual    (str "Actual level: " (-> matches# first :level) ~debug-msg)})
-
-         :else
          (clojure.test/do-report
            {:type      :pass
             :message   ~msg

@@ -46,3 +46,16 @@
       (let [lines (line-seq reader)]
         (is (= 1 (count lines)))
         (is (re-matches #".*Hi! I shouldn't get filtered\..*" (first lines)))))))
+
+(deftest test-logs-matching
+  (let [log-lines '([puppetlabs.trapperkeeper.logging-test :info nil "log message1 at info"]
+                    [puppetlabs.trapperkeeper.logging-test :debug nil "log message1 at debug"]
+                    [puppetlabs.trapperkeeper.logging-test :warn nil "log message2 at warn"])]
+
+    (testing "logs-matching can filter on message"
+      (is (= 2 (count (logs-matching #"log message1" log-lines)))))
+
+    (testing "logs-matching can filter on message and level"
+      (is (= 1 (count (logs-matching #"log message1" log-lines :debug))))
+      (is (= "log message1 at debug" (-> (logs-matching #"log message1" log-lines :debug) first :message)))
+      (is (empty? (logs-matching #"log message2" log-lines :info))))))

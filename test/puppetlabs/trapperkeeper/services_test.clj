@@ -49,41 +49,92 @@
 (defprotocol Service3
   (service3-fn [this]))
 
-(deftest lifecycle-test
-  (testing "services are not required to define lifecycle functions"
-    (let [service1  (service Service1
-                      []
-                      (service1-fn [this] "hi"))
-          app       (bootstrap-services-with-empty-config [service1])]
-      (is (not (nil? app)))))
+(defn create-lifecycle-services
+  [call-seq]
 
+  (let [lc-fn (fn [context action] (swap! call-seq conj action) context)]
+    [(service
+       Service1
+       []
+       (init [this context] (lc-fn context :init-service1))
+       (start [this context] (lc-fn context :start-service1))
+       (stop [this context] (lc-fn context :stop-service1))
+       (service1-fn [this] (lc-fn nil :service1-fn)))
+
+     (service
+       Service2
+       [[:Service1 service1-fn]]
+       (init [this context] (lc-fn context :init-service2))
+       (start [this context] (lc-fn context :start-service2))
+       (stop [this context] (lc-fn context :stop-service2))
+       (service2-fn [this] (lc-fn nil :service2-fn)))
+
+     (service
+       Service3
+       [[:Service2 service2-fn]]
+       (init [this context] (lc-fn context :init-service3))
+       (start [this context] (lc-fn context :start-service3))
+       (stop [this context] (lc-fn context :stop-service3))
+       (service3-fn [this] (lc-fn nil :service3-fn)))]))
+
+(deftest test-services-not-required
+  (testing "services are not required to define lifecycle functions"
+    (let [service1 (service Service1
+                     []
+                     (service1-fn [this] "hi"))
+          app (bootstrap-services-with-empty-config [service1])]
+      (is (not (nil? app))))))
+
+(deftest test-lifecycle-functions-ordered-correctly
   (testing "life cycle functions are called in the correct order"
-    (let [call-seq  (atom [])
-          lc-fn     (fn [context action] (swap! call-seq conj action) context)
-          service1  (service Service1
-                      []
-                      (init [this context] (lc-fn context :init-service1))
-                      (start [this context] (lc-fn context :start-service1))
-                      (service1-fn [this] (lc-fn nil :service1-fn)))
-          service2  (service Service2
-                      [[:Service1 service1-fn]]
-                      (init [this context] (lc-fn context :init-service2))
-                      (start [this context] (lc-fn context :start-service2))
-                      (service2-fn [this] (lc-fn nil :service2-fn)))
-          service3  (service Service3
-                       [[:Service2 service2-fn]]
-                       (init [this context] (lc-fn context :init-service3))
-                       (start [this context] (lc-fn context :start-service3))
-                       (service3-fn [this] (lc-fn nil :service3-fn)))]
-      (bootstrap-services-with-empty-config [service1 service3 service2])
+    (let [call-seq (atom [])
+          services (create-lifecycle-services call-seq)]
+      (with-app-with-empty-config app
+        services
+        (is (= [:init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3]
+               @call-seq)))
       (is (= [:init-service1 :init-service2 :init-service3
-              :start-service1 :start-service2 :start-service3]
+              :start-service1 :start-service2 :start-service3
+              :stop-service3 :stop-service2 :stop-service1]
              @call-seq))
+
+
       (reset! call-seq [])
-      (bootstrap-services-with-empty-config [service3 service2 service1])
+      (with-app-with-empty-config app
+        services
+        (is (= [:init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3]
+               @call-seq)))
       (is (= [:init-service1 :init-service2 :init-service3
-              :start-service1 :start-service2 :start-service3]
-             @call-seq))))
+              :start-service1 :start-service2 :start-service3
+              :stop-service3 :stop-service2 :stop-service1]
+             @call-seq)))))
+
+(deftest test-lifecycle-function-ordering-restart
+  (testing "app restart calls life cycle functions in the correct order"
+    (let [call-seq (atom [])
+          services (create-lifecycle-services call-seq)]
+      (with-app-with-empty-config app
+        services
+        (is (= [:init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3]
+               @call-seq))
+        (app/restart app)
+        (is (= [:init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3
+                :stop-service3 :stop-service2 :stop-service1
+                :init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3]
+               @call-seq)))
+      (is (= [:init-service1 :init-service2 :init-service3
+              :start-service1 :start-service2 :start-service3
+              :stop-service3 :stop-service2 :stop-service1
+              :init-service1 :init-service2 :init-service3
+              :start-service1 :start-service2 :start-service3
+              :stop-service3 :stop-service2 :stop-service1]
+             @call-seq)))))
+
 
   (testing "service-id should be able to be called from any lifecycle phase"
     (let [test-context (atom {})

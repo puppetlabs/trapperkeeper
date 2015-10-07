@@ -12,4 +12,5 @@
                                  "occurred, return the input parameter."))
   (init [this] "Initialize the services")
   (start [this] "Start the services")
-  (stop [this] "Stop the services"))
+  (stop [this] "Stop the services")
+  (restart [this] "Stop and restart the services"))

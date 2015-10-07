@@ -448,7 +448,11 @@
         this)
       (a/stop [this]
         (shutdown! app-context)
-        this))))
+        this)
+      (a/restart [this]
+        (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))
+        (run-lifecycle-fns app-context s/init "init" ordered-services)
+        (run-lifecycle-fns app-context s/start "start" ordered-services)))))
 
 (defn boot-services*
   "Given the services to run and the map of configuration data, create the

@@ -138,6 +138,7 @@
     ;; This adds the TrapperkeeperApp instance to the tk-apps list, so that
     ;; it can be referenced in a remote nREPL session, etc.
     (swap! internal/tk-apps conj app)
+    (internal/register-sighup-handler)
     (run-app app)
     (swap! internal/tk-apps (partial remove #{app}))))
 

@@ -1,6 +1,7 @@
 (ns puppetlabs.trapperkeeper.internal
   (:import (clojure.lang Atom ExceptionInfo))
   (:require [clojure.tools.logging :as log]
+            [beckon]
             [plumbing.graph :as graph]
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
@@ -191,6 +192,26 @@
     (catch Throwable t
       (log/errorf t "Error during service %s!!!" lifecycle-fn-name)
       (throw t))))
+
+(def ^:private sighup-lock (Object.))
+
+(defn restart-tk-apps
+  "Call restart on all tk apps."
+  [apps]
+  (log/debug "SIGHUP handler restarting TK apps.")
+  (locking sighup-lock
+    (doseq [app apps]
+      (a/restart app))))
+
+(defn register-sighup-handler
+  "Register a handler for SIGHUP that restarts all trapperkeeper apps. The
+  default handler terminates the process, so we always overwrite that. This
+  function is idempotent."
+  ([]
+   (register-sighup-handler @tk-apps))
+  ([apps]
+   (log/debug "Registering SIGHUP handler for restarting TK apps")
+   (reset! (beckon/signal-atom "HUP") #{(partial restart-tk-apps apps)})))
 
 ;;;; Application Shutdown Support
 ;;;;

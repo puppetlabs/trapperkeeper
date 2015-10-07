@@ -114,13 +114,6 @@
         (bootstrap/parse-bootstrap-config!)
         (internal/boot-services* config-data))))
 
-
-;; This variable is used to hold a reference to the "main" trapperkeeper
-;; application instance if you use trapperkeeper's "main" function to
-;; launch your application.  This allows you to get a reference to the
-;; app in a remote nREPL session if you are using the nrepl service.
-(def main-app nil)
-
 (defn run-app
   "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
   which may be triggered by one of several different ways. In all cases, services
@@ -144,7 +137,7 @@
   (let [app (boot-with-cli-data cli-data)]
     ;; This line populates the `main-app` variable with the TrapperkeeperApp
     ;; instance.  This allows it to be referenced in a remote nREPL session.
-    (alter-var-root #'main-app (fn [_] app))
+    (swap! internal/tk-apps conj app)
     (run-app app)))
 
 (defn main

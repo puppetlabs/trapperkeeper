@@ -8,6 +8,8 @@
             [puppetlabs.trapperkeeper.services :as s]
             [puppetlabs.kitchensink.core :as ks]))
 
+(def tk-apps (atom []))
+
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
   service graph."

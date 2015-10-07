@@ -8,6 +8,10 @@
             [puppetlabs.trapperkeeper.services :as s]
             [puppetlabs.kitchensink.core :as ks]))
 
+;; This is (eww) a global variable that holds a reference to all of the running
+;; Trapperkeeper apps in the process. It can be used when connecting via nrepl
+;; to allow you to do useful things, and also may be used for other things
+;; (such as signal handling).
 (def tk-apps (atom []))
 
 (defn service-graph?

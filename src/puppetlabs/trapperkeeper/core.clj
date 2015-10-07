@@ -135,10 +135,11 @@
   [cli-data]
   {:pre [(map? cli-data)]}
   (let [app (boot-with-cli-data cli-data)]
-    ;; This line populates the `main-app` variable with the TrapperkeeperApp
-    ;; instance.  This allows it to be referenced in a remote nREPL session.
+    ;; This adds the TrapperkeeperApp instance to the tk-apps list, so that
+    ;; it can be referenced in a remote nREPL session, etc.
     (swap! internal/tk-apps conj app)
-    (run-app app)))
+    (run-app app)
+    (swap! internal/tk-apps (partial remove #{app}))))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until

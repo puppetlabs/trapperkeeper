@@ -8,12 +8,16 @@
             [puppetlabs.trapperkeeper.services :refer [service-map]]
             [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.bootstrap :refer :all]
+            [puppetlabs.trapperkeeper.logging :refer [reset-logging]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]
             [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn hello-world]]
             [schema.test :as schema-test]))
 
-(use-fixtures :once schema-test/validate-schemas)
+(use-fixtures :once
+  schema-test/validate-schemas
+  ;; Without this, "lein test NAMESPACE" and :only invocations may fail.
+  (fn [f] (reset-logging) (f)))
 
 (deftest bootstrapping
   (testing "Valid bootstrap configurations"

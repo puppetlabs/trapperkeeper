@@ -14,9 +14,11 @@
   []
   (.reset (logging-context)))
 
+(def root-logger-name Logger/ROOT_LOGGER_NAME)
+
 (defn root-logger
   []
-  (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME))
+  (LoggerFactory/getLogger root-logger-name))
 
 (defn catch-all-logger
   "A logging function useful for catch-all purposes, that is, to

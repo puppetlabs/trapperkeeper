@@ -4,9 +4,7 @@
    [clojure.tools.logging :as log]
    [puppetlabs.kitchensink.core :as kitchensink]
    [puppetlabs.trapperkeeper.logging :refer [reset-logging root-logger-name]]
-   [puppetlabs.trapperkeeper.testutils.logging :as tgt :refer [event->map]])
-  (:import
-   [org.slf4j Logger LoggerFactory]))
+   [puppetlabs.trapperkeeper.testutils.logging :as tgt :refer [event->map]]))
 
 ;; Without this, "lein test NAMESPACE" and :only invocations may fail.
 (use-fixtures :once (fn [f] (reset-logging) (f)))

@@ -272,9 +272,10 @@
   [& body]
   `(let [destination# (atom [])]
      (binding [*test-log-events* destination#]
-       (with-log-level root-logger-name :trace
-         (with-logging-to-atom root-logger-name destination#
-           ~@body)))))
+       (with-redefs [pl-log/configure-logger! (fn [& _#])]
+         (with-log-level root-logger-name :trace
+                         (with-logging-to-atom root-logger-name destination#
+                                               ~@body))))))
 
 (defmacro with-test-logging-debug
   "Creates an environment for the use of the logged? test method, and

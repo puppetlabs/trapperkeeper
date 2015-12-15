@@ -51,6 +51,14 @@
 (defprotocol Service3
   (service3-fn [this]))
 
+(deftest test-services-not-required
+  (testing "services are not required to define lifecycle functions"
+    (let [service1 (service Service1
+                     []
+                     (service1-fn [this] "hi"))
+          app (bootstrap-services-with-empty-config [service1])]
+      (is (not (nil? app))))))
+
 (defn create-lifecycle-services
   [call-seq]
 
@@ -78,14 +86,6 @@
        (start [this context] (lc-fn context :start-service3))
        (stop [this context] (lc-fn context :stop-service3))
        (service3-fn [this] (lc-fn nil :service3-fn)))]))
-
-(deftest test-services-not-required
-  (testing "services are not required to define lifecycle functions"
-    (let [service1 (service Service1
-                     []
-                     (service1-fn [this] "hi"))
-          app (bootstrap-services-with-empty-config [service1])]
-      (is (not (nil? app))))))
 
 (deftest test-lifecycle-functions-ordered-correctly
   (testing "life cycle functions are called in the correct order"

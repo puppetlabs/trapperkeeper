@@ -1,13 +1,15 @@
 (ns puppetlabs.trapperkeeper.services-test
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.services :refer
-                [defservice service] :as svcs]
+             [defservice service] :as svcs]
             [puppetlabs.trapperkeeper.app :as app]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
-                [bootstrap-services-with-empty-config
-                 with-app-with-empty-config]]
+             [bootstrap-services-with-empty-config
+              with-app-with-empty-config]]
             [schema.test :as schema-test]
-            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]))
+            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
+            [beckon]
+            [puppetlabs.trapperkeeper.internal :as internal]))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
 
@@ -135,7 +137,37 @@
               :stop-service3 :stop-service2 :stop-service1]
              @call-seq)))))
 
+(deftest test-lifecycle-function-ordering-signaling
+  (testing "app restart calls life cycle functions in the correct order"
+    (let [call-seq (atom [])
+          services (create-lifecycle-services call-seq)]
+      (with-app-with-empty-config app
+        services
+        (is (= [:init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3]
+               @call-seq))
+        (internal/register-sighup-handler [app])
+        (beckon/raise! "HUP")
+        (let [start (System/currentTimeMillis)]
+          (while (or (not= (count @call-seq) 15)
+                     (> (- (System/currentTimeMillis) start) 1000))
+            (Thread/yield)))
+        (is (= (count @call-seq) 15))
+        (is (= [:init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3
+                :stop-service3 :stop-service2 :stop-service1
+                :init-service1 :init-service2 :init-service3
+                :start-service1 :start-service2 :start-service3]
+               @call-seq)))
+      (is (= [:init-service1 :init-service2 :init-service3
+              :start-service1 :start-service2 :start-service3
+              :stop-service3 :stop-service2 :stop-service1
+              :init-service1 :init-service2 :init-service3
+              :start-service1 :start-service2 :start-service3
+              :stop-service3 :stop-service2 :stop-service1]
+             @call-seq)))))
 
+(deftest test-lifecycle-service-id-available
   (testing "service-id should be able to be called from any lifecycle phase"
     (let [test-context (atom {})
           service1 (service Service1

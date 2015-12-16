@@ -149,8 +149,8 @@
         (internal/register-sighup-handler [app])
         (beckon/raise! "HUP")
         (let [start (System/currentTimeMillis)]
-          (while (or (not= (count @call-seq) 15)
-                     (> (- (System/currentTimeMillis) start) 1000))
+          (while (and (not= (count @call-seq) 15)
+                     (< (- (System/currentTimeMillis) start) 1000))
             (Thread/yield)))
         (is (= (count @call-seq) 15))
         (is (= [:init-service1 :init-service2 :init-service3

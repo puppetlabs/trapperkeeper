@@ -57,7 +57,7 @@
     {:fns fns}
     (throw (IllegalArgumentException.
              (format
-               "Invalid service definition; expected function definitions following dependency list, invalid value: '\"hi\"'"
+               "Invalid service definition; expected function definitions following dependency list, invalid value: '%s'"
                (pr-str (first (filter #(not (seq? %)) fns))))))))
 
 (defn validate-deps-form!

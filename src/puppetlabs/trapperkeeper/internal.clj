@@ -478,6 +478,7 @@
         this)
       (a/restart [this]
         (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))
+        (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
         (run-lifecycle-fns app-context s/init "init" ordered-services)
         (run-lifecycle-fns app-context s/start "start" ordered-services)))))
 

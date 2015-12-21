@@ -167,6 +167,18 @@
               :stop-service3 :stop-service2 :stop-service1]
              @call-seq)))))
 
+(deftest test-context-cleared-on-restart
+  (testing "service contexts should be cleared out during a restart"
+    (let [test-context (atom {})
+          service1 (service EmptyService
+                     []
+                     (init [this context]
+                           (swap! test-context merge context)
+                           {:foo "bar"}))]
+      (with-app-with-empty-config app [service1]
+        (app/restart app))
+      (is (= {} @test-context)))))
+
 (deftest test-lifecycle-service-id-available
   (testing "service-id should be able to be called from any lifecycle phase"
     (let [test-context (atom {})

@@ -9,7 +9,11 @@
             [schema.test :as schema-test]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
             [beckon]
-            [puppetlabs.trapperkeeper.internal :as internal]))
+            [puppetlabs.trapperkeeper.internal :as internal]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
+            [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.kitchensink.testutils :as ks-testutils])
+  (:import (java.util.concurrent ExecutionException)))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
 
@@ -178,6 +182,37 @@
       (with-app-with-empty-config app [service1]
         (app/restart app))
       (is (= {} @test-context)))))
+
+(deftest test-exception-during-restart
+  (testing "restart should halt if an exception is raised"
+    (let [call-seq (atom [])
+          services (conj (create-lifecycle-services call-seq) (service
+                                                                EmptyService
+                                                                []
+                                                                (stop [this context] (throw (IllegalStateException. "Exploding Service")))))]
+      (try
+        (ks-testutils/with-no-jvm-shutdown-hooks
+         (let [app (internal/throw-app-error-if-exists!
+                    (bootstrap-services-with-empty-config services))]
+           ; We can't use the with-app-with-empty-config macro because we don't want to use its implicit tk-app/stop call
+           ; We're asserting that the stop will happen because of the exception. So instead, we use the tk/run-app here to
+           ; block on the app until the restart is called an explodes in an exception.
+           (let [app-running (future (tk/run-app app))]
+             (is (= [:init-service1 :init-service2 :init-service3
+                     :start-service1 :start-service2 :start-service3]
+                    @call-seq))
+             (app/restart app)
+             (try
+               @app-running
+               (catch ExecutionException e
+                 (is (instance? IllegalStateException (.getCause e)))
+                 (is (= "Exploding Service" (.. e getCause getMessage )))))
+             ))))
+      ; Here we validate that the stop completed but no new init happened
+      (is (= [:init-service1 :init-service2 :init-service3
+              :start-service1 :start-service2 :start-service3
+              :stop-service3 :stop-service2 :stop-service1]
+             @call-seq)))))
 
 (deftest test-lifecycle-service-id-available
   (testing "service-id should be able to be called from any lifecycle phase"

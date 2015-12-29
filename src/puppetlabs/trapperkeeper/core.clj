@@ -93,26 +93,32 @@
   `cli-data` is a map of the command-line arguments and their values.
   `puppetlabs.kitchensink/cli!` can handle the parsing for you.
 
+  `preprocess-config-fn` is a function through which the config data is passed
+  after it is parsed. If not provided, it defaults to `identity`.
+
   Their must be a `:config` key in this map which defines the .ini file
   (or directory of files) used by the configuration service.
 
   Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
   block the main thread to wait for a shutdown event."
-  [cli-data]
-  {:pre  [(map? cli-data)]
-   :post [(satisfies? app/TrapperkeeperApp %)]}
-  ;; There is a strict order of operations that need to happen here:
-  ;; 1. parse config files
-  ;; 2. initialize logging
-  ;; 3. initialize plugin system
-  ;; 4. bootstrap rest of framework
-  (let [config-data (config/parse-config-data cli-data)]
-    (config/initialize-logging! config-data)
-    (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
-    (-> cli-data
-        (bootstrap/find-bootstrap-config)
-        (bootstrap/parse-bootstrap-config!)
-        (internal/boot-services* config-data))))
+  ([cli-data preprocess-config-fn]
+   {:pre  [(map? cli-data)
+           (fn? preprocess-config-fn)]
+    :post [(satisfies? app/TrapperkeeperApp %)]}
+   ;; There is a strict order of operations that need to happen here:
+   ;; 1. parse config files
+   ;; 2. initialize logging
+   ;; 3. initialize plugin system
+   ;; 4. bootstrap rest of framework
+   (let [config-data (preprocess-config-fn (config/parse-config-data cli-data))]
+     (config/initialize-logging! config-data)
+     (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
+     (-> cli-data
+         (bootstrap/find-bootstrap-config)
+         (bootstrap/parse-bootstrap-config!)
+         (internal/boot-services* config-data))))
+  ([cli-data]
+   (boot-with-cli-data cli-data identity)))
 
 
 ;; This variable is used to hold a reference to the "main" trapperkeeper
@@ -139,13 +145,38 @@
   Blocks the calling thread until trapperkeeper is shut down.
   `cli-data` is expected to be a map constructed by parsing the CLI args.
   (see `parse-cli-args`)"
-  [cli-data]
-  {:pre [(map? cli-data)]}
-  (let [app (boot-with-cli-data cli-data)]
-    ;; This line populates the `main-app` variable with the TrapperkeeperApp
-    ;; instance.  This allows it to be referenced in a remote nREPL session.
-    (alter-var-root #'main-app (fn [_] app))
-    (run-app app)))
+  ([cli-data preprocess-config-fn]
+   {:pre [(map? cli-data)
+          (fn? preprocess-config-fn)]}
+   (let [app (boot-with-cli-data cli-data preprocess-config-fn)]
+     ;; This line populates the `main-app` variable with the TrapperkeeperApp
+     ;; instance.  This allows it to be referenced in a remote nREPL session.
+     (alter-var-root #'main-app (fn [_] app))
+     (run-app app)))
+  ([cli-data] (run cli-data identity)))
+
+(defn main-with-config-hook
+  "A version of the main function that allows the caller to provide a function
+  to preprocess the parsed config data structure before it is passed to any
+  services."
+  [args preprocess-config-fn]
+  {:pre [((some-fn sequential? nil?) args)
+         (every? string? args)
+         (fn? preprocess-config-fn)]}
+  (let [quit (fn [status msg stream]
+               (binding [*out* stream] (println msg) (flush))
+               (System/exit status))]
+    (try+
+     (-> (or args '())
+         (internal/parse-cli-args!)
+         (run preprocess-config-fn))
+     (catch map? m
+       (case (without-ns (:type m))
+         :cli-error (quit 1 (:message m) *err*)
+         :cli-help (quit 0 (:message m) *out*)
+         (throw+)))
+     (finally
+       (shutdown-agents)))))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
@@ -155,17 +186,4 @@
   [& args]
   {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
-  (let [quit (fn [status msg stream]
-               (binding [*out* stream] (println msg) (flush))
-               (System/exit status))]
-    (try+
-     (-> (or args '())
-         (internal/parse-cli-args!)
-         (run))
-     (catch map? m
-       (case (without-ns (:type m))
-         :cli-error (quit 1 (:message m) *err*)
-         :cli-help (quit 0 (:message m) *out*)
-         (throw+)))
-     (finally
-       (shutdown-agents)))))
+  (main-with-config-hook args identity))

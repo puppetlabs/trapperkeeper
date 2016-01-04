@@ -194,9 +194,11 @@
         (ks-testutils/with-no-jvm-shutdown-hooks
          (let [app (internal/throw-app-error-if-exists!
                     (bootstrap-services-with-empty-config services))]
-           ; We can't use the with-app-with-empty-config macro because we don't want to use its implicit tk-app/stop call
-           ; We're asserting that the stop will happen because of the exception. So instead, we use the tk/run-app here to
-           ; block on the app until the restart is called an explodes in an exception.
+           ; We can't use the with-app-with-empty-config macro because we don't
+           ; want to use its implicit tk-app/stop call. We're asserting that
+           ; the stop will happen because of the exception. So instead, we use
+           ; the tk/run-app here to block on the app until the restart is
+           ; called an explodes in an exception.
            (let [app-running (future (tk/run-app app))]
              (is (= [:init-service1 :init-service2 :init-service3
                      :start-service1 :start-service2 :start-service3]

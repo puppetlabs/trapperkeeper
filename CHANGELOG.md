@@ -1,3 +1,13 @@
+## 1.1.2
+
+This is a bugfix / minor feature release.
+
+* Various, significant improvements to logging testutils, courtesy of Rob Browning.
+* [TK-291](https://tickets.puppetlabs.com/browse/TK-291) - `(is (logged?` test assertion
+  now captures log messages that were logged by other (non-Clojure) threads.
+* `logs-matching` now has an additional signature that accepts a log level 
+* Improvements to error handling when an error occurs in TK's `main` function
+
 ## 1.1.1
 
 This is a maintenance / minor feature release.

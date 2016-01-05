@@ -25,6 +25,7 @@
           (log/info "wlta-test"))
         (is (some #(= expected %) (map event->map @log)))))))
 
+(def call-with-started #'puppetlabs.trapperkeeper.testutils.logging/call-with-started)
 (def find-logger #'puppetlabs.trapperkeeper.testutils.logging/find-logger)
 (def log-event-listener #'puppetlabs.trapperkeeper.testutils.logging/log-event-listener)
 
@@ -36,15 +37,19 @@
         logger (find-logger root-logger-name)
         uuid (kitchensink/uuid)
         original-appenders (get-appenders logger)
-        new-appender (log-event-listener (fn [event] (swap! log conj event)))
+        new-appender (doto (log-event-listener
+                            (fn [event] (swap! log conj event)))
+                       .start)
         expected {:logger "puppetlabs.trapperkeeper.testutils.logging-test"
                   :level :error
                   :message uuid
                   :exception nil}]
-    (tgt/with-additional-log-appenders root-logger-name [new-appender]
-      (is (= (set (cons new-appender original-appenders))
-             (set (get-appenders logger))))
-      (log/error uuid))
+    (call-with-started
+     [new-appender]
+     #(tgt/with-additional-log-appenders root-logger-name [new-appender]
+        (is (= (set (cons new-appender original-appenders))
+               (set (get-appenders logger))))
+        (log/error uuid)))
     (is (= (set original-appenders)
            (set (get-appenders logger))))
     (is (some #(= expected %) (map event->map @log)))))
@@ -54,15 +59,19 @@
         logger (find-logger root-logger-name)
         uuid (kitchensink/uuid)
         original-appenders (get-appenders logger)
-        new-appender (log-event-listener (fn [event] (swap! log conj event)))
+        new-appender (doto (log-event-listener
+                            (fn [event] (swap! log conj event)))
+                       .start)
         expected {:logger "puppetlabs.trapperkeeper.testutils.logging-test"
                   :level :error
                   :message uuid
                   :exception nil}]
-    (tgt/with-log-appenders root-logger-name
-      [new-appender]
-      (is (= [new-appender] (get-appenders logger)))
-      (log/error uuid))
+    (call-with-started
+     [new-appender]
+     #(tgt/with-log-appenders root-logger-name
+        [new-appender]
+        (is (= [new-appender] (get-appenders logger)))
+        (log/error uuid)))
     (is (= (set original-appenders)
            (set (get-appenders logger))))
     (is (some #(= expected %) (map event->map @log)))))

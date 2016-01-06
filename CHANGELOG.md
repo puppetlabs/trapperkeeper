@@ -1,3 +1,11 @@
+## 1.1.3
+
+This is a bugfix release.
+
+* [TK-311](https://tickets.puppetlabs.com/browse/TK-311) - fix a minor bug in the new
+  logging testutils, where the log appenders weren't implementing the `isStarted`
+  method.
+
 ## 1.1.2
 
 This is a bugfix / minor feature release.

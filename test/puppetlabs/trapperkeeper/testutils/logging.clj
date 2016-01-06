@@ -97,15 +97,17 @@
   "Returns a log Appender that will call (listen event) for each log event."
   [listen]
   ;; No clue yet if we're supposed to start with a default name.
-  (let [name (atom (str "tk-log-listener-" (kitchensink/uuid)))]
+  (let [name (atom (str "tk-log-listener-" (kitchensink/uuid)))
+        started? (atom false)]
     (reify
       Appender
-      (doAppend [this event] (listen event))
+      (doAppend [this event] (when @started? (listen event)))
       (getName [this] @name)
       (setName [this x] (reset! name x))
       LifeCycle
-      (start [this] true)
-      (stop [this] true))))
+      (start [this] (reset! started? true))
+      (stop [this] (reset! started? false))
+      (isStarted [this] @started?))))
 
 (defn call-with-additional-log-appenders [logger-id appenders f]
   "Adds the specified appenders to the logger specified by logger-id,

@@ -20,8 +20,10 @@
   "Common functions available to all services"
   (service-id [this] "An identifier for the service")
   (service-context [this] "Returns the context map for this service")
-  (get-service [this service-id] "Returns the service with the given service id")
+  (get-service [this service-id] "Returns the service with the given service id. Throws if service not present")
+  (maybe-get-service [this service-id] "Returns the service with the given service id. Returns nil if service not present")
   (get-services [this] "Returns a sequence containing all of the services in the app")
+  (service-included? [this service-id] "Returns true or false whether service is included")
   (service-symbol [this] "The namespaced symbol of the service definition, or `nil`
                           if no service symbol was provided."))
 
@@ -75,12 +77,16 @@
                                             (format
                                               "Call to 'get-service' failed; service '%s' does not exist."
                                               service-id#)))))
+                             (maybe-get-service [this# service-id#]
+                               (get-in ~'@tk-app-context [:services-by-id service-id#] nil))
                              (get-services [this#]
                                (-> ~'@tk-app-context
                                    :services-by-id
                                    (dissoc :ConfigService :ShutdownService)
                                    vals))
                              (service-symbol [this#] '~service-sym)
+                             (service-included? [this# service-id#]
+                               (not (nil? (get-in ~'@tk-app-context [:services-by-id service-id#] nil))))
 
                              Lifecycle
                              ~@(si/fn-defs fns-map lifecycle-fn-names)

@@ -11,7 +11,7 @@
                  [clj-time "0.5.1"]
                  [puppetlabs/kitchensink ~ks-version]
                  [prismatic/plumbing "0.4.2"]
-                 [prismatic/schema "0.4.0"]
+                 [prismatic/schema "1.0.4"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.1.1"]

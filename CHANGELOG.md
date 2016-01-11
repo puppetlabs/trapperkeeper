@@ -1,3 +1,15 @@
+## 1.2.0
+
+This is a minor feature release.
+
+* [TK-299](https://tickets.puppetlabs.com/browse/TK-299) - support optional
+  dependencies, which allow services to take advantage of other services if
+  they're included in the bootstrap and gracefully handled when they are not
+  included. See the
+  [docs](https://github.com/puppetlabs/trapperkeeper/wiki/Defining-Services#optional-services)
+  for more detail.
+* Use newer version of schema library and make use of more schemas.
+
 ## 1.1.3
 
 This is a bugfix release.

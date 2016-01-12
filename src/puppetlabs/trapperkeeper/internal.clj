@@ -482,6 +482,7 @@
           (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
           (run-lifecycle-fns app-context s/init "init" ordered-services)
           (run-lifecycle-fns app-context s/start "start" ordered-services)
+          this
           (catch Throwable t
             (deliver shutdown-reason-promise {:cause :service-error
                                               :error t})))))))

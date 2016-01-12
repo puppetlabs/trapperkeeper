@@ -32,13 +32,14 @@
   (`init`, `start`, `stop`) as you see fit;  if you'd like to have the trapperkeeper
   framework block the main thread to wait for a shutdown event, call `init`,
   `start`, and then `run-app`."
-  [services config-data-fn]
+  [services config-data]
   {:pre  [(sequential? services)
           (every? #(satisfies? services/ServiceDefinition %) services)
-          (ifn? config-data-fn)]
+          (ifn? config-data)]
    :post [(satisfies? app/TrapperkeeperApp %)]}
-  (config/initialize-logging! (config-data-fn))
-  (internal/build-app* services config-data-fn (promise)))
+  (let [config-data-fn (if (map? config-data) (constantly config-data) config-data)]
+    (config/initialize-logging! (config-data-fn))
+    (internal/build-app* services config-data-fn (promise))))
 
 (defn boot-services-with-cli-data
   "Given a list of ServiceDefinitions and a map containing parsed cli data, create

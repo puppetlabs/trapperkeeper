@@ -10,7 +10,7 @@
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
             [beckon]
             [puppetlabs.trapperkeeper.internal :as internal]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-test-logging-debug]]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.kitchensink.testutils :as ks-testutils])
   (:import (java.util.concurrent ExecutionException)))

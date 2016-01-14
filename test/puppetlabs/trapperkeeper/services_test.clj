@@ -186,16 +186,17 @@
 (deftest test-exception-during-restart
   (testing "restart should halt if an exception is raised"
     (let [call-seq (atom [])
-          services (conj (create-lifecycle-services call-seq) (service
-                                                                EmptyService
-                                                                []
-                                                                (stop [this context] (throw (IllegalStateException. "Exploding Service")))))]
+          services (conj (create-lifecycle-services call-seq)
+                         (service
+                           EmptyService
+                           []
+                           (stop [this context] (throw (IllegalStateException. "Exploding Service")))))]
       (ks-testutils/with-no-jvm-shutdown-hooks
        ; We can't use the with-app-with-empty-config macro because we don't
        ; want to use its implicit tk-app/stop call. We're asserting that
        ; the stop will happen because of the exception. So instead, we use
        ; the tk/run-app here to block on the app until the restart is
-       ; called an explodes in an exception.
+       ; called and explodes in an exception.
        (let [app (internal/throw-app-error-if-exists!
                   (bootstrap-services-with-empty-config services))
              app-running (future (tk/run-app app))]
@@ -207,8 +208,7 @@
            @app-running
            (catch ExecutionException e
              (is (instance? IllegalStateException (.getCause e)))
-             (is (= "Exploding Service" (.. e getCause getMessage)))))
-         ))
+             (is (= "Exploding Service" (.. e getCause getMessage)))))))
       ; Here we validate that the stop completed but no new init happened
       (is (= [:init-service1 :init-service2 :init-service3
               :start-service1 :start-service2 :start-service3

@@ -173,15 +173,28 @@
 
 (deftest test-context-cleared-on-restart
   (testing "service contexts should be cleared out during a restart"
-    (let [test-context (atom {})
+    (let [test-init-context (atom nil)
+          test-init-count (atom 0)
+          test-start-context (atom nil)
+          context-elem  {:foo "bar"}
           service1 (service EmptyService
                      []
                      (init [this context]
-                           (swap! test-context merge context)
-                           {:foo "bar"}))]
+                           (reset! test-init-context (merge context context-elem))
+                           (swap! test-init-count inc)
+                           {:context @test-init-context :count @test-init-count})
+                     (start [this context]
+                            (reset! test-start-context context)))]
       (with-app-with-empty-config app [service1]
+        (is (= context-elem @test-init-context))
+        (is (= {:foo "bar"} (:context @test-start-context)))
+        (is (= 1 (:count @test-start-context)))
+        (swap! test-init-context dissoc :context)
+        (swap! test-start-context dissoc :context)
         (app/restart app))
-      (is (= {} @test-context)))))
+      (is (= {:foo "bar"} @test-init-context))
+      (is (= {:foo "bar"} (:context @test-start-context)))
+      (is (= 2 (:count @test-start-context))))))
 
 (deftest test-exception-during-restart
   (testing "restart should halt if an exception is raised"

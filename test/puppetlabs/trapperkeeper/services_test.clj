@@ -12,7 +12,8 @@
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.core :as tk]
-            [puppetlabs.kitchensink.testutils :as ks-testutils])
+            [puppetlabs.kitchensink.testutils :as ks-testutils]
+            [clojure.tools.logging :as log])
   (:import (java.util.concurrent ExecutionException)))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
@@ -151,7 +152,9 @@
                 :start-service1 :start-service2 :start-service3]
                @call-seq))
         (internal/register-sighup-handler [app])
+        (log/debugf "About to HUP the app. Hold onto your butts!")
         (beckon/raise! "HUP")
+        (log/debugf "Have HUPped the app. Did anything happen yet?")
         (let [start (System/currentTimeMillis)]
           (while (and (not= (count @call-seq) 15)
                      (< (- (System/currentTimeMillis) start) 5000))

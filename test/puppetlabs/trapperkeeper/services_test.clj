@@ -8,12 +8,10 @@
               with-app-with-empty-config]]
             [schema.test :as schema-test]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
-            [beckon]
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.core :as tk]
-            [puppetlabs.kitchensink.testutils :as ks-testutils]
-            [clojure.tools.logging :as log])
+            [puppetlabs.kitchensink.testutils :as ks-testutils])
   (:import (java.util.concurrent ExecutionException)))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
@@ -151,10 +149,10 @@
         (is (= [:init-service1 :init-service2 :init-service3
                 :start-service1 :start-service2 :start-service3]
                @call-seq))
-        (internal/register-sighup-handler [app])
-        (log/debugf "About to HUP the app. Hold onto your butts!")
-        (beckon/raise! "HUP")
-        (log/debugf "Have HUPped the app. Did anything happen yet?")
+        ;; It would be preferrable to send a HUP here, but jenkins clients
+        ;; swallow the HUP signal, which makes the test fail. So instead we
+        ;; just call the thing that the signal would have caused to be called.
+        (internal/restart-tk-apps [app])
         (let [start (System/currentTimeMillis)]
           (while (and (not= (count @call-seq) 15)
                      (< (- (System/currentTimeMillis) start) 1000))

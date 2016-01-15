@@ -154,7 +154,7 @@
         (beckon/raise! "HUP")
         (let [start (System/currentTimeMillis)]
           (while (and (not= (count @call-seq) 15)
-                     (< (- (System/currentTimeMillis) start) 1000))
+                     (< (- (System/currentTimeMillis) start) 5000))
             (Thread/yield)))
         (is (= (count @call-seq) 15))
         (is (= [:init-service1 :init-service2 :init-service3

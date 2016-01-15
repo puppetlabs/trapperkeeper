@@ -5,9 +5,9 @@
         </encoder>
     </appender>
 
-    <logger name="puppetlabs" level="debug"/>
+    <logger name="puppetlabs" level="error"/>
 
-    <root level="debug">
+    <root level="error">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

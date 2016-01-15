@@ -35,10 +35,11 @@
   [services config-data]
   {:pre  [(sequential? services)
           (every? #(satisfies? services/ServiceDefinition %) services)
-          (map? config-data)]
+          (ifn? config-data)]
    :post [(satisfies? app/TrapperkeeperApp %)]}
-  (config/initialize-logging! config-data)
-  (internal/build-app* services config-data (promise)))
+  (let [config-data-fn (if (map? config-data) (constantly config-data) config-data)]
+    (config/initialize-logging! (config-data-fn))
+    (internal/build-app* services config-data-fn (promise))))
 
 (defn boot-services-with-cli-data
   "Given a list of ServiceDefinitions and a map containing parsed cli data, create
@@ -54,15 +55,33 @@
           (every? #(satisfies? services/ServiceDefinition %) services)
           (map? cli-data)]
    :post [(satisfies? app/TrapperkeeperApp %)]}
-  (let [config-data (config/parse-config-data cli-data)]
-    (config/initialize-logging! config-data)
-    (internal/boot-services* services config-data)))
+  (let [config-data-fn #(config/parse-config-data cli-data)]
+    (config/initialize-logging! (config-data-fn))
+    (internal/boot-services* services config-data-fn)))
+
+(defn boot-services-with-config-fn
+  "Given a list of ServiceDefinitions and a function that returns a
+  map containing parsed cli data, create and boot a trapperkeeper app.  This
+  function can be used if you prefer to do your own CLI parsing and loading
+  ServiceDefinitions; it circumvents the normal trapperkeeper `bootstrap.cfg`
+  boot process, but still allows trapperkeeper to handle the parsing of your
+  service configuration data.
+
+  Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
+  block the main thread to wait for a shutdown event."
+  [services config-data-fn]
+  {:pre  [(sequential? services)
+          (every? #(satisfies? services/ServiceDefinition %) services)
+          (ifn? config-data-fn)]
+   :post [(satisfies? app/TrapperkeeperApp %)]}
+  (config/initialize-logging! (config-data-fn))
+  (internal/boot-services* services config-data-fn))
 
 (defn boot-services-with-config
-  "Given a list of ServiceDefinitions and a map containing parsed cli data, create
-  and boot a trapperkeeper app.  This function can be used if you prefer to
-  do your own CLI parsing and loading ServiceDefinitions; it circumvents
-  the normal trapperkeeper `bootstrap.cfg` boot process, but still allows
+  "Given a list of ServiceDefinitions and a map containing parsed cli data,
+  create and boot a trapperkeeper app.  This function can be used if you prefer
+  to do your own CLI parsing and loading ServiceDefinitions; it circumvents the
+  normal trapperkeeper `bootstrap.cfg` boot process, but still allows
   trapperkeeper to handle the parsing of your service configuration data.
 
   Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
@@ -72,8 +91,7 @@
           (every? #(satisfies? services/ServiceDefinition %) services)
           (map? config-data)]
    :post [(satisfies? app/TrapperkeeperApp %)]}
-  (config/initialize-logging! config-data)
-  (internal/boot-services* services config-data))
+  (boot-services-with-config-fn services (constantly config-data)))
 
 (defn boot-with-cli-data
   "Create and boot a trapperkeeper application.  This is accomplished by reading a
@@ -106,20 +124,13 @@
   ;; 2. initialize logging
   ;; 3. initialize plugin system
   ;; 4. bootstrap rest of framework
-  (let [config-data (config/parse-config-data cli-data)]
-    (config/initialize-logging! config-data)
+  (let [config-data-fn #(config/parse-config-data cli-data)]
+    (config/initialize-logging! (config-data-fn))
     (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
     (-> cli-data
         (bootstrap/find-bootstrap-config)
         (bootstrap/parse-bootstrap-config!)
-        (internal/boot-services* config-data))))
-
-
-;; This variable is used to hold a reference to the "main" trapperkeeper
-;; application instance if you use trapperkeeper's "main" function to
-;; launch your application.  This allows you to get a reference to the
-;; app in a remote nREPL session if you are using the nrepl service.
-(def main-app nil)
+        (internal/boot-services* config-data-fn))))
 
 (defn run-app
   "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
@@ -142,10 +153,12 @@
   [cli-data]
   {:pre [(map? cli-data)]}
   (let [app (boot-with-cli-data cli-data)]
-    ;; This line populates the `main-app` variable with the TrapperkeeperApp
-    ;; instance.  This allows it to be referenced in a remote nREPL session.
-    (alter-var-root #'main-app (fn [_] app))
-    (run-app app)))
+    ;; This adds the TrapperkeeperApp instance to the tk-apps list, so that
+    ;; it can be referenced in a remote nREPL session, etc.
+    (swap! internal/tk-apps conj app)
+    (internal/register-sighup-handler)
+    (run-app app)
+    (swap! internal/tk-apps (partial remove #{app}))))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until

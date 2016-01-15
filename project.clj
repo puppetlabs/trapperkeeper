@@ -18,7 +18,8 @@
                  [org.codehaus.janino/janino "2.7.8"]
                  [puppetlabs/typesafe-config "0.1.1"]
                  [me.raynes/fs "1.4.5"]
-                 [clj-yaml "0.4.0"]]
+                 [clj-yaml "0.4.0"]
+                 [beckon "0.1.1"]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}

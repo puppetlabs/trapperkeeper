@@ -1,12 +1,19 @@
 (ns puppetlabs.trapperkeeper.internal
   (:import (clojure.lang Atom ExceptionInfo))
   (:require [clojure.tools.logging :as log]
+            [beckon]
             [plumbing.graph :as graph]
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
             [puppetlabs.trapperkeeper.services :as s]
             [puppetlabs.kitchensink.core :as ks]))
+
+;; This is (eww) a global variable that holds a reference to all of the running
+;; Trapperkeeper apps in the process. It can be used when connecting via nrepl
+;; to allow you to do useful things, and also may be used for other things
+;; (such as signal handling).
+(def tk-apps (atom []))
 
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
@@ -185,6 +192,26 @@
     (catch Throwable t
       (log/errorf t "Error during service %s!!!" lifecycle-fn-name)
       (throw t))))
+
+(def ^:private sighup-lock (Object.))
+
+(defn restart-tk-apps
+  "Call restart on all tk apps."
+  [apps]
+  (log/debug "SIGHUP handler restarting TK apps.")
+  (locking sighup-lock
+    (doseq [app apps]
+      (a/restart app))))
+
+(defn register-sighup-handler
+  "Register a handler for SIGHUP that restarts all trapperkeeper apps. The
+  default handler terminates the process, so we always overwrite that. This
+  function is idempotent."
+  ([]
+   (register-sighup-handler @tk-apps))
+  ([apps]
+   (log/debug "Registering SIGHUP handler for restarting TK apps")
+   (reset! (beckon/signal-atom "HUP") #{(partial restart-tk-apps apps)})))
 
 ;;;; Application Shutdown Support
 ;;;;
@@ -403,10 +430,10 @@
 (defn build-app*
   "Given a list of services and a map of configuration data, build an instance
   of a TrapperkeeperApp.  Services are not yet initialized or started."
-  [services config-data shutdown-reason-promise]
+  [services config-data-fn shutdown-reason-promise]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
-          (map? config-data)]
+          (ifn? config-data-fn)]
    :post [(satisfies? a/TrapperkeeperApp %)]}
   (let [;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
@@ -414,7 +441,7 @@
         app-context (atom {})
         service-refs (atom {})
         services (conj services
-                       (config-service config-data)
+                       (config-service config-data-fn)
                        (initialize-shutdown-service! app-context
                                                      shutdown-reason-promise))
         service-map (apply merge (map s/service-map services))
@@ -448,20 +475,30 @@
         this)
       (a/stop [this]
         (shutdown! app-context)
-        this))))
+        this)
+      (a/restart [this]
+        (try
+          (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))
+          (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
+          (run-lifecycle-fns app-context s/init "init" ordered-services)
+          (run-lifecycle-fns app-context s/start "start" ordered-services)
+          this
+          (catch Throwable t
+            (deliver shutdown-reason-promise {:cause :service-error
+                                              :error t})))))))
 
 (defn boot-services*
   "Given the services to run and the map of configuration data, create the
   TrapperkeeperApp and boot the services.  Returns the TrapperkeeperApp."
-  [services config-data]
+  [services config-data-fn]
   {:pre  [(sequential? services)
           (every? #(satisfies? s/ServiceDefinition %) services)
-          (map? config-data)]
+          (ifn? config-data-fn)]
    :post [(satisfies? a/TrapperkeeperApp %)]}
   (let [shutdown-reason-promise (promise)
         app                     (try
                                   (build-app* services
-                                              config-data
+                                              config-data-fn
                                               shutdown-reason-promise)
                                   (catch Throwable t
                                     (log/error t "Error during app buildup!")

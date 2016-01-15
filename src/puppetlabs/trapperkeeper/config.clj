@@ -24,8 +24,9 @@
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.config.typesafe :as typesafe]
             [clj-yaml.core :as yaml]
-            [puppetlabs.trapperkeeper.services :refer [service]]
-            [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]))
+            [puppetlabs.trapperkeeper.services :refer [service service-context]]
+            [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
+            [clojure.tools.logging :as log]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Service protocol
@@ -93,12 +94,20 @@
   "Returns trapperkeeper's configuration service.  Expects
    to find a command-line argument value for `:config`; the value of this
    parameter should be the path to an .ini file or a directory of .ini files."
-  [config]
+  [config-data-fn]
   (service ConfigService
            []
-           (get-config [this] config)
-           (get-in-config [this ks] (get-in config ks))
-           (get-in-config [this ks default] (get-in config ks default))))
+           (init [this context]
+                 (assoc context :config (config-data-fn)))
+           (get-config [this]
+                       (let [{:keys [config]} (service-context this)]
+                         config))
+           (get-in-config [this ks]
+                          (let [{:keys [config]} (service-context this)]
+                            (get-in config ks)))
+           (get-in-config [this ks default]
+                          (let [{:keys [config]} (service-context this)]
+                            (get-in config ks default)))))
 
 (defn parse-config-data
   "Parses the .ini, .edn, .conf, .json, or .properties configuration file(s)

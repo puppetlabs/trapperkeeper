@@ -35,6 +35,16 @@
 
 (def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
 
+(defn service-apply
+  "Calls named function in other service, returning default if that service is not included."
+  [service fn-name default & args]
+  (if-let [service-fn (get service fn-name)]
+    (apply service-fn args)
+    (if (nil? service)
+      default
+      (throw (IllegalArgumentException.
+               (format "Call to 'service-apply' failed; service has no fn %s" fn-name))))))
+
 (defmacro service
   "Create a Trapperkeeper ServiceDefinition.
 

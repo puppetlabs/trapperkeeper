@@ -15,6 +15,7 @@
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
                  [ch.qos.logback/logback-classic "1.1.1"]
+                 [org.slf4j/log4j-over-slf4j "1.7.6"]
                  [org.codehaus.janino/janino "2.7.8"]
                  [puppetlabs/typesafe-config "0.1.1"]
                  [me.raynes/fs "1.4.5"]

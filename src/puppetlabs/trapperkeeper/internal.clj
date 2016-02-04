@@ -434,7 +434,14 @@
         ;; context for each individual service
         app-context (atom {:service-contexts {}
                            :ordered-services []
-                           :services-by-id {}})
+                           :services-by-id {}
+                           :lifecycle-agent (agent {}
+                                                   :error-mode :fail
+                                                   :error-handler (fn [_ error]
+                                                                    (deliver shutdown-reason-promise
+                                                                             {:cause :service-error
+                                                                              :error error})))
+                           :shutdown-reason-promise shutdown-reason-promise})
         service-refs (atom {})
         services (conj services
                        (config-service config-data-fn)
@@ -484,6 +491,30 @@
             (deliver shutdown-reason-promise {:cause :service-error
                                               :error t})))))))
 
+(schema/defn ^:always-validate boot-services-on-agent*
+  "Agent fn that boots services for a TK app.  WARNING:  This should only ever
+  be called via a `send`, presumably from `boot-services-on-agent`."
+  [agent-state
+   result-promise :- IDeref
+   app :- (schema/protocol a/TrapperkeeperApp)]
+  (let [{:keys [shutdown-reason-promise]} @(a/app-context app)]
+    (try
+      (a/init app)
+      (a/start app)
+      (catch Throwable t
+        (deliver shutdown-reason-promise {:cause :service-error
+                                          :error t})))
+    (deliver result-promise app)))
+
+(schema/defn ^:always-validate boot-services-on-agent :- (schema/protocol a/TrapperkeeperApp)
+  "Given a TK app, schedules the booting of all of its services on a clojure agent.
+  Blocks until the agent completes the task."
+  [app :- (schema/protocol a/TrapperkeeperApp)]
+  (let [lifecycle-promise (promise)]
+    (send-off (:lifecycle-agent @(a/app-context app))
+              boot-services-on-agent* lifecycle-promise app)
+    @lifecycle-promise))
+
 (defn boot-services*
   "Given the services to run and the map of configuration data, create the
   TrapperkeeperApp and boot the services.  Returns the TrapperkeeperApp."
@@ -500,13 +531,7 @@
                                   (catch Throwable t
                                     (log/error t "Error during app buildup!")
                                     (throw t)))]
-      (try
-        (a/init app)
-        (a/start app)
-        (catch Throwable t
-          (deliver shutdown-reason-promise {:cause :service-error
-                                            :error t})))
-      app)
-    )
+      (boot-services-on-agent app)
+      app))
 
 

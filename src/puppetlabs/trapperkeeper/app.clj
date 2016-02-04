@@ -1,6 +1,7 @@
 (ns puppetlabs.trapperkeeper.app
   (:require [schema.core :as schema]
-            [puppetlabs.trapperkeeper.services :as s]))
+            [puppetlabs.trapperkeeper.services :as s])
+  (:import (clojure.lang Agent IDeref)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schema
@@ -12,7 +13,9 @@
 (def TrapperkeeperAppContext
   {:service-contexts {schema/Keyword {schema/Any schema/Any}}
    :ordered-services TrapperkeeperAppOrderedServices
-   :services-by-id {schema/Keyword (schema/protocol s/Service)}})
+   :services-by-id {schema/Keyword (schema/protocol s/Service)}
+   :lifecycle-agent Agent
+   :shutdown-reason-promise IDeref})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; App Protocol

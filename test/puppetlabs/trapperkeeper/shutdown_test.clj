@@ -105,7 +105,7 @@
 
 (defn bootstrap-and-validate-shutdown
   [services shutdown-called? expected-exception-message]
-  (let [app         (tk/boot-services-with-config services {})]
+  (let [app (tk/boot-services-with-config services {})]
     (is (thrown-with-msg?
          Throwable
          expected-exception-message

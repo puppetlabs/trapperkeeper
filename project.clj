@@ -1,6 +1,6 @@
 (def ks-version "1.0.0")
 
-(defproject puppetlabs/trapperkeeper "1.2.1-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "1.3.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.
@@ -20,7 +20,8 @@
                  [puppetlabs/typesafe-config "0.1.1"]
                  [me.raynes/fs "1.4.5"]
                  [clj-yaml "0.4.0"]
-                 [beckon "0.1.1"]]
+                 [beckon "0.1.1"]
+                 [org.clojure/core.async "0.2.374"]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}

@@ -1,4 +1,18 @@
-(ns puppetlabs.trapperkeeper.app)
+(ns puppetlabs.trapperkeeper.app
+  (:require [schema.core :as schema]
+            [puppetlabs.trapperkeeper.services :as s]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Schema
+
+(def TrapperkeeperAppContext
+  {:service-contexts {schema/Keyword {schema/Any schema/Any}}
+   :ordered-services [[(schema/one schema/Keyword "service-id")
+                       (schema/one (schema/protocol s/Service) "Service")]]
+   :services-by-id {schema/Keyword (schema/protocol s/Service)}})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; App Protocol
 
 (defprotocol TrapperkeeperApp
   "Functions available on a trapperkeeper application instance"

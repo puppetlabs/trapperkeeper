@@ -7,7 +7,8 @@
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
             [puppetlabs.trapperkeeper.services :as s]
-            [puppetlabs.kitchensink.core :as ks]))
+            [puppetlabs.kitchensink.core :as ks]
+            [schema.core :as schema]))
 
 ;; This is (eww) a global variable that holds a reference to all of the running
 ;; Trapperkeeper apps in the process. It can be used when connecting via nrepl
@@ -149,14 +150,10 @@
   * service-id: the id of the service that the lifecycle fn is being run on
   * s: the service that the lifecycle fn is being run on"
   [app-context lifecycle-fn lifecycle-fn-name service-id s]
-  {:pre [(instance? Atom app-context)
-         (ifn? lifecycle-fn)
-         (string? lifecycle-fn-name)
-         (keyword? service-id)
-         (satisfies? s/Lifecycle s)]}
+  {:pre [(nil? (schema/check a/TrapperkeeperAppContext @app-context))]}
   (let [;; call the lifecycle function on the service, and keep a reference
         ;; to the updated context map that it returns
-        updated-ctxt  (lifecycle-fn s (get @app-context service-id {}))]
+        updated-ctxt  (lifecycle-fn s (get-in @app-context [:service-contexts service-id] {}))]
     (if-not (map? updated-ctxt)
       (throw (IllegalStateException.
                (format
@@ -165,7 +162,7 @@
                  (or (s/service-symbol s) service-id)
                  (pr-str updated-ctxt)))))
     ;; store the updated service context map in the application context atom
-    (swap! app-context assoc service-id updated-ctxt)))
+    (swap! app-context assoc-in [:service-contexts service-id] updated-ctxt)))
 
 (defn run-lifecycle-fns
   "Run a lifecycle function for all services.  Required arguments:
@@ -265,18 +262,13 @@
    (shutdown-on-error* shutdown-reason-promise app-context svc-id f nil))
   ([shutdown-reason-promise app-context svc-id f on-error-fn]
    (try
-     ; These would normally be pre-conditions; however, this function needs
-     ; to never throw an exception - since it is often called as a wrapper
-     ; around everything inside a `future`, it is important that this function
-     ; never throw anything (like an AssertionError from a pre-condition),
+     ; This schema check would normally be handled via schematizing the fn itself;
+     ; however, this function needs to never throw an exception - since it is often
+     ; called as a wrapper around everything inside a `future`, it is important
+     ; that this function ; never throw anything (like a schema validation error),
      ; since it is likely to just get lost in a `future`.  Instead,
      ; invalid arguments will simply cause the shutdown promise to be delivered.
-     (assert (instance? Atom app-context))
-     (assert (map? @app-context))
-     (assert (keyword? svc-id))
-     (assert (contains? @app-context svc-id))
-     (assert (ifn? f))
-     (assert ((some-fn nil? ifn?) on-error-fn))
+     (schema/validate a/TrapperkeeperAppContext @app-context)
 
      (f)
      (catch Throwable t
@@ -337,10 +329,7 @@
   "Perform shutdown calling the `stop` lifecycle function on each service,
    in reverse order (to account for dependency relationships)."
   [app-context]
-  {:pre [(instance? Atom app-context)
-         (let [ctxt @app-context]
-           (and (map? ctxt)
-                (ordered-services? (ctxt :ordered-services))))]}
+  {:pre [(nil? (schema/check a/TrapperkeeperAppContext @app-context))]}
   (log/info "Beginning shutdown sequence")
   (doseq [[service-id s] (reverse (@app-context :ordered-services))]
     (try
@@ -352,7 +341,7 @@
 (defn initialize-shutdown-service!
   "Initialize the shutdown service and add a shutdown hook to the JVM."
   [app-context shutdown-reason-promise]
-  {:pre [(instance? Atom app-context)]
+  {:pre [(nil? (schema/check a/TrapperkeeperAppContext @app-context))]
    :post [(satisfies? s/ServiceDefinition %)]}
   (let [shutdown-service        (shutdown-service shutdown-reason-promise
                                                   app-context)]
@@ -438,7 +427,9 @@
   (let [;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service
-        app-context (atom {})
+        app-context (atom {:service-contexts {}
+                           :ordered-services []
+                           :services-by-id {}})
         service-refs (atom {})
         services (conj services
                        (config-service config-data-fn)
@@ -456,9 +447,10 @@
         ;; any further
         services-by-id @service-refs
         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
-    (swap! app-context assoc :services-by-id services-by-id)
-    (swap! app-context assoc :ordered-services ordered-services)
-    (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
+    (swap! app-context assoc
+           :services-by-id services-by-id
+           :ordered-services ordered-services)
+    (doseq [svc-id (keys services-by-id)] (swap! app-context assoc-in [:service-contexts svc-id] {}))
     ;; finally, create the app instance
     (reify
       a/TrapperkeeperApp
@@ -479,7 +471,7 @@
       (a/restart [this]
         (try
           (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))
-          (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
+          (doseq [svc-id (keys services-by-id)] (swap! app-context assoc-in [:service-contexts svc-id] {}))
           (run-lifecycle-fns app-context s/init "init" ordered-services)
           (run-lifecycle-fns app-context s/start "start" ordered-services)
           this

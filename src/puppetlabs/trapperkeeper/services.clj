@@ -70,7 +70,7 @@
             (let [svc# (reify
                          Service
                          (service-id [this#] ~service-id)
-                         (service-context [this#] (get ~'@tk-app-context ~service-id {}))
+                         (service-context [this#] (get-in ~'@tk-app-context [:service-contexts ~service-id] {}))
                          (get-service [this# service-id#]
                            (or (get-in ~'@tk-app-context [:services-by-id service-id#])
                                (throw (IllegalArgumentException.

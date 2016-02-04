@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.internal
-  (:import (clojure.lang Atom ExceptionInfo))
+  (:import (clojure.lang Atom ExceptionInfo IFn IDeref))
   (:require [clojure.tools.logging :as log]
             [beckon]
             [plumbing.graph :as graph]
@@ -139,7 +139,7 @@
         required    []]
     (first (cli! cli-args specs required))))
 
-(defn run-lifecycle-fn!
+(schema/defn ^:always-validate run-lifecycle-fn! :- a/TrapperkeeperAppContext
   "Run a lifecycle function for a service.  Required arguments:
 
   * app-context: the app context atom; can be updated by the lifecycle fn
@@ -149,8 +149,11 @@
                        error message if an error occurs.
   * service-id: the id of the service that the lifecycle fn is being run on
   * s: the service that the lifecycle fn is being run on"
-  [app-context lifecycle-fn lifecycle-fn-name service-id s]
-  {:pre [(nil? (schema/check a/TrapperkeeperAppContext @app-context))]}
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)
+   lifecycle-fn :- IFn
+   lifecycle-fn-name :- schema/Str
+   service-id :- schema/Keyword
+   s :- (schema/protocol s/Service)]
   (let [;; call the lifecycle function on the service, and keep a reference
         ;; to the updated context map that it returns
         updated-ctxt  (lifecycle-fn s (get-in @app-context [:service-contexts service-id] {}))]
@@ -164,7 +167,7 @@
     ;; store the updated service context map in the application context atom
     (swap! app-context assoc-in [:service-contexts service-id] updated-ctxt)))
 
-(defn run-lifecycle-fns
+(schema/defn run-lifecycle-fns
   "Run a lifecycle function for all services.  Required arguments:
 
   * app-context: the app context atom; can be updated by the lifecycle fn
@@ -178,7 +181,10 @@
                       (i.e. a service can be assured that any services it
                       depends on will have their corresponding lifecycle fn
                       called first.)"
-  [app-context lifecycle-fn lifecycle-fn-name ordered-services]
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)
+   lifecycle-fn :- IFn
+   lifecycle-fn-name :- schema/Str
+   ordered-services :- a/TrapperkeeperAppOrderedServices]
   (try
     (doseq [[service-id s] ordered-services]
       (run-lifecycle-fn! app-context
@@ -286,7 +292,7 @@
     "Higher-order function to execute application logic and trigger shutdown in
     the event of an exception"))
 
-(defn- shutdown-service
+(schema/defn shutdown-service
   "Provides various functions for triggering application shutdown programatically.
   Primarily intended to serve application services, though TrapperKeeper also uses
   this service internally and therefore is always available in the application graph.
@@ -302,7 +308,8 @@
                            and trigger shutdown in the event of an exception
 
   For more information, see `request-shutdown` and `shutdown-on-error`."
-  [shutdown-reason-promise app-context]
+  [shutdown-reason-promise :- IDeref
+   app-context :- (schema/atom a/TrapperkeeperAppContext)]
   (s/service ShutdownService
     []
     (get-shutdown-reason [this] (when (realized? shutdown-reason-promise)
@@ -325,11 +332,10 @@
         (every? #(keyword? (first %)) os)
         (every? #(satisfies? s/Lifecycle (second %)) os))))
 
-(defn shutdown!
+(schema/defn ^:always-validate shutdown!
   "Perform shutdown calling the `stop` lifecycle function on each service,
    in reverse order (to account for dependency relationships)."
-  [app-context]
-  {:pre [(nil? (schema/check a/TrapperkeeperAppContext @app-context))]}
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)]
   (log/info "Beginning shutdown sequence")
   (doseq [[service-id s] (reverse (@app-context :ordered-services))]
     (try
@@ -338,11 +344,10 @@
         (log/error e "Encountered error during shutdown sequence"))))
   (log/info "Finished shutdown sequence"))
 
-(defn initialize-shutdown-service!
+(schema/defn ^:always-validate initialize-shutdown-service! :- (schema/protocol s/ServiceDefinition)
   "Initialize the shutdown service and add a shutdown hook to the JVM."
-  [app-context shutdown-reason-promise]
-  {:pre [(nil? (schema/check a/TrapperkeeperAppContext @app-context))]
-   :post [(satisfies? s/ServiceDefinition %)]}
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)
+   shutdown-reason-promise :- IDeref]
   (let [shutdown-service        (shutdown-service shutdown-reason-promise
                                                   app-context)]
     (add-shutdown-hook! (fn []

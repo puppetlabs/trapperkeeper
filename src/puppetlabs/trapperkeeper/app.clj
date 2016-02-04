@@ -5,10 +5,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schema
 
+(def TrapperkeeperAppOrderedServices
+  [[(schema/one schema/Keyword "service-id")
+    (schema/one (schema/protocol s/Service) "Service")]])
+
 (def TrapperkeeperAppContext
   {:service-contexts {schema/Keyword {schema/Any schema/Any}}
-   :ordered-services [[(schema/one schema/Keyword "service-id")
-                       (schema/one (schema/protocol s/Service) "Service")]]
+   :ordered-services TrapperkeeperAppOrderedServices
    :services-by-id {schema/Keyword (schema/protocol s/Service)}})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

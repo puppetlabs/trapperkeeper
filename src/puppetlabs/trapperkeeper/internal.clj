@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.internal
-  (:import (clojure.lang Atom ExceptionInfo))
+  (:import (clojure.lang Atom ExceptionInfo IFn IDeref))
   (:require [clojure.tools.logging :as log]
             [beckon]
             [plumbing.graph :as graph]
@@ -7,7 +7,8 @@
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
             [puppetlabs.trapperkeeper.services :as s]
-            [puppetlabs.kitchensink.core :as ks]))
+            [puppetlabs.kitchensink.core :as ks]
+            [schema.core :as schema]))
 
 ;; This is (eww) a global variable that holds a reference to all of the running
 ;; Trapperkeeper apps in the process. It can be used when connecting via nrepl
@@ -138,7 +139,7 @@
         required    []]
     (first (cli! cli-args specs required))))
 
-(defn run-lifecycle-fn!
+(schema/defn ^:always-validate run-lifecycle-fn! :- a/TrapperkeeperAppContext
   "Run a lifecycle function for a service.  Required arguments:
 
   * app-context: the app context atom; can be updated by the lifecycle fn
@@ -148,15 +149,14 @@
                        error message if an error occurs.
   * service-id: the id of the service that the lifecycle fn is being run on
   * s: the service that the lifecycle fn is being run on"
-  [app-context lifecycle-fn lifecycle-fn-name service-id s]
-  {:pre [(instance? Atom app-context)
-         (ifn? lifecycle-fn)
-         (string? lifecycle-fn-name)
-         (keyword? service-id)
-         (satisfies? s/Lifecycle s)]}
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)
+   lifecycle-fn :- IFn
+   lifecycle-fn-name :- schema/Str
+   service-id :- schema/Keyword
+   s :- (schema/protocol s/Service)]
   (let [;; call the lifecycle function on the service, and keep a reference
         ;; to the updated context map that it returns
-        updated-ctxt  (lifecycle-fn s (get @app-context service-id {}))]
+        updated-ctxt  (lifecycle-fn s (get-in @app-context [:service-contexts service-id] {}))]
     (if-not (map? updated-ctxt)
       (throw (IllegalStateException.
                (format
@@ -165,9 +165,9 @@
                  (or (s/service-symbol s) service-id)
                  (pr-str updated-ctxt)))))
     ;; store the updated service context map in the application context atom
-    (swap! app-context assoc service-id updated-ctxt)))
+    (swap! app-context assoc-in [:service-contexts service-id] updated-ctxt)))
 
-(defn run-lifecycle-fns
+(schema/defn run-lifecycle-fns
   "Run a lifecycle function for all services.  Required arguments:
 
   * app-context: the app context atom; can be updated by the lifecycle fn
@@ -181,7 +181,10 @@
                       (i.e. a service can be assured that any services it
                       depends on will have their corresponding lifecycle fn
                       called first.)"
-  [app-context lifecycle-fn lifecycle-fn-name ordered-services]
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)
+   lifecycle-fn :- IFn
+   lifecycle-fn-name :- schema/Str
+   ordered-services :- a/TrapperkeeperAppOrderedServices]
   (try
     (doseq [[service-id s] ordered-services]
       (run-lifecycle-fn! app-context
@@ -193,15 +196,26 @@
       (log/errorf t "Error during service %s!!!" lifecycle-fn-name)
       (throw t))))
 
-(def ^:private sighup-lock (Object.))
+
+(schema/defn ^:always-validate restart-tk-app-on-agent*
+  "Agent fn that restarts TK apps.  WARNING:  This should only ever
+  be called via a `send`, presumably from `restart-tk-apps-on-agent`."
+  [agent-state
+   app :- (schema/protocol a/TrapperkeeperApp)]
+  (a/restart app))
+
+(schema/defn ^:always-validate restart-tk-apps-on-agent
+  "Given a vector of TK apps, schedules the restart of each on its lifecycle clojure agent."
+  [apps :- [(schema/protocol a/TrapperkeeperApp)]]
+  (doseq [app apps]
+    (send-off (:lifecycle-agent @(a/app-context app))
+              restart-tk-app-on-agent* app)))
 
 (defn restart-tk-apps
   "Call restart on all tk apps."
   [apps]
   (log/debug "SIGHUP handler restarting TK apps.")
-  (locking sighup-lock
-    (doseq [app apps]
-      (a/restart app))))
+  (restart-tk-apps-on-agent apps))
 
 (defn register-sighup-handler
   "Register a handler for SIGHUP that restarts all trapperkeeper apps. The
@@ -265,18 +279,13 @@
    (shutdown-on-error* shutdown-reason-promise app-context svc-id f nil))
   ([shutdown-reason-promise app-context svc-id f on-error-fn]
    (try
-     ; These would normally be pre-conditions; however, this function needs
-     ; to never throw an exception - since it is often called as a wrapper
-     ; around everything inside a `future`, it is important that this function
-     ; never throw anything (like an AssertionError from a pre-condition),
+     ; This schema check would normally be handled via schematizing the fn itself;
+     ; however, this function needs to never throw an exception - since it is often
+     ; called as a wrapper around everything inside a `future`, it is important
+     ; that this function ; never throw anything (like a schema validation error),
      ; since it is likely to just get lost in a `future`.  Instead,
      ; invalid arguments will simply cause the shutdown promise to be delivered.
-     (assert (instance? Atom app-context))
-     (assert (map? @app-context))
-     (assert (keyword? svc-id))
-     (assert (contains? @app-context svc-id))
-     (assert (ifn? f))
-     (assert ((some-fn nil? ifn?) on-error-fn))
+     (schema/validate a/TrapperkeeperAppContext @app-context)
 
      (f)
      (catch Throwable t
@@ -294,7 +303,7 @@
     "Higher-order function to execute application logic and trigger shutdown in
     the event of an exception"))
 
-(defn- shutdown-service
+(schema/defn shutdown-service
   "Provides various functions for triggering application shutdown programatically.
   Primarily intended to serve application services, though TrapperKeeper also uses
   this service internally and therefore is always available in the application graph.
@@ -310,7 +319,8 @@
                            and trigger shutdown in the event of an exception
 
   For more information, see `request-shutdown` and `shutdown-on-error`."
-  [shutdown-reason-promise app-context]
+  [shutdown-reason-promise :- IDeref
+   app-context :- (schema/atom a/TrapperkeeperAppContext)]
   (s/service ShutdownService
     []
     (get-shutdown-reason [this] (when (realized? shutdown-reason-promise)
@@ -333,14 +343,10 @@
         (every? #(keyword? (first %)) os)
         (every? #(satisfies? s/Lifecycle (second %)) os))))
 
-(defn shutdown!
+(schema/defn ^:always-validate shutdown!
   "Perform shutdown calling the `stop` lifecycle function on each service,
    in reverse order (to account for dependency relationships)."
-  [app-context]
-  {:pre [(instance? Atom app-context)
-         (let [ctxt @app-context]
-           (and (map? ctxt)
-                (ordered-services? (ctxt :ordered-services))))]}
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)]
   (log/info "Beginning shutdown sequence")
   (doseq [[service-id s] (reverse (@app-context :ordered-services))]
     (try
@@ -349,11 +355,10 @@
         (log/error e "Encountered error during shutdown sequence"))))
   (log/info "Finished shutdown sequence"))
 
-(defn initialize-shutdown-service!
+(schema/defn ^:always-validate initialize-shutdown-service! :- (schema/protocol s/ServiceDefinition)
   "Initialize the shutdown service and add a shutdown hook to the JVM."
-  [app-context shutdown-reason-promise]
-  {:pre [(instance? Atom app-context)]
-   :post [(satisfies? s/ServiceDefinition %)]}
+  [app-context :- (schema/atom a/TrapperkeeperAppContext)
+   shutdown-reason-promise :- IDeref]
   (let [shutdown-service        (shutdown-service shutdown-reason-promise
                                                   app-context)]
     (add-shutdown-hook! (fn []
@@ -438,7 +443,16 @@
   (let [;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service
-        app-context (atom {})
+        app-context (atom {:service-contexts {}
+                           :ordered-services []
+                           :services-by-id {}
+                           :lifecycle-agent (agent {}
+                                                   :error-mode :fail
+                                                   :error-handler (fn [_ error]
+                                                                    (deliver shutdown-reason-promise
+                                                                             {:cause :service-error
+                                                                              :error error})))
+                           :shutdown-reason-promise shutdown-reason-promise})
         service-refs (atom {})
         services (conj services
                        (config-service config-data-fn)
@@ -456,9 +470,10 @@
         ;; any further
         services-by-id @service-refs
         ordered-services (map (fn [[service-id _]] [service-id (services-by-id service-id)]) graph)]
-    (swap! app-context assoc :services-by-id services-by-id)
-    (swap! app-context assoc :ordered-services ordered-services)
-    (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
+    (swap! app-context assoc
+           :services-by-id services-by-id
+           :ordered-services ordered-services)
+    (doseq [svc-id (keys services-by-id)] (swap! app-context assoc-in [:service-contexts svc-id] {}))
     ;; finally, create the app instance
     (reify
       a/TrapperkeeperApp
@@ -479,13 +494,37 @@
       (a/restart [this]
         (try
           (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))
-          (doseq [svc-id (keys services-by-id)] (swap! app-context assoc svc-id {}))
+          (doseq [svc-id (keys services-by-id)] (swap! app-context assoc-in [:service-contexts svc-id] {}))
           (run-lifecycle-fns app-context s/init "init" ordered-services)
           (run-lifecycle-fns app-context s/start "start" ordered-services)
           this
           (catch Throwable t
             (deliver shutdown-reason-promise {:cause :service-error
                                               :error t})))))))
+
+(schema/defn ^:always-validate boot-services-on-agent*
+  "Agent fn that boots services for a TK app.  WARNING:  This should only ever
+  be called via a `send`, presumably from `boot-services-on-agent`."
+  [agent-state
+   result-promise :- IDeref
+   app :- (schema/protocol a/TrapperkeeperApp)]
+  (let [{:keys [shutdown-reason-promise]} @(a/app-context app)]
+    (try
+      (a/init app)
+      (a/start app)
+      (catch Throwable t
+        (deliver shutdown-reason-promise {:cause :service-error
+                                          :error t})))
+    (deliver result-promise app)))
+
+(schema/defn ^:always-validate boot-services-on-agent :- (schema/protocol a/TrapperkeeperApp)
+  "Given a TK app, schedules the booting of all of its services on a clojure agent.
+  Blocks until the agent completes the task."
+  [app :- (schema/protocol a/TrapperkeeperApp)]
+  (let [lifecycle-promise (promise)]
+    (send-off (:lifecycle-agent @(a/app-context app))
+              boot-services-on-agent* lifecycle-promise app)
+    @lifecycle-promise))
 
 (defn boot-services*
   "Given the services to run and the map of configuration data, create the
@@ -503,13 +542,7 @@
                                   (catch Throwable t
                                     (log/error t "Error during app buildup!")
                                     (throw t)))]
-      (try
-        (a/init app)
-        (a/start app)
-        (catch Throwable t
-          (deliver shutdown-reason-promise {:cause :service-error
-                                            :error t})))
-      app)
-    )
+      (boot-services-on-agent app)
+      app))
 
 

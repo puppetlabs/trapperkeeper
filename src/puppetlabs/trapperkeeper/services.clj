@@ -63,39 +63,39 @@
        ;; service map for prismatic graph
        (service-map [this]
          {~service-id
-           ;; the main service fnk for the app graph.  we add metadata to the fnk
-           ;; arguments list to specify an explicit output schema for the fnk
-           (fnk service-fnk# :- ~output-schema
-                ~(conj dependencies 'tk-app-context 'tk-service-refs)
-                (let [svc# (reify
-                             Service
-                             (service-id [this#] ~service-id)
-                             (service-context [this#] (get ~'@tk-app-context ~service-id {}))
-                             (get-service [this# service-id#]
-                               (or (get-in ~'@tk-app-context [:services-by-id service-id#])
-                                   (throw (IllegalArgumentException.
-                                            (format
-                                              "Call to 'get-service' failed; service '%s' does not exist."
-                                              service-id#)))))
-                             (maybe-get-service [this# service-id#]
-                               (get-in ~'@tk-app-context [:services-by-id service-id#] nil))
-                             (get-services [this#]
-                               (-> ~'@tk-app-context
-                                   :services-by-id
-                                   (dissoc :ConfigService :ShutdownService)
-                                   vals))
-                             (service-symbol [this#] '~service-sym)
-                             (service-included? [this# service-id#]
-                               (not (nil? (get-in ~'@tk-app-context [:services-by-id service-id#] nil))))
+          ;; the main service fnk for the app graph.  we add metadata to the fnk
+          ;; arguments list to specify an explicit output schema for the fnk
+          (fnk service-fnk# :- ~output-schema
+            ~(conj dependencies 'tk-app-context 'tk-service-refs)
+            (let [svc# (reify
+                         Service
+                         (service-id [this#] ~service-id)
+                         (service-context [this#] (get-in ~'@tk-app-context [:service-contexts ~service-id] {}))
+                         (get-service [this# service-id#]
+                           (or (get-in ~'@tk-app-context [:services-by-id service-id#])
+                               (throw (IllegalArgumentException.
+                                       (format
+                                        "Call to 'get-service' failed; service '%s' does not exist."
+                                        service-id#)))))
+                         (maybe-get-service [this# service-id#]
+                           (get-in ~'@tk-app-context [:services-by-id service-id#] nil))
+                         (get-services [this#]
+                           (-> ~'@tk-app-context
+                               :services-by-id
+                               (dissoc :ConfigService :ShutdownService)
+                               vals))
+                         (service-symbol [this#] '~service-sym)
+                         (service-included? [this# service-id#]
+                           (not (nil? (get-in ~'@tk-app-context [:services-by-id service-id#] nil))))
 
-                             Lifecycle
-                             ~@(si/fn-defs fns-map lifecycle-fn-names)
+                         Lifecycle
+                         ~@(si/fn-defs fns-map lifecycle-fn-names)
 
-                             ~@(if service-protocol-sym
-                                 `(~service-protocol-sym
-                                   ~@(si/fn-defs fns-map (vals service-fn-map)))))]
-                  (swap! ~'tk-service-refs assoc ~service-id svc#)
-                  (si/build-service-map ~service-fn-map svc#)))}))))
+                         ~@(if service-protocol-sym
+                             `(~service-protocol-sym
+                               ~@(si/fn-defs fns-map (vals service-fn-map)))))]
+              (swap! ~'tk-service-refs assoc ~service-id svc#)
+              (si/build-service-map ~service-fn-map svc#)))}))))
 
 (defmacro defservice
   [svc-name & forms]

@@ -1,10 +1,9 @@
 (ns puppetlabs.trapperkeeper.bootstrap
-  (:import (java.io Reader FileNotFoundException)
+  (:import (java.io FileNotFoundException)
            (java.net URI))
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]
-            [puppetlabs.trapperkeeper.plugins :as plugins]
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.services :as services]))
 

@@ -196,15 +196,26 @@
       (log/errorf t "Error during service %s!!!" lifecycle-fn-name)
       (throw t))))
 
-(def ^:private sighup-lock (Object.))
+
+(schema/defn ^:always-validate restart-tk-app-on-agent*
+  "Agent fn that restarts TK apps.  WARNING:  This should only ever
+  be called via a `send`, presumably from `restart-tk-apps-on-agent`."
+  [agent-state
+   app :- (schema/protocol a/TrapperkeeperApp)]
+  (a/restart app))
+
+(schema/defn ^:always-validate restart-tk-apps-on-agent
+  "Given a vector of TK apps, schedules the restart of each on its lifecycle clojure agent."
+  [apps :- [(schema/protocol a/TrapperkeeperApp)]]
+  (doseq [app apps]
+    (send-off (:lifecycle-agent @(a/app-context app))
+              restart-tk-app-on-agent* app)))
 
 (defn restart-tk-apps
   "Call restart on all tk apps."
   [apps]
   (log/debug "SIGHUP handler restarting TK apps.")
-  (locking sighup-lock
-    (doseq [app apps]
-      (a/restart app))))
+  (restart-tk-apps-on-agent apps))
 
 (defn register-sighup-handler
   "Register a handler for SIGHUP that restarts all trapperkeeper apps. The

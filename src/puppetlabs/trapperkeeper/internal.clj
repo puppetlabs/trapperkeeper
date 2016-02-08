@@ -141,7 +141,7 @@
         required    []]
     (first (cli! cli-args specs required))))
 
-(schema/defn ^:always-validate run-lifecycle-fn! :- a/TrapperkeeperAppContext
+(schema/defn ^:always-validate run-lifecycle-fn!
   "Run a lifecycle function for a service.  Required arguments:
 
   * app-context: the app context atom; can be updated by the lifecycle fn
@@ -302,6 +302,10 @@
      ; since it is likely to just get lost in a `future`.  Instead,
      ; invalid arguments will simply cause the shutdown promise to be delivered.
      (schema/validate a/TrapperkeeperAppContext @app-context)
+     (schema/validate schema/Keyword svc-id)
+     (assert (contains? (:service-contexts @app-context) svc-id))
+     (schema/validate IFn f)
+     (schema/validate (schema/maybe IFn) on-error-fn)
 
      (f)
      (catch Throwable t

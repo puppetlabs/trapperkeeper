@@ -513,9 +513,9 @@
             (deliver shutdown-reason-promise {:cause :service-error
                                               :error t})))))))
 
-(schema/defn ^:always-validate boot-services**
+(schema/defn ^:always-validate boot-services-for-app**
   "Boots services for a TK app.  WARNING:  This should only ever be called
-  on the lifecycle-worker, presumably via `boot-services*`"
+  on the lifecycle-worker, presumably via `boot-services-for-app*`"
   [result-promise :- IDeref
    app :- (schema/protocol a/TrapperkeeperApp)]
   (let [{:keys [shutdown-reason-promise]} @(a/app-context app)]
@@ -527,6 +527,15 @@
                                           :error t})))
     (deliver result-promise app)))
 
+(schema/defn ^:always-validate boot-services-for-app* :- (schema/protocol a/TrapperkeeperApp)
+  [app :- (schema/protocol a/TrapperkeeperApp)]
+  (let [lifecycle-channel (:lifecycle-channel @(a/app-context app))
+        lifecycle-promise (promise)
+        boot-fn (partial boot-services-for-app** lifecycle-promise app)]
+    (async/>!! lifecycle-channel boot-fn)
+    @lifecycle-promise
+    app))
+
 (schema/defn ^:always-validate boot-services* :- (schema/protocol a/TrapperkeeperApp)
   "Given the services to run and the map of configuration data, create the
   TrapperkeeperApp and boot the services.  Returns the TrapperkeeperApp."
@@ -537,12 +546,8 @@
                                               config-data-fn)
                                   (catch Throwable t
                                     (log/error t "Error during app buildup!")
-                                    (throw t)))
-        lifecycle-channel (:lifecycle-channel @(a/app-context app))
-        lifecycle-promise (promise)
-        boot-fn (partial boot-services** lifecycle-promise app)]
-    (async/>!! lifecycle-channel boot-fn)
-    @lifecycle-promise
+                                    (throw t)))]
+    (boot-services-for-app* app)
     app))
 
 

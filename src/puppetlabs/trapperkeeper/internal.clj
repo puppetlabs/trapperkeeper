@@ -452,7 +452,7 @@
   [services :- [(schema/protocol s/ServiceDefinition)]
    config-data-fn :- IFn]
   (let [shutdown-reason-promise (promise)
-        lifecycle-channel (async/chan)
+        lifecycle-channel (async/chan 5)
         ;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service

@@ -527,14 +527,11 @@
                                           :error t})))
     (deliver result-promise app)))
 
-(defn boot-services*
+(schema/defn ^:always-validate boot-services* :- (schema/protocol a/TrapperkeeperApp)
   "Given the services to run and the map of configuration data, create the
   TrapperkeeperApp and boot the services.  Returns the TrapperkeeperApp."
-  [services config-data-fn]
-  {:pre  [(sequential? services)
-          (every? #(satisfies? s/ServiceDefinition %) services)
-          (ifn? config-data-fn)]
-   :post [(satisfies? a/TrapperkeeperApp %)]}
+  [services :- [(schema/protocol s/ServiceDefinition)]
+   config-data-fn :- IFn]
   (let [app                     (try
                                   (build-app* services
                                               config-data-fn)

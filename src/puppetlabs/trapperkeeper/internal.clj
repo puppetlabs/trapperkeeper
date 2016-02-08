@@ -450,9 +450,9 @@
   "Given a list of services and a map of configuration data, build an instance
   of a TrapperkeeperApp.  Services are not yet initialized or started."
   [services :- [(schema/protocol s/ServiceDefinition)]
-   config-data-fn :- IFn
-   shutdown-reason-promise :- IDeref]
-  (let [lifecycle-channel (async/chan)
+   config-data-fn :- IFn]
+  (let [shutdown-reason-promise (promise)
+        lifecycle-channel (async/chan)
         ;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service
@@ -535,11 +535,9 @@
           (every? #(satisfies? s/ServiceDefinition %) services)
           (ifn? config-data-fn)]
    :post [(satisfies? a/TrapperkeeperApp %)]}
-  (let [shutdown-reason-promise (promise)
-        app                     (try
+  (let [app                     (try
                                   (build-app* services
-                                              config-data-fn
-                                              shutdown-reason-promise)
+                                              config-data-fn)
                                   (catch Throwable t
                                     (log/error t "Error during app buildup!")
                                     (throw t)))

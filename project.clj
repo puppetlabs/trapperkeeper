@@ -1,4 +1,4 @@
-(def ks-version "1.0.0")
+(def ks-version "1.3.0-SNAPSHOT")
 
 (defproject puppetlabs/trapperkeeper "1.3.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
@@ -18,7 +18,7 @@
                  [org.slf4j/log4j-over-slf4j "1.7.6"]
                  [org.codehaus.janino/janino "2.7.8"]
                  [puppetlabs/typesafe-config "0.1.1"]
-                 [me.raynes/fs "1.4.5"]
+                 [me.raynes/fs "1.4.6"]
                  [clj-yaml "0.4.0"]
                  [beckon "0.1.1"]
                  [org.clojure/core.async "0.2.374"]]

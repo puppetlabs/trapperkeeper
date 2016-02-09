@@ -82,7 +82,7 @@
   [paths]
   (let [files (flatten (map get-files-from-config (str/split paths #",")))]
     (->> files
-         (map fs/absolute-path)
+         (map ks/absolute-path)
          (map config-file->map)
          (apply ks/deep-merge-with-keys
                 (fn [ks & _]

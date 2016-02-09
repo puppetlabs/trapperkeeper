@@ -4,6 +4,8 @@ This is a feature release.
 
 * [TK-202](https://tickets.puppetlabs.com/browse/TK-202) - adds support for
   restarting a TK app via HUP signal, w/o shutting down entire JVM process
+* [TK-315](https://tickets.puppetlabs.com/browse/TK-315) - update raynes.fs
+  dependency to 1.4.6, to minimize dependency conflicts for consumers
 * RELEASE NOTE: adds a dependency on core.async
 * RELEASE NOTE: minor changes to internal `app-context` API; all service
   contexts are now stored under a key called `:service-contexts`.  This

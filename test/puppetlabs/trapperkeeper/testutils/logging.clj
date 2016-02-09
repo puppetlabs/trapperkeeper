@@ -1,6 +1,6 @@
 (ns puppetlabs.trapperkeeper.testutils.logging
   (:import
-   [ch.qos.logback.classic Level Logger]
+   [ch.qos.logback.classic Level]
    [ch.qos.logback.classic.encoder PatternLayoutEncoder]
    [ch.qos.logback.core Appender FileAppender]
    [ch.qos.logback.core.spi LifeCycle]
@@ -234,7 +234,7 @@
 
 (defn call-with-log-suppressed-unless-notable [pred f]
   (let [problem (atom false)
-        log-path (fs/absolute-path (fs/temp-file "tk-suppressed" ".log"))]
+        log-path (kitchensink/absolute-path (fs/temp-file "tk-suppressed" ".log"))]
     (try
       (with-started [appender (suppressing-file-appender log-path)
                      detector (doto (log-event-listener

@@ -1,6 +1,6 @@
 (def ks-version "1.3.0")
 
-(defproject puppetlabs/trapperkeeper "1.3.0-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "1.3.0"
   :description "A framework for configuring, composing, and running Clojure services."
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.

@@ -1,4 +1,29 @@
-(ns puppetlabs.trapperkeeper.app)
+(ns puppetlabs.trapperkeeper.app
+  (:require [schema.core :as schema]
+            [puppetlabs.trapperkeeper.services :as s]
+            [clojure.core.async.impl.protocols :as async-prot])
+  (:import (clojure.lang IDeref)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Schema
+
+(def TrapperkeeperAppOrderedServices
+  [[(schema/one schema/Keyword "service-id")
+    (schema/one (schema/protocol s/Service) "Service")]])
+
+(def TrapperkeeperAppContext
+  "Schema for a Trapperkeeper application's internal context.  NOTE: this schema
+  is intended for internal use by TK and may be subject to minor changes in future
+  releases."
+  {:service-contexts {schema/Keyword {schema/Any schema/Any}}
+   :ordered-services TrapperkeeperAppOrderedServices
+   :services-by-id {schema/Keyword (schema/protocol s/Service)}
+   :lifecycle-channel (schema/protocol async-prot/Channel)
+   :lifecycle-worker (schema/protocol async-prot/Channel)
+   :shutdown-reason-promise IDeref})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; App Protocol
 
 (defprotocol TrapperkeeperApp
   "Functions available on a trapperkeeper application instance"

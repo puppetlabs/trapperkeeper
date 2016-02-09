@@ -39,7 +39,7 @@
    :post [(satisfies? app/TrapperkeeperApp %)]}
   (let [config-data-fn (if (map? config-data) (constantly config-data) config-data)]
     (config/initialize-logging! (config-data-fn))
-    (internal/build-app* services config-data-fn (promise))))
+    (internal/build-app* services config-data-fn)))
 
 (defn boot-services-with-cli-data
   "Given a list of ServiceDefinitions and a map containing parsed cli data, create

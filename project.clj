@@ -1,4 +1,4 @@
-(def ks-version "1.3.0-SNAPSHOT")
+(def ks-version "1.3.0")
 
 (defproject puppetlabs/trapperkeeper "1.3.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."

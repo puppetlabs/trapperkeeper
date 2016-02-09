@@ -1,12 +1,8 @@
 (ns puppetlabs.trapperkeeper.internal-test
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
-            [puppetlabs.kitchensink.testutils :as ks-testutils]
             [puppetlabs.trapperkeeper.app :as tk-app]
-            [puppetlabs.trapperkeeper.config :as config]
-            [puppetlabs.trapperkeeper.internal :as internal]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [with-app-with-empty-config]]))
-
+            [puppetlabs.trapperkeeper.internal :as internal]))
 
 (deftest test-queued-restarts
   (testing "main lifecycle and calls to `restart-tk-apps` are not executed concurrently"

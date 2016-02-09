@@ -1,3 +1,15 @@
+## 1.3.0
+
+This is a feature release.
+
+* [TK-202](https://tickets.puppetlabs.com/browse/TK-202) - adds support for
+  restarting a TK app via HUP signal, w/o shutting down entire JVM process
+* RELEASE NOTE: adds a dependency on core.async
+* RELEASE NOTE: minor changes to internal `app-context` API; all service
+  contexts are now stored under a key called `:service-contexts`.  This
+  shouldn't affect any consuming code unless you were digging into the
+  internal `app-context` API for really low-level tests or similar.
+
 ## 1.2.0
 
 This is a minor feature release.

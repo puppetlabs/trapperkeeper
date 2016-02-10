@@ -32,6 +32,14 @@
                                             couplet))))
 
 (deftest optional-deps-test
+  (testing "when not using a protocol"
+    (let [poetry-service (service {:required [HaikuService]
+                                   :optional [SonnetService]}
+                                  (init [this ctx]
+                                        (assoc ctx
+                                               :haiku-svc (get-service this :HaikuService)
+                                               :sonnet-svc (tks/maybe-get-service this :SonnetService))))]
+      (is (build-app [poetry-service haiku-service] {}))))
   (testing "when dep form is well formed"
     (testing "when there are no optional deps"
       (let [poetry-service (service PoetryService

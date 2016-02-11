@@ -139,6 +139,7 @@
   (let [f (first forms)]
     (cond
       (symbol? f) (merge {:service-protocol-sym f} (validate-deps-form! (rest forms)))
+      (map? f) (merge {:service-protocol-sym nil} (validate-deps-form! forms))
       (vector? f) (merge {:service-protocol-sym nil} (validate-deps-form! forms))
       :else (throw (IllegalArgumentException.
                      (format

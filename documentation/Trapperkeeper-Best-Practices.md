@@ -62,4 +62,4 @@ Trapperkeeper provides three lifecycle functions: init, start, and stop.  Hopefu
 
 As we mentioned before, it's better to separate your business logic from your service definitions as much as possible, so that you can test your business logic functions directly.  Thus, the vast majority of your tests should not need to involve Trapperkeeper at all.  However, you probably will want to have a small handful of tests that do boot up a full Trapperkeeper app, so that you can verify that your dependencies work as expected, etc.
 
-When writing tests that boot a Trapperkeeper app, the best way to do it is to use the helper testutils macros that we describe in the [testutils documentation](Test-Utils).  They will take care of things like making sure the application is shut down cleanly after the test, and will generally just make your life easier.
+When writing tests that boot a Trapperkeeper app, the best way to do it is to use the helper testutils macros that we describe in the [testutils documentation](Test-Utils.md).  They will take care of things like making sure the application is shut down cleanly after the test, and will generally just make your life easier.

@@ -44,7 +44,7 @@ First, you need to define one or more services:
   (init [this context]
     (println "Hello consumer initializing; hello service says:")
     ;; call the function from the `hello-service`!
-    (hello)
+    (hello.md)
     context))
 ```
 
@@ -61,4 +61,4 @@ Lastly, set Trapperkeeper to be your `:main` in your Leiningen project file:
 :main puppetlabs.trapperkeeper.main
 ```
 
-And now you should be able to run the app via `lein run --config ...`.  This example doesn't do much; for a more interesting example that shows how you can use Trapperkeeper to create a web application, check out the [Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/ring_app) included in the Trapperkeeper webserver service project.  To get started defining your own services in Trapperkeeper, head to the [Defining Services](Defining-Services) page.
+And now you should be able to run the app via `lein run --config ...`.  This example doesn't do much; for a more interesting example that shows how you can use Trapperkeeper to create a web application, check out the [Example Web Service](https://github.com/puppetlabs/trapperkeeper-webserver-jetty9/tree/master/examples/ring_app) included in the Trapperkeeper webserver service project.  To get started defining your own services in Trapperkeeper, head to the [Defining Services](Defining-Services.md) page.

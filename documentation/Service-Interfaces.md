@@ -40,7 +40,7 @@ Here's a concrete example of how this might work:
   FooConsumer
   [[:FooService foo]]
   (bar [this]
-    (format "Foo service returned: '%s'" (foo))))
+    (format "Foo service returned: '%s'" (foo.md))))
 ```
 
 Given this combination of services, you might have a `bootstrap.cfg` file that looks like:

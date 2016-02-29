@@ -19,7 +19,7 @@ We also had a few other needs that Trapperkeeper addresses (some of these arise 
 
 A "service" in Trapperkeeper is represented as simply a map of clojure functions.  Each service can advertise the functions that it provides via a protocol, as well as list other services that it has a dependency on.  You then configure Trapperkeeper with a list of services to run and launch it.  At startup, it validates that all of the dependencies are met and fails fast if they are not.  If they are, then it injects the dependency functions into each service and starts them all up in the correct order.
 
-Trapperkeeper provides a few built-in services such as a configuration service, a shutdown service, and an nREPL service.  Other services (such as a web server service) are available and ready to use, but don't ship with the base framework.  Your custom services can specify dependencies on these and leverage the functions that they provide.  For more details, see the [Built-in Services](Built-in-Services) page.
+Trapperkeeper provides a few built-in services such as a configuration service, a shutdown service, and an nREPL service.  Other services (such as a web server service) are available and ready to use, but don't ship with the base framework.  Your custom services can specify dependencies on these and leverage the functions that they provide.  For more details, see the [Built-in Services](Built-in-Services.md) page.
 
 # Credits and Origins
 

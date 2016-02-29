@@ -6,7 +6,7 @@ Trapperkeeper's default mode of operation is to handle the processing of applica
 * Since the idea is that you will be composing multiple services together in a Trapperkeeper instance, managing command line options across multiple services can be tricky; using the configuration service is easier
 * Who wants to process command-line arguments, anyway?
 
-Note that if you absolutely need control over the command line argument processing, it is possible to circumvent the built-in handling by calling Trapperkeeper's `bootstrap` function directly; see additional details in the [Bootstrapping](Bootstrapping) page.
+Note that if you absolutely need control over the command line argument processing, it is possible to circumvent the built-in handling by calling Trapperkeeper's `bootstrap` function directly; see additional details in the [Bootstrapping](Bootstrapping.md) page.
 
 Trapperkeeper supports three command-line arguments:
 
@@ -62,7 +62,7 @@ But, if you absolutely must...  Here's how it can be done:
     (trapperkeeper/run trapperkeeper-options)))
 ```
 
-Note that Trapperkeeper's `run` function requires a map as an argument, and this map must contain the `:config` key which Trapperkeeper will use just as it would have used the `--config` value from the command line.  You may also (optionally) provide `:bootstrap-config` and `:debug` keys, to override the path to the bootstrap configuration file and/or enable debugging on the application.
+Note that Trapperkeeper's `run` function requires a map as an argument, and this map must contain the `:config` key which Trapperkeeper will use just as it would have used the `--config` value from the command line.  You may also (optionally.md) provide `:bootstrap-config` and `:debug` keys, to override the path to the bootstrap configuration file and/or enable debugging on the application.
 
 ### Other Ways to Boot
 

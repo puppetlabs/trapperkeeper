@@ -1,6 +1,6 @@
 # Bootstrapping
 
-As mentioned briefly on the [Quick Start](Trapperkeeper-Quick-Start) page, Trapperkeeper relies on a `bootstrap.cfg` file to determine the list of services that it should load at startup.  The other piece of the bootstrapping equation is setting up a `main` that calls Trapperkeeper's bootstrap code.  Here we'll go into a bit more detail about both of these topics.
+As mentioned briefly on the [Quick Start](Trapperkeeper-Quick-Start.md) page, Trapperkeeper relies on a `bootstrap.cfg` file to determine the list of services that it should load at startup.  The other piece of the bootstrapping equation is setting up a `main` that calls Trapperkeeper's bootstrap code.  Here we'll go into a bit more detail about both of these topics.
 
 ## `bootstrap.cfg`
 
@@ -21,4 +21,4 @@ In normal use cases, you'll want to simply put `bootstrap.cfg` in your `resource
 
 ## Configuration
 
-Bootstrapping determines _which_ services should be loaded, but it doesn't say _how_ they should be configured. For that, you'll want to learn about the [built-in service](Built-in-Services#configuration-service) that Trapperkeeper uses to read configuration data.
+Bootstrapping determines _which_ services should be loaded, but it doesn't say _how_ they should be configured. For that, you'll want to learn about the [built-in service](Built-in-Services.md#configuration-service) that Trapperkeeper uses to read configuration data.

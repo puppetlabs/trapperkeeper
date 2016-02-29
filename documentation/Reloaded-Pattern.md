@@ -12,7 +12,7 @@ Trapperkeeper was designed with this pattern in mind as a goal.  Thus, it's enti
               :refer [count-service foo-service baz-service]]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.app :as tka]
-            [clojure.tools.namespace.repl :refer (refresh)]))
+            [clojure.tools.namespace.repl :refer (refresh.md)]))
 
 ;; a var to hold the main `TrapperkeeperApp` instance.
 (def system nil)
@@ -41,18 +41,18 @@ Trapperkeeper was designed with this pattern in mind as a goal.  Thus, it's enti
                   (fn [s] (when s (tka/stop s)))))
 
 (defn go []
-  (init)
-  (start))
+  (init.md)
+  (start.md))
 
 (defn context []
   @(tka/app-context system))
 
 ;; pretty print the entire application context
 (defn print-context []
-  (clojure.pprint/pprint (context)))
+  (clojure.pprint/pprint (context.md)))
 
 (defn reset []
-  (stop)
+  (stop.md)
   (refresh :after 'examples.my-app.repl/go))
 ```
 

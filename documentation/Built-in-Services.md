@@ -6,6 +6,6 @@ There are some other basic services available that don't ship with the Trapperke
 
 Detailed information about Trapperkeeper's built-in services can be found on the following pages:
 
-- [Configuration Service](Built-in-Configuration-Service)
-- [Shutdown Service](Built-in-Shutdown-Service)
-- [nREPL Service](Built-in-nREPL-Service)
+- [Configuration Service](Built-in-Configuration-Service.md)
+- [Shutdown Service](Built-in-Shutdown-Service.md)
+- [nREPL Service](Built-in-nREPL-Service.md)

@@ -11,8 +11,8 @@ In the simplest case, you may just want to grab a direct reference to one or mor
   [[:BarService bar-fn]
    [:BazService baz-fn]]
   (init [this context]
-    (bar-fn)
-    (baz-fn)
+    (bar-fn.md)
+    (baz-fn.md)
     context))
 ```
 

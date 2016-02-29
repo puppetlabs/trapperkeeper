@@ -20,7 +20,7 @@ We support several types of files for expressing the configuration data:
    * `.json` files
    * `.properties` files
 
-The configuration service will then parse the config file(s) into memory as a nested map; e.g., the section headers from an `.ini` file would become the top-level keys of the map, and the values will be maps containing the individual setting names and values from that section of the ini file.  (If using `.edn`, `.conf`, or `.json`, you can control the nesting of the map more explicitly.)
+The configuration service will then parse the config file(s.md) into memory as a nested map; e.g., the section headers from an `.ini` file would become the top-level keys of the map, and the values will be maps containing the individual setting names and values from that section of the ini file.  (If using `.edn`, `.conf`, or `.json`, you can control the nesting of the map more explicitly.)
 
 Here's the protocol for the configuration service:
 

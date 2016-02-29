@@ -24,9 +24,9 @@ Add the following dependency to your `project.clj` file:
 
 ## Documentation
 
-You can find a quick-start, example code, and lots and lots of documentation on our:
+You can find a quick-start, example code, and lots and lots of documentation in our:
 
-* [Wiki](https://github.com/puppetlabs/trapperkeeper/wiki)
+* [Documentation](documentation/Index.md)
 
 ## Lein Template
 

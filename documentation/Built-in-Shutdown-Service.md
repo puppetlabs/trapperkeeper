@@ -1,6 +1,6 @@
 # Trapperkeeper's Built-in Shutdown Service
 
-The shutdown service is built-in to Trapperkeeper and, like the [configuration service](Configuration-Service.md), is always loaded.  It has two main responsibilities:
+The shutdown service is built-in to Trapperkeeper and, like the [configuration service](Built-in-Configuration-Service.md), is always loaded.  It has two main responsibilities:
 
 * Listen for a shutdown signal to the process, and initiate shutdown of the application if one is received (via CTRL-C or TERM signal)
 * Provide functions that can be used by other services to initiate a shutdown (either because of a normal application termination condition, or in the event of a fatal error)

@@ -57,7 +57,7 @@ Let's look at a concrete example:
    ;; startup if any of the specified dependency services do not exist, *or* if they
    ;; do not provide all of the functions specified in your vector.  (Note that
    ;; the syntax used here is actually just the
-   ;; [fnk binding syntax from the Prismatic plumbing library](https://github.com/Prismatic/plumbing/tree/master/src/plumbing/fnk#fnk-syntax),
+   ;; [fnk binding syntax from the Plumatic plumbing library](https://github.com/plumatic/plumbing/tree/master/src/plumbing/fnk#fnk-syntax),
    ;; so you can technically use any form that is compatible with that.)
    [[:SomeService function1 function2]
     [:AnotherService function3 function4]]
@@ -157,7 +157,7 @@ To mark a dependency as optional, you use a different form to specify your depen
 
 In the above example, we use a map of the form `{:required [...] :optional [...]}` to split up our required and optional dependencies. When we run this service in TK, our code will call `(get-sonnet.md)` if an implementation of `SonnetService` has been included in the `bootstrap.cfg`. Otherwise, we'll return the placeholder string `"insert moving sonnet here"`.
 
-**Warning** Because of a [limitation](https://github.com/Prismatic/plumbing/issues/114) in prismatic schema, you can't use the destructuring `[:SonnetService get-sonnet]` syntax when declaring optional dependencies.
+**Warning** Because of a [limitation](https://github.com/plumatic/plumbing/issues/114) in Plumatic Schema, you can't use the destructuring `[:SonnetService get-sonnet]` syntax when declaring optional dependencies.
 
 The `Service` protocol has two helpers to make it easier to work with optional dependencies:
 

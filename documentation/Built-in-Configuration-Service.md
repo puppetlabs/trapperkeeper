@@ -6,7 +6,7 @@ The configuration service is built-in to Trapperkeeper and is always loaded.  It
 * Initializes logging
 * Provides functions that can be injected into other services to give them access to the configuration data
 
-In its current form, the configuration service has some fairly rigid behavior.  (We hope to make it more dynamic in the future; for more info, see the [Hopes and Dreams](#hopes-and-dreams) section below.)  Here's how it works:
+In its current form, the configuration service has some fairly rigid behavior though in the future we hope to make it more dynamic.
 
 ## Loading configuration data
 

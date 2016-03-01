@@ -33,9 +33,9 @@ If you want to get simple references to plain-old functions from a service (agai
 
 With this syntax, what you get access to are two local vars `BarService` and `BazService`, the value of each of which is a map.  The map keys are all keyword versions of the function names for all of the functions provided by the service protocol, and the values are the plain-old functions that you can just call directly.
 
-## Prismatic Graph Binding Form
+## Plumatic Graph Binding Form
 
-Both of the cases above are actually just specific examples of forms supported by the underlying Prismatic Graph library that we are using to manage dependencies.  If you're interested, the prismatic library offers some other ways to specify the binding forms and access your dependencies.  For more info, see the  [fnk binding syntax from the Prismatic plumbing library](https://github.com/Prismatic/plumbing/tree/master/src/plumbing/fnk#fnk-syntax).
+Both of the cases above are actually just specific examples of forms supported by the underlying Plumatic Graph library that we are using to manage dependencies.  If you're interested, the plumatic library offers some other ways to specify the binding forms and access your dependencies.  For more info, see the  [fnk binding syntax from the Plumatic plumbing library](https://github.com/plumatic/plumbing/tree/master/src/plumbing/fnk#fnk-syntax).
 
 ## Via Service Protocol
 

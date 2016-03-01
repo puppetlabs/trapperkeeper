@@ -6,7 +6,7 @@ It ties together a few nice patterns we've come across in the clojure community:
 
 * Stuart Sierra's ["reloaded" workflow](http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded)
 * Component lifecycles (["Component"](https://github.com/stuartsierra/component), ["jig"](https://github.com/juxt/jig#components))
-* [Composable services](http://blog.getprismatic.com/blog/2013/2/1/graph-abstractions-for-structured-computation) (based on the excellent [Prismatic graph library](https://github.com/Prismatic/plumbing))
+* [Composable services](http://plumatic.github.io/graph-abstractions-for-structured-computation/) (based on the excellent [Plumamatic graph library](https://github.com/plumatic/plumbing))
 
 We also had a few other needs that Trapperkeeper addresses (some of these arise because of the fact that we at Puppet Labs are shipping on-premises software, rather than SaaS.  The framework is a shipping part of the application, in addition to providing useful features for development):
 
@@ -23,7 +23,7 @@ Trapperkeeper provides a few built-in services such as a configuration service, 
 
 # Credits and Origins
 
-Most of the heavy-lifting of the Trapperkeeper framework is handled by the excellent [Prismatic Graph](https://github.com/Prismatic/plumbing) library.  To a large degree, Trapperkeeper just wraps some basic conventions and convenience functions around that library, so many thanks go out to the fine folks at Prismatic for sharing their code!
+Most of the heavy-lifting of the Trapperkeeper framework is handled by the excellent [Plumatic Graph](https://github.com/plumatic/plumbing) library.  To a large degree, Trapperkeeper just wraps some basic conventions and convenience functions around that library, so many thanks go out to the fine folks at Plumatic for sharing their code!
 
 Trapperkeeper borrows some of the most basic concepts of the OSGi "service registry" to allow users to create simple "services" and bind them together in a single container, but it doesn't attempt to do any fancy classloading magic, hot-swapping of code at runtime, or any of the other things that can make OSGi and other similar application frameworks complex to work with.
 

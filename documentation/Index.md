@@ -18,7 +18,7 @@ Trapperkeeper is a Clojure framework for hosting long-running applications and s
 * [Referencing Services](Referencing-Services.md)
  * [Individual Functions](Referencing-Services.md#individual-functions)
  * [A Map of Functions](Referencing-Services.md#a-map-of-functions)
- * [Prismatic Graph Binding Form](Referencing-Services.md#prismatic-graph-binding-form)
+ * [Plumatic Graph Binding Form](Referencing-Services.md#plumatic-graph-binding-form)
  * [Via Service Protocol](Referencing-Services.md#via-service-protocol)
 * [Bootstrapping](Bootstrapping.md)
 * [Built-in Services](Built-in-Services.md)

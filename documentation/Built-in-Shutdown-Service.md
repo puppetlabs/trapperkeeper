@@ -25,7 +25,7 @@ For example:
 
    ;; shutdown code
    (stop [this context]
-      (bar-shutdown.md)
+      (bar-shutdown)
       context))
 ```
 
@@ -103,7 +103,7 @@ Here's an example:
          (future (shutdown-on-error (service-id this) my-work-fn my-error-cleanup-fn))))
 
    (stop [this context]
-      (my-normal-shutdown-fn.md)
+      (my-normal-shutdown-fn)
       context))
 ```
 

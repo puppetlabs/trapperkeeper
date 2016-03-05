@@ -44,7 +44,7 @@ First, you need to define one or more services:
   (init [this context]
     (println "Hello consumer initializing; hello service says:")
     ;; call the function from the `hello-service`!
-    (hello.md)
+    (hello)
     context))
 ```
 

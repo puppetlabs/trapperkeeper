@@ -44,10 +44,10 @@ Let's look at a concrete example:
   (foo3 [this x]))
 
 (defservice foo-service
-   ;; docstring (optional.md)
+   ;; docstring (optional)
    "A service that foos."
 
-   ;; now we specify the (optional.md) protocol that this service satisfies:
+   ;; now we specify the (optional) protocol that this service satisfies:
    FooService
 
    ;; the :depends value should be a vector of vectors.  Each of the inner vectors
@@ -73,7 +73,7 @@ Let's look at a concrete example:
       ;; now return the service context map; we can update it to include
       ;; some state if we like.  Note that we can use the functions that
       ;; were specified in our dependency list here:
-      (assoc context :foo (str "Some interesting state:" (function1.md)))
+      (assoc context :foo (str "Some interesting state:" (function1)))
 
    ;; We could optionally also override the `start` and `stop` lifecycle
    ;; functions, but we won't for this example.
@@ -81,7 +81,7 @@ Let's look at a concrete example:
    ;; Now we'll define our service function implementations.  Again, we are
    ;; free to use the imported functions from the other services here:
    (foo1 [this x] ((comp function2 function3) x))
-   (foo2 [this] (println "Function4 returns" (function4.md)))
+   (foo2 [this] (println "Function4 returns" (function4)))
 
    ;; We can also access the service context that we updated during the
    ;; lifecycle functions, by using the `service-context` function from
@@ -155,7 +155,7 @@ To mark a dependency as optional, you use a different form to specify your depen
       "insert moving sonnet here"))
 ```
 
-In the above example, we use a map of the form `{:required [...] :optional [...]}` to split up our required and optional dependencies. When we run this service in TK, our code will call `(get-sonnet.md)` if an implementation of `SonnetService` has been included in the `bootstrap.cfg`. Otherwise, we'll return the placeholder string `"insert moving sonnet here"`.
+In the above example, we use a map of the form `{:required [...] :optional [...]}` to split up our required and optional dependencies. When we run this service in TK, our code will call `(get-sonnet)` if an implementation of `SonnetService` has been included in the `bootstrap.cfg`. Otherwise, we'll return the placeholder string `"insert moving sonnet here"`.
 
 **Warning** Because of a [limitation](https://github.com/plumatic/plumbing/issues/114) in Plumatic Schema, you can't use the destructuring `[:SonnetService get-sonnet]` syntax when declaring optional dependencies.
 

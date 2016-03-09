@@ -17,7 +17,7 @@
                  [ch.qos.logback/logback-classic "1.1.1"]
                  [org.slf4j/log4j-over-slf4j "1.7.6"]
                  [org.codehaus.janino/janino "2.7.8"]
-                 [puppetlabs/typesafe-config "0.1.1"]
+                 [puppetlabs/typesafe-config "0.1.5"]
                  [me.raynes/fs "1.4.6"]
                  [clj-yaml "0.4.0"]
                  [beckon "0.1.1"]

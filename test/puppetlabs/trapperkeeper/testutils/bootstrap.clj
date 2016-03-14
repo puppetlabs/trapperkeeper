@@ -10,11 +10,15 @@
 (def empty-config "./target/empty.ini")
 (fs/touch empty-config)
 
+(defn bootstrap-services-with-config
+  [services config]
+  (internal/throw-app-error-if-exists!
+   (tk/boot-services-with-config services config)))
+
 (defmacro with-app-with-config
   [app services config & body]
   `(ks-testutils/with-no-jvm-shutdown-hooks
-     (let [~app (internal/throw-app-error-if-exists!
-                  (tk/boot-services-with-config ~services ~config))]
+     (let [~app (bootstrap-services-with-config ~services ~config)]
        (try
          ~@body
          (finally

@@ -62,7 +62,7 @@ But, if you absolutely must...  Here's how it can be done:
     (trapperkeeper/run trapperkeeper-options)))
 ```
 
-Note that Trapperkeeper's `run` function requires a map as an argument, and this map must contain the `:config` key which Trapperkeeper will use just as it would have used the `--config` value from the command line.  You may also (optionally.md) provide `:bootstrap-config` and `:debug` keys, to override the path to the bootstrap configuration file and/or enable debugging on the application.
+Note that Trapperkeeper's `run` function requires a map as an argument, and this map must contain the `:config` key which Trapperkeeper will use just as it would have used the `--config` value from the command line.  You may also (optionally) provide `:bootstrap-config` and `:debug` keys, to override the path to the bootstrap configuration file and/or enable debugging on the application.
 
 ### Other Ways to Boot
 

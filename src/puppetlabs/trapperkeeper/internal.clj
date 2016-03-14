@@ -12,6 +12,18 @@
             [clojure.core.async :as async]
             [clojure.core.async.impl.protocols :as async-prot]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Schemas
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def LifeCycleTask
+  {:type (schema/enum :restart :shutdown :boot)
+   :task-function (schema/maybe IFn)})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Private
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; This is (eww) a global variable that holds a reference to all of the running
 ;; Trapperkeeper apps in the process. It can be used when connecting via nrepl
 ;; to allow you to do useful things, and also may be used for other things
@@ -212,15 +224,22 @@
   (async/go (try
               (loop []
                 (let [task (async/<! lifecycle-chan)]
-                  (if (= task :shutdown)
-                    (do
-                      (log/debug "Received shutdown command, lifecycle worker exiting.")
-                      :done)
-                    (do
-                      (log/debug "Lifecycle worker executing lifecycle task.")
-                      (task)
-                      (log/debug "Lifecycle worker completed lifecycle task; awaiting next task.")
-                      (recur)))))
+                  (schema/validate LifeCycleTask task)
+                  (let [{:keys [type task-function]} task]
+                    (condp #(contains? %1 %2) type
+                      #{:shutdown}
+                      (do
+                        (log/debug "Received shutdown command, lifecycle worker exiting.")
+                        :done)
+
+                      #{:boot :restart}
+                      (do
+                        (log/debugf "Lifecycle worker executing %s lifecycle task." type)
+                        (task-function)
+                        (log/debugf "Lifecycle worker completed %s lifecycle task; awaiting next task." type)
+                        (recur))
+
+                      (throw (IllegalStateException. "Unrecognized lifecycle task:" task))))))
               (catch Exception e
                 (deliver shutdown-reason-promise
                          {:cause :service-error
@@ -233,7 +252,9 @@
   (doseq [app apps]
     (let [{:keys [lifecycle-channel]} @(a/app-context app)
           restart-fn #(a/restart app)]
-      (when-not (async/offer! lifecycle-channel restart-fn)
+      (when-not (async/offer! lifecycle-channel
+                              {:type :restart
+                               :task-function restart-fn})
         (log/warnf "Too many SIGHUP restart requests queued (%s); ignoring!"
                    max-pending-lifecycle-events)))))
 
@@ -367,7 +388,8 @@
           (log/error e "Encountered error during shutdown sequence"))))
     (when-not (async-prot/closed? lifecycle-worker)
       (log/debug "Service shutdown complete, shutting down lifecycle worker")
-      (async/>!! lifecycle-channel :shutdown)
+      (async/>!! lifecycle-channel {:type :shutdown
+                                    :task-function nil})
       ;; wait for the channel to send us the return value so we know it's done
       (async/<!! lifecycle-worker)
       (log/debug "Lifecycle worker shutdown complete"))
@@ -536,7 +558,8 @@
   (let [lifecycle-channel (:lifecycle-channel @(a/app-context app))
         lifecycle-promise (promise)
         boot-fn (partial boot-services-for-app** lifecycle-promise app)]
-    (async/>!! lifecycle-channel boot-fn)
+    (async/>!! lifecycle-channel {:type :boot
+                                  :task-function boot-fn})
     @lifecycle-promise
     app))
 

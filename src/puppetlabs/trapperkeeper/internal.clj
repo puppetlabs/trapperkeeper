@@ -18,6 +18,8 @@
 ;; (such as signal handling).
 (def tk-apps (atom []))
 
+(def max-pending-lifecycle-events 5)
+
 (defn service-graph?
   "Predicate that tests whether or not the argument is a valid trapperkeeper
   service graph."
@@ -231,7 +233,9 @@
   (doseq [app apps]
     (let [{:keys [lifecycle-channel]} @(a/app-context app)
           restart-fn #(a/restart app)]
-      (async/>!! lifecycle-channel restart-fn))))
+      (when-not (async/offer! lifecycle-channel restart-fn)
+        (log/warnf "Too many SIGHUP restart requests queued (%s); ignoring!"
+                   max-pending-lifecycle-events)))))
 
 (defn register-sighup-handler
   "Register a handler for SIGHUP that restarts all trapperkeeper apps. The
@@ -452,7 +456,7 @@
   [services :- [(schema/protocol s/ServiceDefinition)]
    config-data-fn :- IFn]
   (let [shutdown-reason-promise (promise)
-        lifecycle-channel (async/chan 5)
+        lifecycle-channel (async/chan max-pending-lifecycle-events)
         ;; this is the application context for this app instance.  its keys
         ;; will be the service ids, and values will be maps that represent the
         ;; context for each individual service

@@ -86,7 +86,7 @@
       (logging/with-test-logging
        (internal/restart-tk-apps [app])
 
-       (is (logged? (format "Too many SIGHUP restart requests queued (%d); ignoring!"
+       (is (logged? (format "Ignoring new SIGHUP restart requests; too many requests queued (%s)"
                             internal/max-pending-lifecycle-events)
                     :warn)
            "Missing expected log message when too many HUP requests queued")))

@@ -255,7 +255,7 @@
       (when-not (async/offer! lifecycle-channel
                               {:type :restart
                                :task-function restart-fn})
-        (log/warnf "Too many SIGHUP restart requests queued (%s); ignoring!"
+        (log/warnf "Ignoring new SIGHUP restart requests; too many requests queued (%s)"
                    max-pending-lifecycle-events)))))
 
 (defn register-sighup-handler

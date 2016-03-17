@@ -60,8 +60,8 @@
           app               (bootstrap-services-with-empty-config [test-service broken-service])]
       (is (false? @shutdown-called?))
       (logging/with-test-logging
-       (internal/shutdown! (app-context app))
-       (is (logged? #"Encountered error during shutdown sequence" :error)))
+        (internal/shutdown! (app-context app))
+        (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?)))))
 
 (deftest shutdown-run-app-test
@@ -118,135 +118,135 @@
   (testing (str "shutdown will be called if a service throws an exception "
                 "during init on main thread, with appropriate errors logged")
     (logging/with-test-logging
-     (let [shutdown-called? (atom false)
-           test-service     (service ShutdownTestService
-                                     []
-                                     (init [this context]
-                                           (throw (Throwable. "oops"))
-                                           context)
-                                     (stop [this context]
-                                           (reset! shutdown-called? true)
-                                           context))]
-       (bootstrap-and-validate-shutdown
-        [test-service]
-        shutdown-called?
-        #"oops")
-       (is (logged? #"Error during service init!!!" :error)
-           "Error message for service init not logged.")))))
+      (let [shutdown-called? (atom false)
+            test-service     (service ShutdownTestService
+                                      []
+                                      (init [this context]
+                                            (throw (Throwable. "oops"))
+                                            context)
+                                      (stop [this context]
+                                            (reset! shutdown-called? true)
+                                            context))]
+        (bootstrap-and-validate-shutdown
+         [test-service]
+         shutdown-called?
+         #"oops")
+        (is (logged? #"Error during service init!!!" :error)
+            "Error message for service init not logged.")))))
 
 (deftest shutdown-ex-during-start-test
   (testing (str "shutdown will be called if a service throws an exception "
                 "during start on main thread, with appropriate errors logged")
     (logging/with-test-logging
-     (let [shutdown-called?  (atom false)
-           test-service      (service ShutdownTestService
-                                      []
-                                      (start [this context]
-                                             (throw (Throwable. "oops"))
-                                             context)
-                                      (stop  [this context]
-                                             (reset! shutdown-called? true)
-                                             context))]
-       (bootstrap-and-validate-shutdown
-        [test-service]
-        shutdown-called?
-        #"oops")
-       (is (logged? #"Error during service start!!!" :error)
-           "Error message for service start not logged.")))))
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       []
+                                       (start [this context]
+                                              (throw (Throwable. "oops"))
+                                              context)
+                                       (stop  [this context]
+                                              (reset! shutdown-called? true)
+                                              context))]
+        (bootstrap-and-validate-shutdown
+         [test-service]
+         shutdown-called?
+         #"oops")
+        (is (logged? #"Error during service start!!!" :error)
+            "Error message for service start not logged.")))))
 
 (deftest shutdown-log-errors-during-init-test
   (testing (str "`shutdown-on-error` will catch and log errors raised during "
                 "init on main thread")
     (logging/with-test-logging
-     (let [shutdown-called?  (atom false)
-           test-service      (service ShutdownTestService
-                                      [[:ShutdownService shutdown-on-error]]
-                                      (init [this context]
-                                            (shutdown-on-error
-                                             :ShutdownTestService
-                                             #(throw (Throwable. "oops")))
-                                            context)
-                                      (stop [this context]
-                                            (reset! shutdown-called? true)
-                                            context))]
-       (bootstrap-and-validate-shutdown
-        [test-service]
-        shutdown-called?
-        #"oops")
-       (is (logged? #"shutdown-on-error triggered because of exception!"
-                    :error)
-           "Error message for shutdown-on-error not logged.")))))
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (init [this context]
+                                             (shutdown-on-error
+                                              :ShutdownTestService
+                                              #(throw (Throwable. "oops")))
+                                             context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))]
+        (bootstrap-and-validate-shutdown
+         [test-service]
+         shutdown-called?
+         #"oops")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged.")))))
 
 (deftest shutdown-log-errors-during-init-future-test
   (testing (str "`shutdown-on-error` will catch and log errors raised during "
                 "init on future")
     (logging/with-test-logging
-     (let [shutdown-called?  (atom false)
-           test-service      (service ShutdownTestService
-                                      [[:ShutdownService shutdown-on-error]]
-                                      (init [this context]
-                                            @(future
-                                              (shutdown-on-error
-                                               :ShutdownTestService
-                                               #(throw (Throwable. "oops"))))
-                                            context)
-                                      (stop [this context]
-                                            (reset! shutdown-called? true)
-                                            context))]
-       (bootstrap-and-validate-shutdown
-        [test-service]
-        shutdown-called?
-        #"oops")
-       (is (logged? #"shutdown-on-error triggered because of exception!"
-                    :error)
-           "Error message for shutdown-on-error not logged.")))))
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (init [this context]
+                                             @(future
+                                                (shutdown-on-error
+                                                 :ShutdownTestService
+                                                 #(throw (Throwable. "oops"))))
+                                             context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))]
+        (bootstrap-and-validate-shutdown
+         [test-service]
+         shutdown-called?
+         #"oops")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged.")))))
 
 (deftest shutdown-log-errors-during-start-test
   (testing (str "`shutdown-on-error` will catch and log errors raised during"
                 "start on main thread")
     (logging/with-test-logging
-     (let [shutdown-called?  (atom false)
-           test-service      (service ShutdownTestService
-                                      [[:ShutdownService shutdown-on-error]]
-                                      (start [this context]
-                                             (shutdown-on-error
-                                              :ShutdownTestService
-                                              #(throw (Throwable. "oops")))
-                                             context)
-                                      (stop [this context]
-                                            (reset! shutdown-called? true)
-                                            context))]
-       (bootstrap-and-validate-shutdown
-        [test-service]
-        shutdown-called?
-        #"oops")
-       (is (logged? #"shutdown-on-error triggered because of exception!"
-                    :error)
-           "Error message for shutdown-on-error not logged.")))))
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (start [this context]
+                                              (shutdown-on-error
+                                               :ShutdownTestService
+                                               #(throw (Throwable. "oops")))
+                                              context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))]
+        (bootstrap-and-validate-shutdown
+         [test-service]
+         shutdown-called?
+         #"oops")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged.")))))
 
 (deftest shutdown-log-errors-during-start-future-test
   (testing (str "`shutdown-on-error` will catch and log errors raised during "
                 "start on future")
     (logging/with-test-logging
-     (let [shutdown-called?  (atom false)
-           test-service      (service ShutdownTestService
-                                      [[:ShutdownService shutdown-on-error]]
-                                      (start [this context]
-                                             @(future
-                                               (shutdown-on-error
-                                                :ShutdownTestService
-                                                #(throw (Throwable. "oops"))))
-                                             context)
-                                      (stop [this context]
-                                            (reset! shutdown-called? true)
-                                            context))]
-       (bootstrap-and-validate-shutdown
-        [test-service]
-        shutdown-called?
-        #"oops")
-       (is (logged? #"shutdown-on-error triggered because of exception!"
-                    :error)
-           "Error message for shutdown-on-error not logged.")))))
+      (let [shutdown-called?  (atom false)
+            test-service      (service ShutdownTestService
+                                       [[:ShutdownService shutdown-on-error]]
+                                       (start [this context]
+                                              @(future
+                                                 (shutdown-on-error
+                                                  :ShutdownTestService
+                                                  #(throw (Throwable. "oops"))))
+                                              context)
+                                       (stop [this context]
+                                             (reset! shutdown-called? true)
+                                             context))]
+        (bootstrap-and-validate-shutdown
+         [test-service]
+         shutdown-called?
+         #"oops")
+        (is (logged? #"shutdown-on-error triggered because of exception!"
+                     :error)
+            "Error message for shutdown-on-error not logged.")))))
 
 (deftest shutdown-on-error-callback-test
   (testing "`shutdown-on-error` takes an optional function that is called on error"
@@ -284,12 +284,12 @@
           app             (bootstrap-services-with-empty-config [broken-service])
           test-svc        (get-service app :ShutdownTestServiceWithFn)]
       (logging/with-test-logging
-       (test-fn test-svc)
-       (is (thrown-with-msg?
-            Throwable
-            #"foo"
-            (tk/run-app app)))
-       (is (logged? #"Error occurred during shutdown" :error))))))
+        (test-fn test-svc)
+        (is (thrown-with-msg?
+             Throwable
+             #"foo"
+             (tk/run-app app)))
+        (is (logged? #"Error occurred during shutdown" :error))))))
 
 (deftest shutdown-on-error-error-handling
   (testing "Shutdown-on-error should never throw an exception."

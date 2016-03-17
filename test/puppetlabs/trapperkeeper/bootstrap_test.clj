@@ -35,115 +35,115 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
           (is (= (test-fn test-svc) :foo))
           (is (= (hello-world hello-world-svc) "hello world"))))
 
-    (with-additional-classpath-entries ["./dev-resources/bootstrapping/classpath"]
-      (testing "Looks for bootstrap config on classpath (dev-resources)"
-        (with-test-logging
-          (let [app             (bootstrap-with-empty-config)
-                test-svc        (get-service app :TestService)
-                hello-world-svc (get-service app :HelloWorldService)]
-            (is (logged?
-                  #"Loading bootstrap config from classpath: 'file:/.*dev-resources/bootstrapping/classpath/bootstrap.cfg'"
-                  :debug))
-            (is (= (test-fn test-svc) :classpath))
-            (is (= (hello-world hello-world-svc) "hello world")))))
+      (with-additional-classpath-entries ["./dev-resources/bootstrapping/classpath"]
+        (testing "Looks for bootstrap config on classpath (dev-resources)"
+          (with-test-logging
+            (let [app             (bootstrap-with-empty-config)
+                  test-svc        (get-service app :TestService)
+                  hello-world-svc (get-service app :HelloWorldService)]
+              (is (logged?
+                   #"Loading bootstrap config from classpath: 'file:/.*dev-resources/bootstrapping/classpath/bootstrap.cfg'"
+                   :debug))
+              (is (= (test-fn test-svc) :classpath))
+              (is (= (hello-world hello-world-svc) "hello world")))))
 
-      (testing "Gives precedence to bootstrap config in cwd"
-        (let [old-cwd (System/getProperty "user.dir")]
-          (try
-            (System/setProperty
-              "user.dir"
-              (.getAbsolutePath (file "./dev-resources/bootstrapping/cwd")))
-            (with-test-logging
-              (let [app             (bootstrap-with-empty-config)
-                    test-svc        (get-service app :TestService)
-                    hello-world-svc (get-service app :HelloWorldService)]
-                (is (logged?
-                      #"Loading bootstrap config from current working directory: '.*/dev-resources/bootstrapping/cwd/bootstrap.cfg'"
-                      :debug))
-                (is (= (test-fn test-svc) :cwd))
-                (is (= (hello-world hello-world-svc) "hello world"))))
-            (finally (System/setProperty "user.dir" old-cwd)))))
+        (testing "Gives precedence to bootstrap config in cwd"
+          (let [old-cwd (System/getProperty "user.dir")]
+            (try
+              (System/setProperty
+               "user.dir"
+               (.getAbsolutePath (file "./dev-resources/bootstrapping/cwd")))
+              (with-test-logging
+                (let [app             (bootstrap-with-empty-config)
+                      test-svc        (get-service app :TestService)
+                      hello-world-svc (get-service app :HelloWorldService)]
+                  (is (logged?
+                       #"Loading bootstrap config from current working directory: '.*/dev-resources/bootstrapping/cwd/bootstrap.cfg'"
+                       :debug))
+                  (is (= (test-fn test-svc) :cwd))
+                  (is (= (hello-world hello-world-svc) "hello world"))))
+              (finally (System/setProperty "user.dir" old-cwd)))))
 
-      (testing "Gives precedence to bootstrap config specified as CLI arg"
-        (with-test-logging
+        (testing "Gives precedence to bootstrap config specified as CLI arg"
+          (with-test-logging
             (let [app             (bootstrap-with-empty-config ["--bootstrap-config" "./dev-resources/bootstrapping/cli/bootstrap.cfg"])
                   test-svc        (get-service app :TestService)
                   hello-world-svc (get-service app :HelloWorldService)]
               (is (logged?
-                    #"Loading bootstrap config from specified path: './dev-resources/bootstrapping/cli/bootstrap.cfg'"
-                    :debug))
+                   #"Loading bootstrap config from specified path: './dev-resources/bootstrapping/cli/bootstrap.cfg'"
+                   :debug))
               (is (= (test-fn test-svc) :cli))
               (is (= (hello-world hello-world-svc) "hello world")))))))
 
-  (testing "Invalid bootstrap configurations"
-    (testing "Bootstrap config path specified on CLI does not exist"
-      (let [cfg-path "./dev-resources/bootstrapping/cli/non-existent-bootstrap.cfg"]
+    (testing "Invalid bootstrap configurations"
+      (testing "Bootstrap config path specified on CLI does not exist"
+        (let [cfg-path "./dev-resources/bootstrapping/cli/non-existent-bootstrap.cfg"]
+          (is (thrown-with-msg?
+               IllegalArgumentException
+               #"Specified bootstrap config file does not exist: '.*non-existent-bootstrap.cfg'"
+               (bootstrap-with-empty-config ["--bootstrap-config" cfg-path])))))
+
+      (testing "No bootstrap config found"
         (is (thrown-with-msg?
-              IllegalArgumentException
-              #"Specified bootstrap config file does not exist: '.*non-existent-bootstrap.cfg'"
-              (bootstrap-with-empty-config ["--bootstrap-config" cfg-path])))))
+             IllegalStateException
+             #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
+             (bootstrap-with-empty-config)))
+        (let [got-expected-exception (atom false)]
+          (try+
+            (bootstrap-with-empty-config ["--bootstrap-config" nil])
+            (catch map? m
+              (is (contains? m :type))
+              (is (= :cli-error (without-ns (:type m))))
+              (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
+              (is (contains? m :message))
+              (is (re-find
+                   #"Missing required argument for.*--bootstrap-config"
+                   (m :message)))
+              (reset! got-expected-exception true)))
+          (is (true? @got-expected-exception))))
 
-    (testing "No bootstrap config found"
-      (is (thrown-with-msg?
-            IllegalStateException
-            #"Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath"
-            (bootstrap-with-empty-config)))
-      (let [got-expected-exception (atom false)]
-        (try+
-          (bootstrap-with-empty-config ["--bootstrap-config" nil])
-          (catch map? m
-            (is (contains? m :type))
-            (is (= :cli-error (without-ns (:type m))))
-            (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
-            (is (contains? m :message))
-            (is (re-find
-                  #"Missing required argument for.*--bootstrap-config"
-                  (m :message)))
-            (reset! got-expected-exception true)))
-        (is (true? @got-expected-exception))))
-
-    (testing "Bad line in bootstrap config file"
-      (let [bootstrap-config (StringReader. "
+      (testing "Bad line in bootstrap config file"
+        (let [bootstrap-config (StringReader. "
 
 puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
 This is not a legit line.
 ")]
-        (is (thrown-with-msg?
-              IllegalArgumentException
-              #"(?is)Invalid line in bootstrap.*This is not a legit line"
-              (parse-and-bootstrap bootstrap-config)))))
+          (is (thrown-with-msg?
+               IllegalArgumentException
+               #"(?is)Invalid line in bootstrap.*This is not a legit line"
+               (parse-and-bootstrap bootstrap-config)))))
 
-    (testing "Bootstrap config file is empty."
-      (let [bootstrap-config (StringReader. "")]
-        (is (thrown-with-msg?
-              Exception
-              #"Empty bootstrap config file"
-        (parse-and-bootstrap bootstrap-config)))))
+      (testing "Bootstrap config file is empty."
+        (let [bootstrap-config (StringReader. "")]
+          (is (thrown-with-msg?
+               Exception
+               #"Empty bootstrap config file"
+               (parse-and-bootstrap bootstrap-config)))))
 
-    (testing "Service namespace doesn't exist"
-      (let [bootstrap-config (StringReader.
-                               "non-existent-service/test-service")]
-        (is (thrown-with-msg?
-              IllegalArgumentException
-              #"Unable to load service: non-existent-service/test-service"
-              (parse-and-bootstrap bootstrap-config)))))
+      (testing "Service namespace doesn't exist"
+        (let [bootstrap-config (StringReader.
+                                "non-existent-service/test-service")]
+          (is (thrown-with-msg?
+               IllegalArgumentException
+               #"Unable to load service: non-existent-service/test-service"
+               (parse-and-bootstrap bootstrap-config)))))
 
-    (testing "Service function doesn't exist"
-      (let [bootstrap-config (StringReader.
-                               "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service")]
-        (is (thrown-with-msg?
-              IllegalArgumentException
-              #"Unable to load service: puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service"
-              (parse-and-bootstrap bootstrap-config)))))
+      (testing "Service function doesn't exist"
+        (let [bootstrap-config (StringReader.
+                                "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service")]
+          (is (thrown-with-msg?
+               IllegalArgumentException
+               #"Unable to load service: puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service"
+               (parse-and-bootstrap bootstrap-config)))))
 
-    (testing "Invalid service graph"
+      (testing "Invalid service graph"
 
-      (let [bootstrap-config (StringReader.
-                               "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/invalid-service-graph-service")]
-        (is (thrown-with-msg?
-              IllegalArgumentException
-              #"Invalid service definition;"
-              (parse-and-bootstrap bootstrap-config)))))))
+        (let [bootstrap-config (StringReader.
+                                "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/invalid-service-graph-service")]
+          (is (thrown-with-msg?
+               IllegalArgumentException
+               #"Invalid service definition;"
+               (parse-and-bootstrap bootstrap-config)))))))
 
   (testing "comments allowed in bootstrap config file"
     (let [bootstrap-config "
@@ -164,12 +164,12 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
   (testing "Ensure that a bootstrap config can be loaded with a path that contains spaces"
     (with-test-logging
       (let [app             (bootstrap-with-empty-config
-                               ["--bootstrap-config" "./dev-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
+                             ["--bootstrap-config" "./dev-resources/bootstrapping/cli/path with spaces/bootstrap.cfg"])
             test-svc        (get-service app :TestService)
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
-              #"Loading bootstrap config from specified path: './dev-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
-              :debug))
+             #"Loading bootstrap config from specified path: './dev-resources/bootstrapping/cli/path with spaces/bootstrap.cfg'"
+             :debug))
         (is (= (test-fn test-svc) :cli))
         (is (= (hello-world hello-world-svc) "hello world"))))))
 

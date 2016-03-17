@@ -16,26 +16,26 @@
       ;; Prevent the stacktrace from being printed out
       (with-redefs [clojure.stacktrace/print-cause-trace (fn [e] nil)]
         (catch-all-logger
-          (Exception. "This exception is expected; testing error logging")
-          "this is my error message"))
+         (Exception. "This exception is expected; testing error logging")
+         "this is my error message"))
       (is (logged? #"this is my error message" :error)))))
 
 
 (deftest with-test-logging-on-separate-thread
   (testing "test-logging captures log messages from `future` threads"
     (with-test-logging
-     (let [log-future (future
-                       (log/error "yo yo yo"))]
-       @log-future
-       (is (logged? #"yo yo yo" :error)))))
+      (let [log-future (future
+                         (log/error "yo yo yo"))]
+        @log-future
+        (is (logged? #"yo yo yo" :error)))))
   (testing "threading doesn't break stuff"
     (with-test-logging
-     (let [done? (promise)]
-       (.start (Thread. (fn []
-                          (log/info "test thread")
-                          (deliver done? true))))
-       (is (true? @done?))
-       (is (logged? #"test thread" :info))))))
+      (let [done? (promise)]
+        (.start (Thread. (fn []
+                           (log/info "test thread")
+                           (deliver done? true))))
+        (is (true? @done?))
+        (is (logged? #"test thread" :info))))))
 
 (deftest test-logging-configuration
   (testing "Calling `configure-logging!` with a logback.xml file"

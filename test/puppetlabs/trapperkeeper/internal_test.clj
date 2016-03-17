@@ -85,12 +85,12 @@
     ;; and confirm that we get a log message indicating that they were rejected
     (dotimes [i 3]
       (logging/with-test-logging
-       (internal/restart-tk-apps [app])
+        (internal/restart-tk-apps [app])
 
-       (is (logged? (format "Too many SIGHUP restart requests queued (%d); ignoring!"
-                            internal/max-pending-lifecycle-events)
-                    :warn)
-           "Missing expected log message when too many HUP requests queued")))
+        (is (logged? (format "Too many SIGHUP restart requests queued (%d); ignoring!"
+                             internal/max-pending-lifecycle-events)
+                     :warn)
+            "Missing expected log message when too many HUP requests queued")))
 
     ;; now we unblock all of the queued restarts
     (deliver stop-promise true)

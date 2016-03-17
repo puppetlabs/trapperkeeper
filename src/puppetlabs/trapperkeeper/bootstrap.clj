@@ -20,13 +20,13 @@
           (= 2 (count %))
           (every? string? %)]}
   (if-let [[match namespace fn-name] (re-matches
-                                       #"^([a-zA-Z0-9\.\-]+)/([a-zA-Z0-9\.\-]+)$"
-                                       line)]
+                                      #"^([a-zA-Z0-9\.\-]+)/([a-zA-Z0-9\.\-]+)$"
+                                      line)]
     [namespace fn-name]
     (throw (IllegalArgumentException.
-             (str "Invalid line in bootstrap config file:\n\n\t"
-                  line
-                  "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")))))
+            (str "Invalid line in bootstrap config file:\n\n\t"
+                 line
+                 "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")))))
 
 (defn- resolve-service!
   "Given the namespace and name of a service, loads the namespace,
@@ -40,12 +40,12 @@
   (try (require (symbol resolve-ns))
        (catch FileNotFoundException e
          (throw (IllegalArgumentException.
-                  (str "Unable to load service: " resolve-ns "/" service-name)
-                  e))))
+                 (str "Unable to load service: " resolve-ns "/" service-name)
+                 e))))
   (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
     (internal/validate-service-graph! (var-get service-def))
     (throw (IllegalArgumentException.
-             (str "Unable to load service: " resolve-ns "/" service-name)))))
+            (str "Unable to load service: " resolve-ns "/" service-name)))))
 
 (defn- remove-comments
   "Given a line of text from the bootstrap config file, remove
@@ -73,8 +73,8 @@
           ;; re-throw here, as `ignored` may be misleading (in the case of a
           ;; normal path, it is useless - there is no reason to mess with URIs)
           (throw (IllegalArgumentException.
-                   (str "Specified bootstrap config file does not exist: '"
-                        config-path "'"))))))))
+                  (str "Specified bootstrap config file does not exist: '"
+                       config-path "'"))))))))
 
 (defn- config-from-cli
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),
@@ -134,8 +134,8 @@
                                 (config-from-classpath))]
     bootstrap-config
     (throw (IllegalStateException.
-             (str "Unable to find bootstrap.cfg file via --bootstrap-config "
-                  "command line argument, current working directory, or on classpath")))))
+            (str "Unable to find bootstrap.cfg file via --bootstrap-config "
+                 "command line argument, current working directory, or on classpath")))))
 
 (defn parse-bootstrap-config!
   "Parse the trapperkeeper bootstrap configuration and return the service graph

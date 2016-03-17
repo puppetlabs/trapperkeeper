@@ -19,12 +19,12 @@
 (deftest dependency-error-handling
   (testing "missing service dependency throws meaningful message and logs error"
     (let [broken-service (service
-                           [[:MissingService f]]
-                           (init [this context] (f) context))]
+                          [[:MissingService f]]
+                          (init [this context] (f) context))]
       (logging/with-test-logging
         (is (thrown-with-msg?
-              RuntimeException #"Service ':MissingService' not found"
-              (testutils/bootstrap-services-with-empty-config [broken-service])))
+             RuntimeException #"Service ':MissingService' not found"
+             (testutils/bootstrap-services-with-empty-config [broken-service])))
         (is (logged? #"Error during app buildup!" :error)
             "App buildup error message not logged"))))
 
@@ -33,32 +33,32 @@
                                    []
                                    (foo [this] "foo"))
           broken-service  (service
-                            [[:FooService bar]]
-                            (init [this context] (bar) context))]
+                           [[:FooService bar]]
+                           (init [this context] (bar) context))]
       (logging/with-test-logging
         (is (thrown-with-msg?
-              RuntimeException
-              #"Service function 'bar' not found in service 'FooService"
-              (testutils/bootstrap-services-with-empty-config
-                [test-service
-                 broken-service])))
+             RuntimeException
+             #"Service function 'bar' not found in service 'FooService"
+             (testutils/bootstrap-services-with-empty-config
+              [test-service
+               broken-service])))
         (is (logged? #"Error during app buildup!" :error)
             "App buildup error message not logged")))
     (is (thrown-with-msg?
-          RuntimeException #"Service does not define function 'foo'"
-          (macroexpand '(puppetlabs.trapperkeeper.services/service
-                          puppetlabs.trapperkeeper.core-test/FooService
-                          []
-                          (init [this context] context)))))))
+         RuntimeException #"Service does not define function 'foo'"
+         (macroexpand '(puppetlabs.trapperkeeper.services/service
+                        puppetlabs.trapperkeeper.core-test/FooService
+                        []
+                        (init [this context] context)))))))
 
 (deftest test-main
   (testing "Parsed CLI data"
     (let [bootstrap-file "/fake/path/bootstrap.cfg"
           config-dir     "/fake/config/dir"
           cli-data         (parse-cli-args!
-                             ["--debug"
-                              "--bootstrap-config" bootstrap-file
-                              "--config" config-dir])]
+                            ["--debug"
+                             "--bootstrap-config" bootstrap-file
+                             "--config" config-dir])]
       (is (= bootstrap-file (cli-data :bootstrap-config)))
       (is (= config-dir (cli-data :config)))
       (is (cli-data :debug))))
@@ -73,8 +73,8 @@
           (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
           (is (contains? m :message))
           (is (re-find
-                #"Unknown option.*--invalid-argument"
-                (m :message)))
+               #"Unknown option.*--invalid-argument"
+               (m :message)))
           (reset! got-expected-exception true)))
       (is (true? @got-expected-exception))))
 

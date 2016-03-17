@@ -25,9 +25,9 @@
   service graph."
   [service-graph]
   (and
-    (map? service-graph)
-    (every? keyword? (keys service-graph))
-    (every? (some-fn ifn? service-graph?) (vals service-graph))))
+   (map? service-graph)
+   (every? keyword? (keys service-graph))
+   (every? (some-fn ifn? service-graph?) (vals service-graph))))
 
 (defn validate-service-graph!
   "Validates that a ServiceDefinition contains a valid trapperkeeper service graph.
@@ -37,9 +37,9 @@
   {:post [(satisfies? s/ServiceDefinition %)]}
   (if-not (satisfies? s/ServiceDefinition service-def)
     (throw (IllegalArgumentException.
-             (str "Invalid service definition; expected a service "
-                  "definition (created via `service` or `defservice`); "
-                  "found: " (pr-str service-def)))))
+            (str "Invalid service definition; expected a service "
+                 "definition (created via `service` or `defservice`); "
+                 "found: " (pr-str service-def)))))
   (if (service-graph? (s/service-map service-def))
     service-def
     (throw (IllegalArgumentException. (str "Invalid service graph; service graphs must "
@@ -90,13 +90,13 @@
 
       (if (sequential? (:error data))
         (let [missing-services (keys (ks/filter-map
-                                       (fn [_ v] (= v 'missing-required-key))
-                                       (.error (first (:error data)))))]
+                                      (fn [_ v] (= v 'missing-required-key))
+                                      (.error (first (:error data)))))]
           (if (= 1 (count missing-services))
             (throw (RuntimeException.
-                     (format "Service '%s' not found" (first missing-services))))
+                    (format "Service '%s' not found" (first missing-services))))
             (throw (RuntimeException.
-                     (format "Services '%s' not found" missing-services)))))
+                    (format "Services '%s' not found" missing-services)))))
         (throw e)))))
 
 (defn compile-graph
@@ -163,11 +163,11 @@
         updated-ctxt  (lifecycle-fn s (get-in @app-context [:service-contexts service-id] {}))]
     (if-not (map? updated-ctxt)
       (throw (IllegalStateException.
-               (format
-                 "Lifecycle function '%s' for service '%s' must return a context map (got: %s)"
-                 lifecycle-fn-name
-                 (or (s/service-symbol s) service-id)
-                 (pr-str updated-ctxt)))))
+              (format
+               "Lifecycle function '%s' for service '%s' must return a context map (got: %s)"
+               lifecycle-fn-name
+               (or (s/service-symbol s) service-id)
+               (pr-str updated-ctxt)))))
     ;; store the updated service context map in the application context atom
     (swap! app-context assoc-in [:service-contexts service-id] updated-ctxt)))
 
@@ -346,13 +346,13 @@
   [shutdown-reason-promise :- IDeref
    app-context :- (schema/atom a/TrapperkeeperAppContext)]
   (s/service ShutdownService
-    []
-    (get-shutdown-reason [this] (when (realized? shutdown-reason-promise)
-                                      @shutdown-reason-promise))
-    (wait-for-shutdown [this] (deref shutdown-reason-promise))
-    (request-shutdown [this]  (request-shutdown* shutdown-reason-promise))
-    (shutdown-on-error [this svc-id f] (shutdown-on-error* shutdown-reason-promise app-context svc-id f))
-    (shutdown-on-error [this svc-id f on-error] (shutdown-on-error* shutdown-reason-promise app-context svc-id f on-error))))
+             []
+             (get-shutdown-reason [this] (when (realized? shutdown-reason-promise)
+                                           @shutdown-reason-promise))
+             (wait-for-shutdown [this] (deref shutdown-reason-promise))
+             (request-shutdown [this]  (request-shutdown* shutdown-reason-promise))
+             (shutdown-on-error [this svc-id f] (shutdown-on-error* shutdown-reason-promise app-context svc-id f))
+             (shutdown-on-error [this svc-id f on-error] (shutdown-on-error* shutdown-reason-promise app-context svc-id f on-error))))
 
 (schema/defn ^:always-validate shutdown!
   "Perform shutdown calling the `stop` lifecycle function on each service,
@@ -496,7 +496,7 @@
       (a/service-graph [this] graph-instance)
       (a/app-context [this] app-context)
       (a/check-for-errors! [this] (throw-app-error-if-exists!
-                                    this))
+                                   this))
       (a/init [this]
         (run-lifecycle-fns app-context s/init "init" ordered-services)
         this)

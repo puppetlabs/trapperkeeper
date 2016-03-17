@@ -13,13 +13,13 @@
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
              so that it is accessible from the core namespace along with the
              rest of the API."}
-  service #'services/service)
+       service #'services/service)
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/defservice` macro
              so that it is accessible from the core namespace along with the
              rest of the API."}
-  defservice #'services/defservice)
+       defservice #'services/defservice)
 
 (defn build-app
   "Given a list of services and a map of configuration data, build an instance
@@ -172,13 +172,13 @@
                (binding [*out* stream] (println msg) (flush))
                (System/exit status))]
     (try+
-     (-> (or args '())
-         (internal/parse-cli-args!)
-         (run))
-     (catch map? m
-       (case (without-ns (:type m))
-         :cli-error (quit 1 (:message m) *err*)
-         :cli-help (quit 0 (:message m) *out*)
-         (throw+)))
-     (finally
-       (shutdown-agents)))))
+      (-> (or args '())
+          (internal/parse-cli-args!)
+          (run))
+      (catch map? m
+        (case (without-ns (:type m))
+          :cli-error (quit 1 (:message m) *err*)
+          :cli-help (quit 0 (:message m) *out*)
+          (throw+)))
+      (finally
+        (shutdown-agents)))))

@@ -276,8 +276,8 @@
      (binding [*test-log-events* destination#]
        (with-redefs [pl-log/configure-logger! (fn [& _#])]
          (with-log-level root-logger-name :trace
-                         (with-logging-to-atom root-logger-name destination#
-                                               ~@body))))))
+           (with-logging-to-atom root-logger-name destination#
+             ~@body))))))
 
 (defmacro with-test-logging-debug
   "Creates an environment for the use of the logged? test method, and
@@ -415,15 +415,15 @@
   ([destination debug?]
    (let [appender (proxy [AppenderBase] []
                     (append [logging-event]
-                       (let [throwable-info (.getThrowableInformation logging-event)
-                             ex (if throwable-info (.getThrowable throwable-info))
-                             entry [(.getLoggerName logging-event)
-                                    (.getLevel logging-event)
-                                    ex
-                                    (str (.getMessage logging-event))]]
-                         (when debug? (log-to-console entry))
-                         (swap! destination conj entry)))
-                     (close []))]
+                      (let [throwable-info (.getThrowableInformation logging-event)
+                            ex (if throwable-info (.getThrowable throwable-info))
+                            entry [(.getLoggerName logging-event)
+                                   (.getLevel logging-event)
+                                   ex
+                                   (str (.getMessage logging-event))]]
+                        (when debug? (log-to-console entry))
+                        (swap! destination conj entry)))
+                    (close []))]
      (.setContext appender (pl-log/logging-context))
      appender)))
 
@@ -451,8 +451,8 @@
        (.addAppender root-logger# temp-appender#)
        (binding [clojure.tools.logging/*logger-factory*
                  (atom-logger
-                   ~log-output-atom
-                   (~options :debug))]
+                  ~log-output-atom
+                  (~options :debug))]
          ~@body)
        (finally
          (.detachAppender root-logger# temp-appender#)

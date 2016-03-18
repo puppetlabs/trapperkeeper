@@ -388,6 +388,8 @@
                       context)
                (stop [this context]
                      (swap! lifecycle-events conj :stop)
+                     ;; request shutdown, which will trigger the shutdown logic
+                     ;; on the main thread.
                      (request-shutdown)
                      (deliver first-stop-begun? true)
                      @stop-should-proceed?
@@ -397,7 +399,11 @@
                {})
           ;; this ensures that the 'main' shutdown logic will be runnable,
           ;; and gives us a way to observe when it has completed.
-          app-main-thread (future (tk/run-app app))]
+          app-main-thread (future (tk/run-app app))
+          shutdown-service (tk-app/get-service app :ShutdownService)]
+
+      ;; no shutdown requested yet
+      (is (nil? (internal/get-shutdown-reason shutdown-service)))
 
       ;; now we trigger a restart, which will call 'stop' for the first time,
       ;; which will request a shutdown but will block on the stop-should-proceed
@@ -407,17 +413,17 @@
       ;; wait until we know that the shutdown has been requested
       @first-stop-begun?
 
-      ;; at this point, the app's shutdown-reason-promise should be set, but
-      ;; the main thread should be blocked because our first 'stop' is blocked.
-      (is (realized? (:shutdown-reason-promise @(tk-app/app-context app))))
-      (is (not (realized? app-main-thread)))
+      ;; we want to give the main thread a little time in case it is going to
+      ;; do anything nefarious (as it would have before we consolidated the
+      ;; shutdown logic into the core.async worker loop)
+      (Thread/sleep 100)
+
+      ;; at this point, the app's shutdown-reason-promise should be set
+      (is (not (nil? (internal/get-shutdown-reason shutdown-service))))
 
       ;; validate that the first three events are as expected (we're still blocked
       ;; in the first 'stop').
-      (let [expected-lifecycle-events [:init :start :stop]]
-        (while (< (count @lifecycle-events) (count expected-lifecycle-events))
-          (Thread/yield))
-        (is (= expected-lifecycle-events @lifecycle-events)))
+      (is (= [:init :start :stop] @lifecycle-events))
 
       ;; main thread should still be blocked
       (is (not (realized? app-main-thread)))

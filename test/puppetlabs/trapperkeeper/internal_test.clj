@@ -4,8 +4,7 @@
             [puppetlabs.trapperkeeper.app :as tk-app]
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
-            [puppetlabs.trapperkeeper.testutils.logging :as logging]
-            [clojure.tools.logging :as log]))
+            [puppetlabs.trapperkeeper.testutils.logging :as logging]))
 
 (deftest test-queued-restarts
   (testing "main lifecycle and calls to `restart-tk-apps` are not executed concurrently"
@@ -87,7 +86,7 @@
       (logging/with-test-logging
        (internal/restart-tk-apps [app])
 
-       (is (logged? (format "Too many SIGHUP restart requests queued (%d); ignoring!"
+       (is (logged? (format "Ignoring new SIGHUP restart requests; too many requests queued (%s)"
                             internal/max-pending-lifecycle-events)
                     :warn)
            "Missing expected log message when too many HUP requests queued")))

@@ -181,4 +181,5 @@
          :cli-help (quit 0 (:message m) *out*)
          (throw+)))
      (finally
+       (log/debug "Finished TK main lifecycle, shutting down Clojure agent threads.")
        (shutdown-agents)))))

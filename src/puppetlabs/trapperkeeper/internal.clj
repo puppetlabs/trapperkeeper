@@ -18,7 +18,7 @@
 
 (def LifeCycleTask
   {:type (schema/enum :restart :shutdown :boot)
-   :task-function (schema/maybe IFn)})
+   :task-function IFn})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Private

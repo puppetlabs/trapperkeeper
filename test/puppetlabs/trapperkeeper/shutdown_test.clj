@@ -502,3 +502,50 @@
       ;; the shutdown without processing the queued restarts.
       (let [expected-lifecycle-events [:init :start :stop :init :start :stop]]
         (is (= expected-lifecycle-events @lifecycle-events))))))
+
+(deftest shutdown-called-twice-test
+  (testing "app shuts down cleanly if shutdown is called twice"
+    (let [first-stop-begun? (promise)
+          stop-should-proceed? (promise)
+          lifecycle-events (atom [])
+          svc (tk/service
+               []
+               (init [this context]
+                     (swap! lifecycle-events conj :init)
+                     context)
+               (start [this context]
+                      (swap! lifecycle-events conj :start)
+                      context)
+               (stop [this context]
+                     (swap! lifecycle-events conj :stop)
+                     (deliver first-stop-begun? true)
+                     @stop-should-proceed?
+                     context))
+          app (testutils/bootstrap-services-with-config
+               [svc]
+               {})
+          ;; request a stop on two separate threads.  do these on futures
+          ;; so that we can observe their progress.
+          stop1-thread (future (tk-app/stop app))
+          stop2-thread (future (tk-app/stop app))]
+
+      ;; wait until we know that the stop has begun
+      @first-stop-begun?
+
+      ;; validate that the first three events are as expected (we're still blocked
+      ;; in the first 'stop').
+      (is (= [:init :start :stop] @lifecycle-events))
+
+      ;; stop threads should both be blocked
+      (is (not (realized? stop1-thread)))
+      (is (not (realized? stop2-thread)))
+
+      ;; unblock the first 'stop'
+      (deliver stop-should-proceed? true)
+      ;; now wait for both stop threads to complete
+      @stop1-thread
+      @stop2-thread
+
+      ;; validate that the first stop completed, and that the second was a no-op
+      (let [expected-lifecycle-events [:init :start :stop]]
+        (is (= expected-lifecycle-events @lifecycle-events))))))

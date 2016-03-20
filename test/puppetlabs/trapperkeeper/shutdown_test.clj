@@ -439,3 +439,66 @@
         (while (< (count @lifecycle-events) (count expected-lifecycle-events))
           (Thread/yield))
         (is (= expected-lifecycle-events @lifecycle-events))))))
+
+(deftest shutdown-prioritized-test
+  (testing "shutdown requests are prioritized over other pending lifecycle actions"
+    (let [first-stop-begun? (promise)
+          stop-should-proceed? (promise)
+          lifecycle-events (atom [])
+          svc (tk/service
+               []
+               (init [this context]
+                     (swap! lifecycle-events conj :init)
+                     context)
+               (start [this context]
+                      (swap! lifecycle-events conj :start)
+                      context)
+               (stop [this context]
+                     (swap! lifecycle-events conj :stop)
+                     (deliver first-stop-begun? true)
+                     @stop-should-proceed?
+                     context))
+          app (testutils/bootstrap-services-with-config
+               [svc]
+               {})
+          ;; this ensures that the 'main' shutdown logic will be runnable,
+          ;; and gives us a way to observe when it has completed.
+          app-main-thread (future (tk/run-app app))
+          shutdown-service (tk-app/get-service app :ShutdownService)]
+
+      ;; no shutdown requested yet
+      (is (nil? (internal/get-shutdown-reason shutdown-service)))
+
+      ;; now we trigger a restart, which will call 'stop' for the first time,
+      ;; which will block on the stop-should-proceed promise
+      (internal/restart-tk-apps [app])
+
+      ;; wait until we know that the stop has begun
+      @first-stop-begun?
+
+      ;; request a few more restarts, which should be queued up
+      (internal/restart-tk-apps [app])
+      (internal/restart-tk-apps [app])
+
+      ;; request a shutdown, which should supercede any of the queued restarts
+      (internal/request-shutdown shutdown-service)
+
+      ;; at this point, the app's shutdown-reason-promise should be set
+      (is (not (nil? (internal/get-shutdown-reason shutdown-service))))
+
+      ;; validate that the first three events are as expected (we're still blocked
+      ;; in the first 'stop').
+      (is (= [:init :start :stop] @lifecycle-events))
+
+      ;; main thread should still be blocked
+      (is (not (realized? app-main-thread)))
+
+      ;; unblock the first 'stop'
+      (deliver stop-should-proceed? true)
+      ;; now wait for us to get all the way through the main thread
+      @app-main-thread
+
+      ;; validate that the first restart completed, and then we went directly to
+      ;; the shutdown without processing the queued restarts.
+      (let [expected-lifecycle-events [:init :start :stop :init :start :stop]]
+        (is (= expected-lifecycle-events @lifecycle-events))))))

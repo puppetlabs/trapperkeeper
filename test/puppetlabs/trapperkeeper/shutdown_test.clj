@@ -9,7 +9,9 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
             [puppetlabs.trapperkeeper.testutils.logging :as logging]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
+            [puppetlabs.trapperkeeper.app :as tk-app]))
 
 (use-fixtures :once with-no-jvm-shutdown-hooks schema-test/validate-schemas)
 
@@ -370,3 +372,70 @@
           app              (tk/boot-services-with-config [test-service] {})]
       (is (identical? app (check-for-errors! app))
           "app not returned for check-for-errors!"))))
+
+(deftest shutdown-during-restart-test
+  (testing "shutdown can't begin while restart or other lifecycle functions are in progress"
+    (let [first-stop-begun? (promise)
+          stop-should-proceed? (promise)
+          lifecycle-events (atom [])
+          svc (tk/service
+               [[:ShutdownService request-shutdown]]
+               (init [this context]
+                     (swap! lifecycle-events conj :init)
+                     context)
+               (start [this context]
+                      (swap! lifecycle-events conj :start)
+                      context)
+               (stop [this context]
+                     (swap! lifecycle-events conj :stop)
+                     ;; request shutdown, which will trigger the shutdown logic
+                     ;; on the main thread.
+                     (request-shutdown)
+                     (deliver first-stop-begun? true)
+                     @stop-should-proceed?
+                     context))
+          app (testutils/bootstrap-services-with-config
+               [svc]
+               {})
+          ;; this ensures that the 'main' shutdown logic will be runnable,
+          ;; and gives us a way to observe when it has completed.
+          app-main-thread (future (tk/run-app app))
+          shutdown-service (tk-app/get-service app :ShutdownService)]
+
+      ;; no shutdown requested yet
+      (is (nil? (internal/get-shutdown-reason shutdown-service)))
+
+      ;; now we trigger a restart, which will call 'stop' for the first time,
+      ;; which will request a shutdown but will block on the stop-should-proceed
+      ;; promise
+      (internal/restart-tk-apps [app])
+
+      ;; wait until we know that the shutdown has been requested
+      @first-stop-begun?
+
+      ;; we want to give the main thread a little time in case it is going to
+      ;; do anything nefarious (as it would have before we consolidated the
+      ;; shutdown logic into the core.async worker loop)
+      (Thread/sleep 100)
+
+      ;; at this point, the app's shutdown-reason-promise should be set
+      (is (not (nil? (internal/get-shutdown-reason shutdown-service))))
+
+      ;; validate that the first three events are as expected (we're still blocked
+      ;; in the first 'stop').
+      (is (= [:init :start :stop] @lifecycle-events))
+
+      ;; main thread should still be blocked
+      (is (not (realized? app-main-thread)))
+
+      ;; unblock the first 'stop'
+      (deliver stop-should-proceed? true)
+      ;; now wait for us to get all the way through the main thread
+      @app-main-thread
+
+      ;; validate that the restart completed before the shutdown called 'stop'
+      ;; for a second time.
+      (let [expected-lifecycle-events [:init :start :stop :init :start :stop]]
+        (while (< (count @lifecycle-events) (count expected-lifecycle-events))
+          (Thread/yield))
+        (is (= expected-lifecycle-events @lifecycle-events))))))

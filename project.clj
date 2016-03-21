@@ -1,4 +1,5 @@
 (def ks-version "1.3.0")
+(def logback-version "1.1.3")
 
 (defproject puppetlabs/trapperkeeper "1.3.1-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
@@ -14,7 +15,13 @@
                  [prismatic/schema "1.0.4"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
-                 [ch.qos.logback/logback-classic "1.1.1"]
+                 [ch.qos.logback/logback-classic ~logback-version]
+                 ;; even though we don't strictly have a dependency on the following two
+                 ;; logback artifacts, specifying the dependency version here ensures
+                 ;; that downstream projects don't pick up different versions that would
+                 ;; conflict with our version of logback-classic
+                 [ch.qos.logback/logback-core ~logback-version]
+                 [ch.qos.logback/logback-access ~logback-version]
                  [org.slf4j/log4j-over-slf4j "1.7.6"]
                  [org.codehaus.janino/janino "2.7.8"]
                  [puppetlabs/typesafe-config "0.1.5"]

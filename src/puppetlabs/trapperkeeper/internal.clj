@@ -234,15 +234,14 @@
                       #{:shutdown}
                       (do
                         (log/debug "Received shutdown command, shutting down services")
+                        (async/close! shutdown-channel)
+                        (async/close! lifecycle-channel)
                         (task-function)
                         (log/debug "Service shutdown complete, exiting lifecycle worker loop")
-                        (async/close! shutdown-channel)
-                        ;; drain the shutdown channel to ensure that there are
+
+                        ;; drain the channels to ensure that there are
                         ;; no blocking puts
                         (while (async/poll! shutdown-channel))
-                        (async/close! lifecycle-channel)
-                        ;; drain the lifecycle channel to ensure that there are no
-                        ;; blocking puts
                         (while (async/poll! lifecycle-channel))
                         :done)
 
@@ -407,7 +406,10 @@
     ;; wait for the channel to send us the return value so we know it's done
     (log/trace "Waiting for response to shutdown message from lifecycle worker.")
     (if (not (nil? (async/<!! lifecycle-worker)))
-      (log/info "Finished shutdown sequence"))))
+      (log/info "Finished shutdown sequence")
+      ;; else, there was already a shutdown in progress and the second one was ignored
+      (log/trace (str "Response from lifecycle worker indicates shutdown already in progress,"
+                      "ignoring additional shutdown attempt.")))))
 
 (schema/defn ^:always-validate initialize-shutdown-service! :- (schema/protocol s/ServiceDefinition)
   "Initialize the shutdown service and add a shutdown hook to the JVM."

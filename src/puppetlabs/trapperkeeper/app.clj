@@ -19,6 +19,7 @@
    :ordered-services TrapperkeeperAppOrderedServices
    :services-by-id {schema/Keyword (schema/protocol s/Service)}
    :lifecycle-channel (schema/protocol async-prot/Channel)
+   :shutdown-channel (schema/protocol async-prot/Channel)
    :lifecycle-worker (schema/protocol async-prot/Channel)
    :shutdown-reason-promise IDeref})
 

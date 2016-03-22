@@ -236,18 +236,20 @@
               (log/debug "Received shutdown command, shutting down services")
               (async/close! shutdown-channel)
               (async/close! lifecycle-channel)
-              (task-function)
 
               (log/debug "Clearing lifecycle worker channels for shutdown.")
               ;; drain the channels to ensure that there are
               ;; no blocking puts, e.g. if a second shutdown request
               ;; was queued simultaneously
               (ks/while-let [msg (async/poll! shutdown-channel)]
-                (log/debug "Shutdown in progress, ignoring message on shutdown channel:"
-                           (:type msg)))
+                            (log/debug "Shutdown in progress, ignoring message on shutdown channel:"
+                                       (:type msg)))
               (ks/while-let [msg (async/poll! lifecycle-channel)]
-                (log/debug "Shutdown in progress, ignoring message on main lifecycle channel:"
-                           (:type msg)))
+                            (log/debug "Shutdown in progress, ignoring message on main lifecycle channel:"
+                                       (:type msg)))
+
+              (task-function)
+
               (log/debug "Service shutdown complete, exiting lifecycle worker loop")
               (catch Exception e
                 (log/debug e "Exception caught during shutdown!")))

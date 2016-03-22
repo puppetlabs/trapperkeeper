@@ -211,11 +211,35 @@
   "Conjoins all logger-id events produced during the evaluation of the
   body onto the collection in the destination atom, after removing any
   existing log appenders.  If logger-id is not a class, it will be
-  converted via str."
+  converted via str.  For simple situations, with-logged-event-maps
+  may be more convenient."
   [logger-id destination & body]
   `(with-log-event-listeners
      ~logger-id
      [(fn [event#] (swap! ~destination conj event#))]
+     ~@body))
+
+(defmacro with-logger-event-maps
+  "After removing any existing log appenders, binds event-maps to an
+  atom containing a collection, and then appends a map to that
+  collection for each event logged to logger-id during the evaluation
+  of the body.  See event->map for the map structure.  If logger-id is
+  not a class, it will be converted via str."
+  [logger-id event-maps & body]
+  `(let [dest# (atom [])
+         ~event-maps dest#]
+     (with-log-event-listeners
+       ~logger-id
+       [(fn [event#] (swap! dest# conj (event->map event#)))]
+       ~@body)))
+
+(defmacro with-logged-event-maps
+  "After removing any existing log appenders, binds event-maps to an
+  atom containing a collection, and then appends a map to that
+  collection for each event logged to root-logger-name during the
+  evaluation of the body.  See event->map for the map structure."
+  [event-maps & body]
+  `(with-logger-event-maps root-logger-name ~event-maps
      ~@body))
 
 (defn- suppressing-file-appender

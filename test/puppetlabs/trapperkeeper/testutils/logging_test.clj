@@ -155,3 +155,21 @@
         (is (re-find #":exception nil" err))
         (is (re-find #":message \"foo\"" err)))
       (is (logged? "foo")))))
+
+(deftest with-logger-event-maps
+  (let [expected {:logger "puppetlabs.trapperkeeper.testutils.logging-test"
+                  :level :error
+                  :message "wlgrem-test"
+                  :exception nil}]
+    (tgt/with-logger-event-maps root-logger-name events
+      (log/error "wlgrem-test")
+      (is (some #(= expected %) @events)))))
+
+(deftest with-logged-event-maps
+  (let [expected {:logger "puppetlabs.trapperkeeper.testutils.logging-test"
+                  :level :error
+                  :message "wlgdem-test"
+                  :exception nil}]
+    (tgt/with-logged-event-maps events
+      (log/error "wlgdem-test")
+      (is (some #(= expected %) @events)))))

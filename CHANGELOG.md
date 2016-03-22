@@ -1,3 +1,23 @@
+## 1.3.1
+
+This is a bugfix / maintenance / minor feature release
+
+* [TK-319](https://tickets.puppetlabs.com/browse/TK-319) - fix a bug where
+  optional dependencies could not be used without a service protocol
+* [TK-325](https://tickets.puppetlabs.com/browse/TK-325) - move documentation
+  into repo, instead of storing it on the github wiki
+* [HC-51](https://tickets.puppetlabs.com/browse/HC-51) - update to newer
+  version of clj typesafe / hocon wrapper, fixing bug that prevented
+  variable interpolation from working properly in hocon config files
+* New `bootstrap-services-with-config` testutils macro
+* [TK-342](https://tickets.puppetlabs.com/browse/TK-342) - new logging
+  testutils macros, e.g. `with-logged-event-maps`.
+* [TK-326](https://tickets.puppetlabs.com/browse/TK-326),
+  [TK-330](https://tickets.puppetlabs.com/browse/TK-330),
+  [TK-331](https://tickets.puppetlabs.com/browse/TK-331) - various minor
+  improvements to HUP support to eliminate some bugs/annoyances that
+  were possible in pathological situations
+
 ## 1.3.0
 
 This is a feature release.

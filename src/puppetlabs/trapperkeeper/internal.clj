@@ -223,41 +223,54 @@
    shutdown-channel :- (schema/protocol async-prot/Channel)
    shutdown-reason-promise :- IDeref]
   (log/debug "Initializing lifecycle worker loop.")
-  (async/go (try
-              (loop []
-                (let [[task chan] (async/alts!
-                                   [shutdown-channel lifecycle-channel]
-                                   :priority true)]
-                  (schema/validate LifeCycleTask task)
-                  (let [{:keys [type task-function]} task]
-                    (condp #(contains? %1 %2) type
-                      #{:shutdown}
-                      (do
-                        (log/debug "Received shutdown command, shutting down services")
-                        (async/close! shutdown-channel)
-                        (async/close! lifecycle-channel)
-                        (task-function)
-                        (log/debug "Service shutdown complete, exiting lifecycle worker loop")
+  (async/go-loop []
+    (let [[task chan] (async/alts!
+                       [shutdown-channel lifecycle-channel]
+                       :priority true)]
+      (schema/validate LifeCycleTask task)
+      (let [{:keys [type task-function]} task]
+        (condp #(contains? %1 %2) type
+          #{:shutdown}
+          (do
+            (try
+              (log/debug "Received shutdown command, shutting down services")
+              (async/close! shutdown-channel)
+              (async/close! lifecycle-channel)
+              (task-function)
 
-                        ;; drain the channels to ensure that there are
-                        ;; no blocking puts
-                        (while (async/poll! shutdown-channel))
-                        (while (async/poll! lifecycle-channel))
-                        :done)
+              (log/debug "Clearing lifecycle worker channels for shutdown.")
+              ;; drain the channels to ensure that there are
+              ;; no blocking puts, e.g. if a second shutdown request
+              ;; was queued simultaneously
+              (ks/while-let [msg (async/poll! shutdown-channel)]
+                (log/debug "Shutdown in progress, ignoring message on shutdown channel:"
+                           (:type msg)))
+              (ks/while-let [msg (async/poll! lifecycle-channel)]
+                (log/debug "Shutdown in progress, ignoring message on main lifecycle channel:"
+                           (:type msg)))
+              (log/debug "Service shutdown complete, exiting lifecycle worker loop")
+              (catch Exception e
+                (log/debug e "Exception caught during shutdown!")))
+            :done)
 
-                      #{:boot :restart}
-                      (do
-                        (log/debugf "Lifecycle worker executing %s lifecycle task." type)
-                        (task-function)
-                        (log/debugf "Lifecycle worker completed %s lifecycle task; awaiting next task." type)
-                        (recur))
-
-                      (throw (IllegalStateException. "Unrecognized lifecycle task:" task))))))
+          #{:boot :restart}
+          (do
+            (try
+              (log/debugf "Lifecycle worker executing %s lifecycle task." type)
+              (task-function)
+              (log/debugf "Lifecycle worker completed %s lifecycle task; awaiting next task." type)
               (catch Exception e
                 (log/debug e "Exception caught in lifecycle worker loop")
                 (deliver shutdown-reason-promise
                          {:cause :service-error
-                          :error e})))))
+                          :error e})))
+            (recur))
+
+          (do
+            (deliver shutdown-reason-promise
+                     {:cause :service-error
+                      :error (IllegalStateException. "Unrecognized lifecycle task:" task)})
+            (recur)))))))
 
 (defn restart-tk-apps
   "Call restart on all tk apps."
@@ -407,7 +420,9 @@
     (log/trace "Waiting for response to shutdown message from lifecycle worker.")
     (if (not (nil? (async/<!! lifecycle-worker)))
       (log/info "Finished shutdown sequence")
-      ;; else, there was already a shutdown in progress and the second one was ignored
+      ;; else, the read from the channel returned a nil because it was closed,
+      ;; indicating that there was already a shutdown in progress, and thus the
+      ;; redundant shutdown request was ignored
       (log/trace (str "Response from lifecycle worker indicates shutdown already in progress,"
                       "ignoring additional shutdown attempt.")))))
 

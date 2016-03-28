@@ -128,8 +128,8 @@
     (config/initialize-logging! (config-data-fn))
     (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
     (-> cli-data
-        (bootstrap/find-bootstrap-config)
-        (bootstrap/parse-bootstrap-config!)
+        (bootstrap/find-bootstrap-configs)
+        (bootstrap/parse-bootstrap-configs!)
         (internal/boot-services* config-data-fn))))
 
 (defn run-app

@@ -80,6 +80,6 @@
   ([bootstrap-config]
    (parse-and-bootstrap bootstrap-config {:config empty-config}))
   ([bootstrap-config cli-data]
-   (-> bootstrap-config
-       (bootstrap/parse-bootstrap-config!)
+   (-> [bootstrap-config]
+       (bootstrap/parse-bootstrap-configs!)
        (bootstrap-services-with-cli-data cli-data))))

@@ -11,8 +11,23 @@ Note that if you absolutely need control over the command line argument processi
 Trapperkeeper supports three command-line arguments:
 
 * `--config/-c`: The path to the configuration file or directory. This option is used to initialize the configuration service. This argument is optional; if not specified, Trapperkeeper will act as if you had given it an empty configuration file.
-* `--bootstrap-config/-b`: This argument is optional; if specified, the value should be a path to a bootstrap configuration file that Trapperkeeper will use (instead of looking for `bootstrap.cfg` in the current working directory or on the classpath)
+* `--bootstrap-config/-b`: This argument is optional; if specified, the value should be a path to a bootstrap configuration file, or a comma separated list of files and directories ([see below](#multiple-booststrap-files)) that Trapperkeeper will use (instead of looking for `bootstrap.cfg` in the current working directory or on the classpath)
 * `--debug/-d`: This option is not required; it's a flag, so it will evaluate to a boolean.  If `true`, sets the logging level to DEBUG, and also sets the `:debug` key in the configuration map provided by the configuration-service.
+
+### Multiple booststrap files
+The `--bootstrap-config` argument can be used to specify multiple bootstrap files. This way, a Trapperkeeper app's bootstrap configuration can be split up into multiple locations. You might want to do this to separate logically related services into their own files for instance.
+
+If multiple bootstrap files are specified, Trapperkeeper will treat them as if they have all been concatenated into a single bootstrap.cfg file and handle dependency resolution as normal.
+
+Multiple bootstrap files are specified by giving the `--bootstrap-config` command line option a comma separated list of files and directories. For example:
+```
+--bootstrap-config ./first/path,/etc/second/path,./a/single/file.cfg
+```
+
+Each item in the list of paths can be one of:
+* A path to a single config file
+* A path to a directory of config files. Only files ending in .cfg will be used
+* A path a file inside of a jar. E.g. `jar:file:///usr/bin/myjar.jar!/bootstrap.cfg`
 
 ## `main` and Trapperkeeper
 

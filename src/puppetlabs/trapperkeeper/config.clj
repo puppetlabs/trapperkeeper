@@ -26,7 +26,9 @@
             [clj-yaml.core :as yaml]
             [puppetlabs.trapperkeeper.services :refer [service service-context]]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [schema.core :as schema]
+            [puppetlabs.trapperkeeper.common :as common]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Service protocol
@@ -109,13 +111,12 @@
                           (let [{:keys [config]} (service-context this)]
                             (get-in config ks default)))))
 
-(defn parse-config-data
+(schema/defn parse-config-data :- (schema/pred map?)
   "Parses the .ini, .edn, .conf, .json, or .properties configuration file(s)
    and returns a map of configuration data. If no configuration file is
    explicitly specified, will act as if it was given an empty configuration
    file."
-  [cli-data]
-  {:post [(map? %)]}
+  [cli-data :- common/CLIData]
   (let [debug? (or (:debug cli-data) false)]
     (if-not (contains? cli-data :config)
       {:debug debug?}

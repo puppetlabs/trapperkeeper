@@ -7,7 +7,9 @@
             [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.config :as config]
-            [puppetlabs.trapperkeeper.plugins :as plugins]))
+            [puppetlabs.trapperkeeper.plugins :as plugins]
+            [schema.core :as schema]
+            [puppetlabs.trapperkeeper.common :as common]))
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
@@ -41,7 +43,7 @@
     (config/initialize-logging! (config-data-fn))
     (internal/build-app* services config-data-fn)))
 
-(defn boot-services-with-cli-data
+(schema/defn boot-services-with-cli-data :- (schema/protocol app/TrapperkeeperApp)
   "Given a list of ServiceDefinitions and a map containing parsed cli data, create
   and boot a trapperkeeper app.  This function can be used if you prefer to
   do your own CLI parsing and loading ServiceDefinitions; it circumvents
@@ -50,11 +52,8 @@
 
   Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
   block the main thread to wait for a shutdown event."
-  [services cli-data]
-  {:pre  [(sequential? services)
-          (every? #(satisfies? services/ServiceDefinition %) services)
-          (map? cli-data)]
-   :post [(satisfies? app/TrapperkeeperApp %)]}
+  [services :- [(schema/protocol services/ServiceDefinition)]
+   cli-data :- common/CLIData]
   (let [config-data-fn #(config/parse-config-data cli-data)]
     (config/initialize-logging! (config-data-fn))
     (internal/boot-services* services config-data-fn)))
@@ -93,7 +92,7 @@
    :post [(satisfies? app/TrapperkeeperApp %)]}
   (boot-services-with-config-fn services (constantly config-data)))
 
-(defn boot-with-cli-data
+(schema/defn boot-with-cli-data :- (schema/protocol app/TrapperkeeperApp)
   "Create and boot a trapperkeeper application.  This is accomplished by reading a
   bootstrap configuration file containing a list of (namespace-qualified)
   service functions.  These functions will be called to generate a service
@@ -116,9 +115,7 @@
 
   Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
   block the main thread to wait for a shutdown event."
-  [cli-data]
-  {:pre  [(map? cli-data)]
-   :post [(satisfies? app/TrapperkeeperApp %)]}
+  [cli-data :- common/CLIData]
   ;; There is a strict order of operations that need to happen here:
   ;; 1. parse config files
   ;; 2. initialize logging
@@ -145,13 +142,12 @@
       (when-let [error (:error shutdown-reason)]
         (throw error)))))
 
-(defn run
+(schema/defn run
   "Bootstraps a trapperkeeper application and runs it.
   Blocks the calling thread until trapperkeeper is shut down.
   `cli-data` is expected to be a map constructed by parsing the CLI args.
   (see `parse-cli-args`)"
-  [cli-data]
-  {:pre [(map? cli-data)]}
+  [cli-data :- common/CLIData]
   (let [app (boot-with-cli-data cli-data)]
     ;; This adds the TrapperkeeperApp instance to the tk-apps list, so that
     ;; it can be referenced in a remote nREPL session, etc.

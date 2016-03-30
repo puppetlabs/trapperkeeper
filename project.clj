@@ -48,7 +48,7 @@
   ;; code that we have.
   :classifiers [["test" :testutils]]
 
-  :profiles {:cljfmt {:plugins [[lein-cljfmt "0.3.0"]
+  :profiles {:cljfmt {:plugins [[lein-cljfmt "0.5.0"]
                                 [lein-parent "0.2.1"]]
                       :parent-project {:path "ext/pl-clojure-style/project.clj"
                                        :inherit [:cljfmt]}}

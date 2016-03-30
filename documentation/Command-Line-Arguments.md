@@ -27,7 +27,7 @@ Multiple bootstrap files are specified by giving the `--bootstrap-config` comman
 Each item in the list of paths can be one of:
 * A path to a single config file
 * A path to a directory of config files. Only files ending in .cfg will be used
-* A path a file inside of a jar. E.g. `jar:file:///usr/bin/myjar.jar!/bootstrap.cfg`
+* A path to a file inside of a jar. E.g. `jar:file:///usr/bin/myjar.jar!/bootstrap.cfg`
 
 ## `main` and Trapperkeeper
 

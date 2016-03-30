@@ -71,9 +71,11 @@
     :else (try
             [(io/input-stream (URI. config-path))]
             (catch Exception ignored
-              ;; If that didn't work either, we can't read it.  Don't wrap and
-              ;; re-throw here, as `ignored` may be misleading (in the case of a
-              ;; normal path, it is useless - there is no reason to mess with URIs)
+              ;; If we can't find a file or a directory, and loading the URI
+              ;; fails, we give up and throw an exception.
+              ;; Don't wrap and re-throw here, as `ignored` may be misleading
+              ;; (in the case of a normal path, it is useless - there is no
+              ;; reason to mess with URIs)
               (throw (IllegalArgumentException.
                        (str "Specified bootstrap config file does not exist: '"
                             config-path "'")))))))

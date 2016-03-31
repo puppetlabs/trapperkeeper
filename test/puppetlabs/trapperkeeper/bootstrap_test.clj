@@ -11,7 +11,7 @@
             [puppetlabs.trapperkeeper.logging :refer [reset-logging]]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]
-            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn hello-world]]
+            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn test-fn-two test-fn-three hello-world]]
             [schema.test :as schema-test]
             [me.raynes.fs :as fs]))
 
@@ -171,6 +171,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
             bootstrap-path (format "%s,%s" bootstrap-one bootstrap-two)
             app (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-path])
             test-svc (get-service app :TestService)
+            test-svc-two (get-service app :TestServiceTwo)
+            test-svc-three (get-service app :TestServiceThree)
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
               (format "Loading bootstrap configs:\n%s\n%s"
@@ -178,12 +180,16 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
                       (fs/absolute bootstrap-two))
               :debug))
         (is (= (test-fn test-svc) :cli))
+        (is (= (test-fn-two test-svc-two) :two))
+        (is (= (test-fn-three test-svc-three) :three))
         (is (= (hello-world hello-world-svc) "hello world")))))
   (testing "A path containing multiple .cfg files can be specified on the command line"
     (with-test-logging
       (let [bootstrap-path "./dev-resources/bootstrapping/cli/split_bootstraps/both/"
             app (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-path])
             test-svc (get-service app :TestService)
+            test-svc-two (get-service app :TestServiceTwo)
+            test-svc-three (get-service app :TestServiceThree)
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
               ; We can't know what order it will find the files on disk, so just
@@ -192,6 +198,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
                                   (fs/absolute bootstrap-path)))
               :debug))
         (is (= (test-fn test-svc) :cli))
+        (is (= (test-fn-two test-svc-two) :two))
+        (is (= (test-fn-three test-svc-three) :three))
         (is (= (hello-world hello-world-svc) "hello world")))))
   (testing "A path containing both a file and a folder can be specified on the command line"
     (with-test-logging
@@ -201,6 +209,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
             bootstrap-path (format "%s,%s" bootstrap-one-dir bootstrap-two)
             app (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-path])
             test-svc (get-service app :TestService)
+            test-svc-two (get-service app :TestServiceTwo)
+            test-svc-three (get-service app :TestServiceThree)
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
               (format "Loading bootstrap configs:\n%s\n%s"
@@ -208,6 +218,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
                       (fs/absolute bootstrap-two))
               :debug))
         (is (= (test-fn test-svc) :cli))
+        (is (= (test-fn-two test-svc-two) :two))
+        (is (= (test-fn-three test-svc-three) :three))
         (is (= (hello-world hello-world-svc) "hello world"))))))
 
 (deftest bootstrap-path-with-spaces
@@ -222,7 +234,34 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
               (format "Loading bootstrap configs:\n%s" (fs/absolute bootstrap-path))
               :debug))
         (is (= (test-fn test-svc) :cli))
+        (is (= (hello-world hello-world-svc) "hello world")))))
+  (testing "Multiple bootstrap files can be specified with spaces in the names"
+    (with-test-logging
+      (let [bootstrap-one "./dev-resources/bootstrapping/cli/split_bootstraps/spaces/bootstrap with spaces one.cfg"
+            bootstrap-two "./dev-resources/bootstrapping/cli/split_bootstraps/spaces/bootstrap with spaces two.cfg"
+            bootstrap-path (format "%s,%s" bootstrap-one bootstrap-two)
+            app (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-path])
+            test-svc (get-service app :TestService)
+            test-svc-two (get-service app :TestServiceTwo)
+            test-svc-three (get-service app :TestServiceThree)
+            hello-world-svc (get-service app :HelloWorldService)]
+        (is (logged?
+              (format "Loading bootstrap configs:\n%s\n%s"
+                      (fs/absolute bootstrap-one)
+                      (fs/absolute bootstrap-two))
+              :debug))
+        (is (= (test-fn test-svc) :cli))
+        (is (= (test-fn-two test-svc-two) :two))
+        (is (= (test-fn-three test-svc-three) :three))
         (is (= (hello-world hello-world-svc) "hello world"))))))
+
+(deftest duplicate-service-entries
+  (testing "duplicate bootstrap entries are allowed"
+    (let [bootstrap-path "./dev-resources/bootstrapping/cli/duplicate_entries.cfg"
+          app (bootstrap-with-empty-config
+                ["--bootstrap-config" bootstrap-path])
+          hello-world-svc (get-service app :HelloWorldService)]
+      (is (= (hello-world hello-world-svc) "hello world")))))
 
 (deftest config-file-in-jar
   (testing "Bootstrapping via a config file contained in a .jar"
@@ -231,6 +270,12 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
       ;; just test that this bootstrap config file can be read successfully
       ;; (ie, this does not throw an exception)
       (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-url]))))
+
+(deftest duplicate-service-definitions
+  (testing "Duplicate service definitions causes error"
+    (let [bootstrap "./dev-resources/bootstrapping/cli/duplicate_services.cfg"
+          app (bootstrap-with-empty-config
+                ["--bootstrap-config" bootstrap])])))
 
 (deftest chain-files-test
   (testing "chain-files flattens files correctly"

@@ -262,6 +262,18 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
           hello-world-svc (get-service app :HelloWorldService)]
       (is (= (hello-world hello-world-svc) "hello world")))))
 
+(deftest duplicate-service-definitions
+  (testing "Duplicate service definitions causes error with filename and line numbers"
+    (let [bootstrap "./dev-resources/bootstrapping/cli/duplicate_services.cfg"]
+      (is (thrown-with-msg?
+            IllegalArgumentException
+            (re-pattern (str "Duplicate implementations found for service protocol ':TestService':\n"
+                             ".*/duplicate_services.cfg:2\n"
+                             "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service\n"
+                             ".*/duplicate_services.cfg:3\n"
+                             "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service"))
+            (parse-bootstrap-config! bootstrap))))))
+
 (deftest config-file-in-jar
   (testing "Bootstrapping via a config file contained in a .jar"
     (let [jar           (file "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar")
@@ -270,17 +282,15 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
       ;; (ie, this does not throw an exception)
       (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-url]))))
 
-(deftest chain-files-test
-  (testing "chain-files flattens files correctly"
-    (let [bootstrap-one (StringReader. "one\ntwo")
-          bootstrap-two (StringReader. "three\nfour")]
-      (is (=
-           ["one", "two", "three", "four"]
-           (chain-files [bootstrap-one bootstrap-two])))))
-  (testing "chain-files removes empty files"
-    (let [bootstrap-one (StringReader. "one\ntwo")
-          bootstrap-two (StringReader. "")
-          bootstrap-three (StringReader. "three\nfour")]
-      (is (=
-           ["one", "two", "three", "four"]
-           (chain-files [bootstrap-one bootstrap-two bootstrap-three]))))))
+(deftest parse-bootstrap-config-throws
+  (testing "throws error with line number and file"
+    (let [bootstrap (file "./dev-resources/bootstrapping/cli/invalid_bootstrap.cfg")]
+      (is (thrown-with-msg?
+            IllegalArgumentException
+            (re-pattern (str "Problem loading service 'fake.notreal/wont-find-me' "
+                             "on line '3' in bootstrap configuration file "
+                             "'./dev-resources/bootstrapping/cli/invalid_bootstrap.cfg'"
+                             ":\nUnable to load service: fake.notreal/wont-find-me"))
+            (parse-bootstrap-config! bootstrap))))))
+
+

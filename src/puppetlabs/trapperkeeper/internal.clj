@@ -3,6 +3,7 @@
   (:require [clojure.tools.logging :as log]
             [beckon]
             [plumbing.graph :as graph]
+            [slingshot.slingshot :refer [throw+]]
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
@@ -11,7 +12,8 @@
             [puppetlabs.kitchensink.core :as ks]
             [schema.core :as schema]
             [clojure.core.async :as async]
-            [clojure.core.async.impl.protocols :as async-prot]))
+            [clojure.core.async.impl.protocols :as async-prot]
+            [clojure.string :as string]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Schemas
@@ -49,15 +51,16 @@
   [service-def]
   {:post [(satisfies? s/ServiceDefinition %)]}
   (if-not (satisfies? s/ServiceDefinition service-def)
-    (throw (IllegalArgumentException.
-            (str "Invalid service definition; expected a service "
-                 "definition (created via `service` or `defservice`); "
-                 "found: " (pr-str service-def)))))
+    (throw+ {:type :illegal-argument
+            :message (str "Invalid service definition; expected a service "
+                          "definition (created via `service` or `defservice`); "
+                          "found: " (pr-str service-def))}))
   (if (service-graph? (s/service-map service-def))
     service-def
-    (throw (IllegalArgumentException. (str "Invalid service graph; service graphs must "
-                                           "be nested maps of keywords to functions.  Found: "
-                                           (s/service-map service-def))))))
+    (throw+ {:type :illegal-argument
+             :message (str "Invalid service graph; service graphs must "
+                           "be nested maps of keywords to functions.  Found: "
+                           (s/service-map service-def))})))
 
 (defn parse-missing-required-key
   "Prismatic's graph compilation code throws `ExceptionInfo` objects if required

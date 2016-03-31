@@ -142,9 +142,9 @@
   (remove nil? (flatten (map #(line-seq (io/reader %)) files))))
 
 (schema/defn parse-bootstrap-configs! :- [(schema/protocol services/ServiceDefinition)]
-  "Parse the trapperkeeper bootstrap configuration and return the service graph
-  that is the result of merging the graphs of all of the services specified in
-  the configuration."
+  "Parse multiple trapperkeeper bootstrap configuration files and return the
+  service graph that is the result of merging the graphs of all of the services
+  specified in the configuration files."
   [configs :- [(schema/protocol io/IOFactory)]]
   (let [lines (chain-files configs)]
     (when (empty? lines) (throw (Exception. "Empty bootstrap config file")))
@@ -153,3 +153,9 @@
       (let [{:keys [namespace service-name]} (parse-bootstrap-line! line)]
         (resolve-service! namespace service-name)))))
 
+(schema/defn parse-bootstrap-config! :- [(schema/protocol services/ServiceDefinition)]
+  "Parse a single bootstrap configuration file and return the service graph
+  that is the result of merging the graphs of all the services specified in the
+  configuration file"
+  [config :- (schema/protocol io/IOFactory)]
+  (parse-bootstrap-configs! [config]))

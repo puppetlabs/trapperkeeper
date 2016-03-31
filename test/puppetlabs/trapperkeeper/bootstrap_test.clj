@@ -156,8 +156,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
 puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ; comment"
           service-maps      (->> bootstrap-config
                                  (StringReader.)
-                                 vector
-                                 parse-bootstrap-configs!
+                                 parse-bootstrap-config!
                                  (map service-map))]
       (is (= (count service-maps) 2))
       (is (contains? (first service-maps) :HelloWorldService))

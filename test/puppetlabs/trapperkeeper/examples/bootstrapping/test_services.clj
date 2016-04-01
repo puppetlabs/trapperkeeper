@@ -11,6 +11,12 @@
 (defprotocol TestService
   (test-fn [this]))
 
+(defprotocol TestServiceTwo
+  (test-fn-two [this]))
+
+(defprotocol TestServiceThree
+  (test-fn-three [this]))
+
 (defservice hello-world-service
             HelloWorldService
             []
@@ -35,3 +41,13 @@
             TestService
             []
             (test-fn [this] :cli))
+
+(defservice test-service-two
+            TestServiceTwo
+            []
+            (test-fn-two [this] :two))
+
+(defservice test-service-three
+            TestServiceThree
+            []
+            (test-fn-three [this] :three))

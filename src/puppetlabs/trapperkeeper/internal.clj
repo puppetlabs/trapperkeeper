@@ -6,6 +6,7 @@
             [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service]]
             [puppetlabs.trapperkeeper.app :as a]
+            [puppetlabs.trapperkeeper.common :as common]
             [puppetlabs.trapperkeeper.services :as s]
             [puppetlabs.kitchensink.core :as ks]
             [schema.core :as schema]
@@ -135,16 +136,14 @@
       (handle-prismatic-exception! e))))
 
 
-(defn parse-cli-args!
+(schema/defn parse-cli-args! :- common/CLIData
   "Parses the command-line arguments using `puppetlabs.kitchensink.core/cli!`.
   Hard-codes the command-line arguments expected by trapperkeeper to be:
       --debug
       --bootstrap-config <bootstrap file>
       --config <.ini file or directory>
       --plugins <plugins directory>"
-  [cli-args]
-  {:pre  [(sequential? cli-args)]
-   :post [(map? %)]}
+  [cli-args :- [(schema/maybe schema/Str)]]
   (let [specs       [["-d" "--debug" "Turns on debug mode"]
                      ["-b" "--bootstrap-config BOOTSTRAP-CONFIG-FILE" "Path to bootstrap config file"]
                      ["-c" "--config CONFIG-PATH"

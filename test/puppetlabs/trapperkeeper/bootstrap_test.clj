@@ -270,12 +270,6 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
       ;; (ie, this does not throw an exception)
       (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-url]))))
 
-(deftest duplicate-service-definitions
-  (testing "Duplicate service definitions causes error"
-    (let [bootstrap "./dev-resources/bootstrapping/cli/duplicate_services.cfg"
-          app (bootstrap-with-empty-config
-                ["--bootstrap-config" bootstrap])])))
-
 (deftest chain-files-test
   (testing "chain-files flattens files correctly"
     (let [bootstrap-one (StringReader. "one\ntwo")

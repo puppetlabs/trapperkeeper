@@ -39,7 +39,8 @@
                                      :sign-releases false}]]
 
   ;; Convenience for manually testing application shutdown support - run `lein test-external-shutdown`
-  :aliases {"test-external-shutdown" ["trampoline" "run" "-m" "examples.shutdown-app.test-external-shutdown"]}
+  :aliases {"cljfmt" ["with-profile" "+cljfmt" "cljfmt"]
+            "test-external-shutdown" ["trampoline" "run" "-m" "examples.shutdown-app.test-external-shutdown"]}
 
   ;; By declaring a classifier here and a corresponding profile below we'll get an additional jar
   ;; during `lein jar` that has all the code in the test/ directory. Downstream projects can then
@@ -47,7 +48,11 @@
   ;; code that we have.
   :classifiers [["test" :testutils]]
 
-  :profiles {:dev {:source-paths ["examples/shutdown_app/src"
+  :profiles {:cljfmt {:plugins [[lein-cljfmt "0.5.0"]
+                                [lein-parent "0.2.1"]]
+                      :parent-project {:path "ext/pl-clojure-style/project.clj"
+                                       :inherit [:cljfmt]}}
+             :dev {:source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
                    :dependencies [[spyscope "0.1.4"]

@@ -36,7 +36,7 @@
 (defprotocol ConfigService
   (get-config [this] "Returns a map containing all of the configuration values")
   (get-in-config [this ks] [this ks default]
-                 "Returns the individual configuration value from the nested
+    "Returns the individual configuration value from the nested
                  configuration structure, where ks is a sequence of keys.
                  Returns nil if the key is not present, or the default value if
                  supplied."))
@@ -68,13 +68,13 @@
   [path]
   (when-not (.canRead (io/file path))
     (throw (FileNotFoundException.
-             (format "Configuration path '%s' must exist and must be readable."
-                     path))))
+            (format "Configuration path '%s' must exist and must be readable."
+                    path))))
   (if-not (fs/directory? path)
     [path]
     (mapcat
-      #(fs/glob (fs/file path %))
-      ["*.ini" "*.conf" "*.json" "*.properties" "*.edn" "*.yaml" "*.yml"])))
+     #(fs/glob (fs/file path %))
+     ["*.ini" "*.conf" "*.json" "*.properties" "*.edn" "*.yaml" "*.yml"])))
 
 (defn load-config
   "Given a path to a configuration file or directory of configuration files,
@@ -89,7 +89,7 @@
          (apply ks/deep-merge-with-keys
                 (fn [ks & _]
                   (throw (IllegalArgumentException.
-                           (str "Duplicate configuration entry: " ks)))))
+                          (str "Duplicate configuration entry: " ks)))))
          (merge {}))))
 
 (defn config-service
@@ -98,18 +98,18 @@
    parameter should be the path to an .ini file or a directory of .ini files."
   [config-data-fn]
   (service ConfigService
-           []
-           (init [this context]
-                 (assoc context :config (config-data-fn)))
-           (get-config [this]
-                       (let [{:keys [config]} (service-context this)]
-                         config))
-           (get-in-config [this ks]
-                          (let [{:keys [config]} (service-context this)]
-                            (get-in config ks)))
-           (get-in-config [this ks default]
-                          (let [{:keys [config]} (service-context this)]
-                            (get-in config ks default)))))
+    []
+    (init [this context]
+      (assoc context :config (config-data-fn)))
+    (get-config [this]
+      (let [{:keys [config]} (service-context this)]
+        config))
+    (get-in-config [this ks]
+      (let [{:keys [config]} (service-context this)]
+        (get-in config ks)))
+    (get-in-config [this ks default]
+      (let [{:keys [config]} (service-context this)]
+        (get-in config ks default)))))
 
 (schema/defn parse-config-data :- (schema/pred map?)
   "Parses the .ini, .edn, .conf, .json, or .properties configuration file(s)
@@ -121,8 +121,8 @@
     (if-not (contains? cli-data :config)
       {:debug debug?}
       (-> (:config cli-data)
-         (load-config)
-         (assoc :debug debug?)))))
+          (load-config)
+          (assoc :debug debug?)))))
 
 (defn initialize-logging!
   "Initializes the logging system based on the configuration data."

@@ -11,17 +11,17 @@
     (let [boot-promise (promise)
           lifecycle-events (atom [])
           svc (tk/service
-               []
-               (init [this context]
-                     (swap! lifecycle-events conj :init)
-                     context)
-               (start [this context]
-                      @boot-promise
-                      (swap! lifecycle-events conj :start)
-                      context)
-               (stop [this context]
-                     (swap! lifecycle-events conj :stop)
-                     context))
+                []
+                (init [this context]
+                  (swap! lifecycle-events conj :init)
+                  context)
+                (start [this context]
+                  @boot-promise
+                  (swap! lifecycle-events conj :start)
+                  context)
+                (stop [this context]
+                  (swap! lifecycle-events conj :stop)
+                  context))
           config-fn (constantly {})
           app (internal/build-app* [svc] config-fn)
           main-thread (future (internal/boot-services-for-app* app))]
@@ -56,17 +56,17 @@
   (let [stop-promise (promise)
         lifecycle-events (atom [])
         svc (tk/service
-             []
-             (init [this context]
-                   (swap! lifecycle-events conj :init)
-                   context)
-             (start [this context]
-                    (swap! lifecycle-events conj :start)
-                    context)
-             (stop [this context]
-                   @stop-promise
-                   (swap! lifecycle-events conj :stop)
-                   context))
+              []
+              (init [this context]
+                (swap! lifecycle-events conj :init)
+                context)
+              (start [this context]
+                (swap! lifecycle-events conj :start)
+                context)
+              (stop [this context]
+                @stop-promise
+                (swap! lifecycle-events conj :stop)
+                context))
         app (testutils/bootstrap-services-with-config
              [svc]
              {})]
@@ -84,12 +84,12 @@
     ;; and confirm that we get a log message indicating that they were rejected
     (dotimes [i 3]
       (logging/with-test-logging
-       (internal/restart-tk-apps [app])
+        (internal/restart-tk-apps [app])
 
-       (is (logged? (format "Ignoring new SIGHUP restart requests; too many requests queued (%s)"
-                            internal/max-pending-lifecycle-events)
-                    :warn)
-           "Missing expected log message when too many HUP requests queued")))
+        (is (logged? (format "Ignoring new SIGHUP restart requests; too many requests queued (%s)"
+                             internal/max-pending-lifecycle-events)
+                     :warn)
+            "Missing expected log message when too many HUP requests queued")))
 
     ;; now we unblock all of the queued restarts
     (deliver stop-promise true)

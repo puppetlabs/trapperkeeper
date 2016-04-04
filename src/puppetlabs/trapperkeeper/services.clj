@@ -55,8 +55,8 @@
   (let [{:keys [service-sym service-protocol-sym service-id service-fn-map
                 dependencies fns-map]}
         (si/parse-service-forms!
-          lifecycle-fn-names
-          forms)
+         lifecycle-fn-names
+         forms)
         output-schema (si/build-output-schema (keys service-fn-map))]
     `(reify ServiceDefinition
        (service-def-id [this] ~service-id)

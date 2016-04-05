@@ -18,36 +18,36 @@
   (test-fn-three [this]))
 
 (defservice hello-world-service
-            HelloWorldService
-            []
-            (hello-world [this] "hello world"))
+  HelloWorldService
+  []
+  (hello-world [this] "hello world"))
 
 (defservice foo-test-service
-            TestService
-            []
-            (test-fn [this] :foo))
+  TestService
+  []
+  (test-fn [this] :foo))
 
 (defservice classpath-test-service
-            TestService
-            []
-            (test-fn [this] :classpath))
+  TestService
+  []
+  (test-fn [this] :classpath))
 
 (defservice cwd-test-service
-            TestService
-            []
-            (test-fn [this] :cwd))
+  TestService
+  []
+  (test-fn [this] :cwd))
 
 (defservice cli-test-service
-            TestService
-            []
-            (test-fn [this] :cli))
+  TestService
+  []
+  (test-fn [this] :cli))
 
 (defservice test-service-two
-            TestServiceTwo
-            []
-            (test-fn-two [this] :two))
+  TestServiceTwo
+  []
+  (test-fn-two [this] :two))
 
 (defservice test-service-three
-            TestServiceThree
-            []
-            (test-fn-three [this] :three))
+  TestServiceThree
+  []
+  (test-fn-three [this] :three))

@@ -27,8 +27,8 @@
 (defn bootstrap-services-with-cli-data
   [services cli-data]
   (internal/throw-app-error-if-exists!
-    (tk/boot-services-with-config-fn services
-                                     #(config/parse-config-data cli-data))))
+   (tk/boot-services-with-config-fn services
+                                    #(config/parse-config-data cli-data))))
 
 (defmacro with-app-with-cli-data
   [app services cli-data & body]
@@ -71,7 +71,7 @@
    (bootstrap-with-empty-config []))
   ([other-args]
    (-> other-args
-       (conj "--config" empty-config )
+       (conj "--config" empty-config)
        (internal/parse-cli-args!)
        (tk/boot-with-cli-data)
        (internal/throw-app-error-if-exists!))))

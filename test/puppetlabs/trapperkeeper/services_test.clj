@@ -155,7 +155,7 @@
         (internal/restart-tk-apps [app])
         (let [start (System/currentTimeMillis)]
           (while (and (not= (count @call-seq) 15)
-                     (< (- (System/currentTimeMillis) start) 5000))
+                      (< (- (System/currentTimeMillis) start) 5000))
             (Thread/yield)))
         (is (= (count @call-seq) 15))
         (is (= [:init-service1 :init-service2 :init-service3
@@ -181,11 +181,11 @@
           service1 (service EmptyService
                      []
                      (init [this context]
-                           (reset! test-init-context (merge context context-elem))
-                           (swap! test-init-count inc)
-                           {:context @test-init-context :count @test-init-count})
+                       (reset! test-init-context (merge context context-elem))
+                       (swap! test-init-count inc)
+                       {:context @test-init-context :count @test-init-count})
                      (start [this context]
-                            (reset! test-start-context context)))]
+                       (reset! test-start-context context)))]
       (with-app-with-empty-config app [service1]
         (is (= context-elem @test-init-context))
         (is (= {:foo "bar"} (:context @test-start-context)))
@@ -211,18 +211,18 @@
        ; the stop will happen because of the exception. So instead, we use
        ; the tk/run-app here to block on the app until the restart is
        ; called and explodes in an exception.
-       (let [app (internal/throw-app-error-if-exists!
-                  (bootstrap-services-with-empty-config services))
-             app-running (future (tk/run-app app))]
-         (is (= [:init-service1 :init-service2 :init-service3
-                 :start-service1 :start-service2 :start-service3]
-                @call-seq))
-         (app/restart app)
-         (try
-           @app-running
-           (catch ExecutionException e
-             (is (instance? IllegalStateException (.getCause e)))
-             (is (= "Exploding Service" (.. e getCause getMessage)))))))
+        (let [app (internal/throw-app-error-if-exists!
+                   (bootstrap-services-with-empty-config services))
+              app-running (future (tk/run-app app))]
+          (is (= [:init-service1 :init-service2 :init-service3
+                  :start-service1 :start-service2 :start-service3]
+                 @call-seq))
+          (app/restart app)
+          (try
+            @app-running
+            (catch ExecutionException e
+              (is (instance? IllegalStateException (.getCause e)))
+              (is (= "Exploding Service" (.. e getCause getMessage)))))))
       ; Here we validate that the stop completed but no new init happened
       (is (= [:init-service1 :init-service2 :init-service3
               :start-service1 :start-service2 :start-service3
@@ -235,18 +235,18 @@
           service1 (service Service1
                      []
                      (init [this context]
-                           (swap! test-context assoc :init-service-id (svcs/service-id this))
-                           context)
+                       (swap! test-context assoc :init-service-id (svcs/service-id this))
+                       context)
                      (start [this context]
-                            (swap! test-context assoc :start-service-id (svcs/service-id this))
-                            context)
+                       (swap! test-context assoc :start-service-id (svcs/service-id this))
+                       context)
                      (stop [this context]
-                           (swap! test-context assoc :stop-service-id (svcs/service-id this))
-                           context)
+                       (swap! test-context assoc :stop-service-id (svcs/service-id this))
+                       context)
                      (service1-fn [this] nil))]
       (with-app-with-empty-config app [service1]
         ;; no-op; we just want the app to start up and shut down
-        )
+)
       (is (= :Service1 (:init-service-id @test-context)))
       (is (= :Service1 (:start-service-id @test-context)))
       (is (= :Service1 (:stop-service-id @test-context))))))
@@ -270,8 +270,8 @@
           service2 (service Service2
                      [[:Service1 service1-fn]]
                      (init [this context]
-                           (let [s1 (svcs/get-service this :Service1)]
-                             (assoc context :s1 s1)))
+                       (let [s1 (svcs/get-service this :Service1)]
+                         (assoc context :s1 s1)))
                      (service2-fn [this] ((svcs/service-context this) :s1)))
           app               (bootstrap-services-with-empty-config [service1 service2])
           s2                (app/get-service app :Service2)
@@ -459,12 +459,12 @@
     (let [call-seq (atom [])
           service0 (service []
                      (init [this context]
-                           (swap! call-seq conj :init)
-                           (assoc context :foo :bar))
+                       (swap! call-seq conj :init)
+                       (assoc context :foo :bar))
                      (start [this context]
-                            (swap! call-seq conj :start)
-                            (is (= context {:foo :bar}))
-                            context))]
+                       (swap! call-seq conj :start)
+                       (is (= context {:foo :bar}))
+                       context))]
       (bootstrap-services-with-empty-config [service0])
       (is (= [:init :start] @call-seq))))
 
@@ -475,8 +475,8 @@
           result   (atom nil)
           service0 (service [[:Service1 service1-fn]]
                      (init [this context]
-                           (reset! result (service1-fn))
-                           context))]
+                       (reset! result (service1-fn))
+                       context))]
       (bootstrap-services-with-empty-config [service1 service0])
       (is (= "hi" @result)))))
 
@@ -492,7 +492,7 @@
           service1    (service Service1
                         [[:MultiArityService foo]]
                         (service1-fn [this]
-                                     [(foo 5) (foo 3 6)]))
+                          [(foo 5) (foo 3 6)]))
           app         (bootstrap-services-with-empty-config [ma-service service1])
           mas         (app/get-service app :MultiArityService)
           s1          (app/get-service app :Service1)]
@@ -509,5 +509,5 @@
                          puppetlabs.trapperkeeper.services-test/Service1
                          []
                          (service1-fn
-                          "This is an example of an invalid docstring"
-                          [this] nil)))))))
+                           "This is an example of an invalid docstring"
+                           [this] nil)))))))

@@ -11,14 +11,14 @@
   [name]
   (and
     ;; ignore directories
-    (not (or (.isDirectory (file name))
-             (.endsWith name "/"))) ; necessary for directories in .jars
+   (not (or (.isDirectory (file name))
+            (.endsWith name "/"))) ; necessary for directories in .jars
 
     ;; don't care about anything in META-INF
-    (not (.startsWith name "META-INF"))
+   (not (.startsWith name "META-INF"))
 
     ;; lein includes project.clj ... no thank you
-    (not (= name "project.clj"))))
+   (not (= name "project.clj"))))
 
 (defn- handle-duplicate!
   "Helper for `process-file`; handles a found duplicate.  Throws an exception
@@ -60,7 +60,7 @@
                         (map #(.getName %) (enumeration-seq (.entries (JarFile. file)))))]
         (reduce (partial process-file container-filename) acc filenames))
       acc ; There may be directories on the classpath that do not exist.
-      )))
+)))
 
 (defn jars-in-dir
   "Given a path to a directory on disk, returns a collection of all of the .jar
@@ -100,4 +100,4 @@
             (log/info "Adding plugin .jar " (.getAbsolutePath jar) " to classpath.")
             (kitchensink/add-classpath jar)))
         (throw (IllegalArgumentException.
-                 (str "Plugins directory " plugins-path " does not exist")))))))
+                (str "Plugins directory " plugins-path " does not exist")))))))

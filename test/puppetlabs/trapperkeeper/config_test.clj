@@ -15,32 +15,32 @@
   (get-in-config [this ks] [this ks default]))
 
 (defservice test-service
-            ConfigTestService
-            [[:ConfigService get-in-config get-config]]
-            (test-fn [this ks] (get-in-config ks))
-            (test-fn2 [this] (get-config))
-            (get-in-config [this ks] (get-in-config ks))
-            (get-in-config [this ks default] (get-in-config ks default)))
+  ConfigTestService
+  [[:ConfigService get-in-config get-config]]
+  (test-fn [this ks] (get-in-config ks))
+  (test-fn2 [this] (get-config))
+  (get-in-config [this ks] (get-in-config ks))
+  (get-in-config [this ks default] (get-in-config ks default)))
 
 (deftest test-config-service
   (testing "Fails if config path doesn't exist"
     (is (thrown-with-msg?
-          FileNotFoundException
-          #"Configuration path './foo/bar/baz' must exist and must be readable."
-          (bootstrap-services-with-cli-data [test-service] {:config "./foo/bar/baz"}))))
+         FileNotFoundException
+         #"Configuration path './foo/bar/baz' must exist and must be readable."
+         (bootstrap-services-with-cli-data [test-service] {:config "./foo/bar/baz"}))))
 
   (testing "Can read values from a single .ini file"
     (with-app-with-cli-data app [test-service] {:config "./dev-resources/config/file/config.ini"}
       (let [test-svc  (get-service app :ConfigTestService)]
-      (is (= (test-fn test-svc [:foo :setting1]) "foo1"))
-      (is (= (test-fn test-svc [:foo :setting2]) "foo2"))
-      (is (= (test-fn test-svc [:bar :setting1]) "bar1"))
+        (is (= (test-fn test-svc [:foo :setting1]) "foo1"))
+        (is (= (test-fn test-svc [:foo :setting2]) "foo2"))
+        (is (= (test-fn test-svc [:bar :setting1]) "bar1"))
 
-      (testing "`get-config` function"
-        (is (= (test-fn2 test-svc) {:foo {:setting2 "foo2",
-                                          :setting1 "foo1"},
-                                    :bar {:setting1 "bar1"}
-                                    :debug false} ))))))
+        (testing "`get-config` function"
+          (is (= (test-fn2 test-svc) {:foo {:setting2 "foo2"
+                                            :setting1 "foo1"}
+                                      :bar {:setting1 "bar1"}
+                                      :debug false}))))))
 
   (testing "Can read values from a single .edn file"
     (with-app-with-cli-data app [test-service] {:config "./dev-resources/config/file/config.edn"}
@@ -71,26 +71,26 @@
       {:config (str "./dev-resources/config/mixeddir/baz.ini,"
                     "./dev-resources/config/mixeddir/bar.conf")}
       (let [test-svc  (get-service app :ConfigTestService)]
-          (is (= {:debug false, :baz  {:setting1 "baz1", :setting2 "baz2"}
-                  :bar  {:junk "thingz"
-                         :nesty {:mappy {:hi "there":stuff [1 2  {:how "areyou"} 3]}}}}
-                (test-fn2 test-svc))))))
+        (is (= {:debug false, :baz  {:setting1 "baz1", :setting2 "baz2"}
+                :bar  {:junk "thingz"
+                       :nesty {:mappy {:hi "there" :stuff [1 2  {:how "areyou"} 3]}}}}
+               (test-fn2 test-svc))))))
 
   (testing "Conflicting comma-separated configs fail with error"
     (is (thrown-with-msg?
-          IllegalArgumentException
-          #"Duplicate configuration entry: \[:foo :baz\]"
-          (bootstrap-services-with-cli-data [test-service]
-                                            {:config (str "./dev-resources/config/conflictdir1/config.ini,"
-                                                          "./dev-resources/config/conflictdir1/config.conf")}))))
+         IllegalArgumentException
+         #"Duplicate configuration entry: \[:foo :baz\]"
+         (bootstrap-services-with-cli-data [test-service]
+                                           {:config (str "./dev-resources/config/conflictdir1/config.ini,"
+                                                         "./dev-resources/config/conflictdir1/config.conf")}))))
 
   (testing "Error results when second of two comma-separated configs is malformed"
     (is (thrown-with-msg?
-          FileNotFoundException
-          #"Configuration path 'blob.conf' must exist and must be readable."
-          (bootstrap-services-with-cli-data [test-service]
-                                            {:config (str "./dev-resources/config/conflictdir1/config.ini,"
-                                                          "blob.conf")}))))
+         FileNotFoundException
+         #"Configuration path 'blob.conf' must exist and must be readable."
+         (bootstrap-services-with-cli-data [test-service]
+                                           {:config (str "./dev-resources/config/conflictdir1/config.ini,"
+                                                         "blob.conf")}))))
 
   ;; NOTE: other individual file formats are tested in `typesafe-test`
 
@@ -119,7 +119,7 @@
                 :baz   {:setting1        "baz1"
                         :setting2        "baz2"}
                 :bar   {:nesty           {:mappy {:hi "there"
-                                                 :stuff [1 2 {:how "areyou"} 3]}}
+                                                  :stuff [1 2 {:how "areyou"} 3]}}
                         :junk            "thingz"}
                 :qux   {:first           {:list [1 2]}
                         :second          {:key "value"}}}
@@ -130,9 +130,9 @@
                                 "./dev-resources/config/conflictdir2"
                                 "./dev-resources/config/conflictdir3"]]
       (is (thrown-with-msg?
-            IllegalArgumentException
-            #"Duplicate configuration entry: \[:foo :baz\]"
-            (bootstrap-services-with-cli-data [test-service] {:config invalid-config-dir})))))
+           IllegalArgumentException
+           #"Duplicate configuration entry: \[:foo :baz\]"
+           (bootstrap-services-with-cli-data [test-service] {:config invalid-config-dir})))))
 
   (testing "Can call load-config directly"
     (is (= {:taco  {:burrito         [1, 2]

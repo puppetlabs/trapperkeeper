@@ -24,13 +24,13 @@
   an IllegalArgumentException if the line is not valid."
   [line :- schema/Str]
   (if-let [[match namespace service-name] (re-matches
-                                            #"^([a-zA-Z0-9\.\-]+)/([a-zA-Z0-9\.\-]+)$"
-                                            line)]
+                                           #"^([a-zA-Z0-9\.\-]+)/([a-zA-Z0-9\.\-]+)$"
+                                           line)]
     {:namespace namespace :service-name service-name}
     (throw (IllegalArgumentException.
-             (str "Invalid line in bootstrap config file:\n\n\t"
-                  line
-                  "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")))))
+            (str "Invalid line in bootstrap config file:\n\n\t"
+                 line
+                 "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")))))
 
 (schema/defn ^:private resolve-service! :- (schema/protocol services/ServiceDefinition)
   "Given the namespace and name of a service, loads the namespace,
@@ -42,12 +42,12 @@
   (try (require (symbol resolve-ns))
        (catch FileNotFoundException e
          (throw (IllegalArgumentException.
-                  (str "Unable to load service: " resolve-ns "/" service-name)
-                  e))))
+                 (str "Unable to load service: " resolve-ns "/" service-name)
+                 e))))
   (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
     (internal/validate-service-graph! (var-get service-def))
     (throw (IllegalArgumentException.
-             (str "Unable to load service: " resolve-ns "/" service-name)))))
+            (str "Unable to load service: " resolve-ns "/" service-name)))))
 
 (schema/defn ^:private remove-comments :- schema/Str
   "Given a line of text from the bootstrap config file, remove
@@ -77,8 +77,8 @@
               ;; (in the case of a normal path, it is useless - there is no
               ;; reason to mess with URIs)
               (throw (IllegalArgumentException.
-                       (str "Specified bootstrap config file does not exist: '"
-                            config-path "'")))))))
+                      (str "Specified bootstrap config file does not exist: '"
+                           config-path "'")))))))
 
 (schema/defn ^:private config-from-cli :- (schema/maybe BootstrapFiles)
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),
@@ -91,10 +91,10 @@
   (when (contains? cli-data :bootstrap-config)
     (when-let [config-path (cli-data :bootstrap-config)]
       (let [config-files (flatten (map
-                                    find-bootstraps-from-path
-                                    (string/split config-path #",")))]
+                                   find-bootstraps-from-path
+                                   (string/split config-path #",")))]
         (log/debug (format "Loading bootstrap configs:\n%s"
-                        (string/join "\n" config-files)))
+                           (string/join "\n" config-files)))
         config-files))))
 
 (schema/defn ^:private config-from-cwd :- (schema/maybe BootstrapFiles)
@@ -129,8 +129,8 @@
                                  (config-from-classpath))]
     bootstrap-configs
     (throw (IllegalStateException.
-             (str "Unable to find bootstrap.cfg file via --bootstrap-config "
-                  "command line argument, current working directory, or on classpath")))))
+            (str "Unable to find bootstrap.cfg file via --bootstrap-config "
+                 "command line argument, current working directory, or on classpath")))))
 
 (schema/defn chain-files :- [schema/Str]
   "Takes a list of files, reads all their lines in, and returns a flattened seq

@@ -35,22 +35,22 @@
   (testing "when not using a protocol"
     (let [poetry-service (service {:required [HaikuService]
                                    :optional [SonnetService]}
-                                  (init [this ctx]
-                                        (assoc ctx
-                                               :haiku-svc (get-service this :HaikuService)
-                                               :sonnet-svc (tks/maybe-get-service this :SonnetService))))]
+                           (init [this ctx]
+                             (assoc ctx
+                                    :haiku-svc (get-service this :HaikuService)
+                                    :sonnet-svc (tks/maybe-get-service this :SonnetService))))]
       (is (build-app [poetry-service haiku-service] {}))))
   (testing "when dep form is well formed"
     (testing "when there are no optional deps"
       (let [poetry-service (service PoetryService
-                                  {:required [HaikuService SonnetService]
-                                   :optional []}
-                                  (get-haiku [this]
-                                             (let [haiku-svc (get-service this :HaikuService)]
-                                               (haiku haiku-svc "tea leaves thwart those who")))
-                                  (get-sonnet [this]
-                                              (let [sonnet-svc (get-service this :SonnetService)]
-                                                (sonnet sonnet-svc "designing futures" ["rhyming" "is overrated"]))))
+                             {:required [HaikuService SonnetService]
+                              :optional []}
+                             (get-haiku [this]
+                               (let [haiku-svc (get-service this :HaikuService)]
+                                 (haiku haiku-svc "tea leaves thwart those who")))
+                             (get-sonnet [this]
+                               (let [sonnet-svc (get-service this :SonnetService)]
+                                 (sonnet sonnet-svc "designing futures" ["rhyming" "is overrated"]))))
             app (build-app [haiku-service poetry-service sonnet-service] {})]
         (is (= ["here is a haiku"
                 "about the topic you want"
@@ -65,14 +65,14 @@
     (testing "when there are normal optional deps"
       (testing "and they are all included"
         (let [poetry-service (service PoetryService
-                                    {:required []
-                                     :optional [HaikuService SonnetService]}
-                                    (get-haiku [this]
-                                               (let [haiku-svc (get-service this :HaikuService)]
-                                                 (haiku haiku-svc "tea leaves thwart those who")))
-                                    (get-sonnet [this]
-                                                (let [sonnet-svc (get-service this :SonnetService)]
-                                                  (sonnet sonnet-svc "designing futures" ["rhyming" "is overrated"]))))
+                               {:required []
+                                :optional [HaikuService SonnetService]}
+                               (get-haiku [this]
+                                 (let [haiku-svc (get-service this :HaikuService)]
+                                   (haiku haiku-svc "tea leaves thwart those who")))
+                               (get-sonnet [this]
+                                 (let [sonnet-svc (get-service this :SonnetService)]
+                                   (sonnet sonnet-svc "designing futures" ["rhyming" "is overrated"]))))
               app (build-app [haiku-service poetry-service sonnet-service] {})]
           (is (= ["here is a haiku"
                   "about the topic you want"
@@ -86,15 +86,15 @@
 
       (testing "and one is excluded"
         (let [poetry-service (service PoetryService
-                                    {:required []
-                                     :optional [HaikuService SonnetService]}
-                                    (get-haiku [this]
-                                               (let [haiku-svc (get-service this :HaikuService)]
-                                                 (haiku haiku-svc "tea leaves thwart those who")))
-                                    (get-sonnet [this]
-                                                (if (tks/service-included? this :SonnetService)
-                                                  (sonnet (get-service this :SonnetService) "designing futures" ["rhyming" "is overrated"])
-                                                  ["imagine the saddest sonnet"])))
+                               {:required []
+                                :optional [HaikuService SonnetService]}
+                               (get-haiku [this]
+                                 (let [haiku-svc (get-service this :HaikuService)]
+                                   (haiku haiku-svc "tea leaves thwart those who")))
+                               (get-sonnet [this]
+                                 (if (tks/service-included? this :SonnetService)
+                                   (sonnet (get-service this :SonnetService) "designing futures" ["rhyming" "is overrated"])
+                                   ["imagine the saddest sonnet"])))
               app (build-app [haiku-service poetry-service] {})]
           (is (= ["here is a haiku"
                   "about the topic you want"
@@ -105,16 +105,16 @@
 
       (testing "and all are excluded"
         (let [poetry-service (service PoetryService
-                                    {:required []
-                                     :optional [HaikuService SonnetService]}
-                                    (get-haiku [this]
-                                               (if-let [haiku-svc (tks/maybe-get-service this :HaikuService)]
-                                                 (haiku haiku-svc ["tea leaves thwart those who"])
-                                                 ["imagine the saddest haiku"]))
-                                    (get-sonnet [this]
-                                                (if (tks/service-included? this :SonnetService)
-                                                  (sonnet (get-service this :SonnetService) "designing futures" ["rhyming" "is overrated"])
-                                                  ["imagine the saddest sonnet"])))
+                               {:required []
+                                :optional [HaikuService SonnetService]}
+                               (get-haiku [this]
+                                 (if-let [haiku-svc (tks/maybe-get-service this :HaikuService)]
+                                   (haiku haiku-svc ["tea leaves thwart those who"])
+                                   ["imagine the saddest haiku"]))
+                               (get-sonnet [this]
+                                 (if (tks/service-included? this :SonnetService)
+                                   (sonnet (get-service this :SonnetService) "designing futures" ["rhyming" "is overrated"])
+                                   ["imagine the saddest sonnet"])))
               app (build-app [poetry-service] {})]
           (is (= ["imagine the saddest haiku"]
                  (get-haiku (tka/get-service app :PoetryService))))
@@ -123,13 +123,13 @@
 
     (testing "when there is a destructured required dep"
       (let [poetry-service (service PoetryService
-                                    {:required [[:SonnetService sonnet]]
-                                     :optional [HaikuService]}
-                                    (get-haiku [this]
-                                               (if-let [haiku-svc (tks/maybe-get-service this :HaikuService)]
-                                                 (haiku haiku-svc ["tea leaves thwart those who"])
-                                                 ["imagine the saddest haiku"]))
-                                    (get-sonnet [this] (sonnet "designing futures" ["rhyming" "is overrated"])))
+                             {:required [[:SonnetService sonnet]]
+                              :optional [HaikuService]}
+                             (get-haiku [this]
+                               (if-let [haiku-svc (tks/maybe-get-service this :HaikuService)]
+                                 (haiku haiku-svc ["tea leaves thwart those who"])
+                                 ["imagine the saddest haiku"]))
+                             (get-sonnet [this] (sonnet "designing futures" ["rhyming" "is overrated"])))
             app (build-app [poetry-service sonnet-service] {})]
         (is (= ["imagine the saddest haiku"]
                (get-haiku (tka/get-service app :PoetryService))))

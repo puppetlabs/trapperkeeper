@@ -10,7 +10,7 @@
 (defservice java-service
   JavaService
   []
-            ;; Service functions are implemented in a java `ServiceImpl` class
+  ;; Service functions are implemented in a java `ServiceImpl` class
   (msg-fn [this] (ServiceImpl/getMessage))
   (meaning-of-life-fn [this] (ServiceImpl/getMeaningOfLife)))
 

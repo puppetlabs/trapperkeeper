@@ -46,18 +46,18 @@
 
 (defn validate-service-graph!
   "Validates that a ServiceDefinition contains a valid trapperkeeper service graph.
-  Returns the service definition on success; throws an IllegalArgumentException
+  Returns the service definition on success; throws an ::invalid-service-graph
   if the graph is invalid."
   [service-def]
   {:post [(satisfies? s/ServiceDefinition %)]}
   (if-not (satisfies? s/ServiceDefinition service-def)
-    (throw+ {:type :illegal-argument
-            :message (str "Invalid service definition; expected a service "
-                          "definition (created via `service` or `defservice`); "
-                          "found: " (pr-str service-def))}))
+    (throw+ {:type ::invalid-service-graph
+             :message (str "Invalid service definition; expected a service "
+                           "definition (created via `service` or `defservice`); "
+                           "found: " (pr-str service-def))}))
   (if (service-graph? (s/service-map service-def))
     service-def
-    (throw+ {:type :illegal-argument
+    (throw+ {:type ::invalid-service-graph
              :message (str "Invalid service graph; service graphs must "
                            "be nested maps of keywords to functions.  Found: "
                            (s/service-map service-def))})))

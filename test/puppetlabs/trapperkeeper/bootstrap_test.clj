@@ -258,7 +258,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
   (testing "duplicate bootstrap entries are allowed"
     (let [bootstrap-path "./dev-resources/bootstrapping/cli/duplicate_entries.cfg"
           app (bootstrap-with-empty-config
-               ["--bootstrap-config" bootstrap-path])
+                ["--bootstrap-config" bootstrap-path])
           hello-world-svc (get-service app :HelloWorldService)]
       (is (= (hello-world hello-world-svc) "hello world")))))
 
@@ -282,8 +282,9 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
       ;; (ie, this does not throw an exception)
       (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-url]))))
 
-(deftest parse-bootstrap-config-throws
+(deftest parse-bootstrap-config-throws-good-error
   (testing "throws error with line number and file"
+    ; Load a bootstrap with a service that doesn't exist to generate an error
     (let [bootstrap (file "./dev-resources/bootstrapping/cli/invalid_bootstrap.cfg")]
       (is (thrown-with-msg?
             IllegalArgumentException

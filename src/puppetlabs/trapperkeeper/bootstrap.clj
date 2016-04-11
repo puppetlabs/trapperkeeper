@@ -15,8 +15,8 @@
 (def ParsedBootstrapEntry {:namespace schema/Str :service-name schema/Str})
 (def BootstrapFiles [(schema/protocol io/IOFactory)])
 (def AnnotatedBootstrapEntry {:entry schema/Str
-                    :bootstrap-file schema/Str
-                    :line-number schema/Int})
+                              :bootstrap-file (schema/protocol io/IOFactory)
+                              :line-number schema/Int})
 
 ;; Constants
 (def bootstrap-config-file-name "bootstrap.cfg")
@@ -31,7 +31,7 @@
                                            #"^([a-zA-Z0-9\.\-]+)/([a-zA-Z0-9\.\-]+)$"
                                            line)]
     {:namespace namespace :service-name service-name}
-    (throw+ {:type :illegal-argument
+    (throw+ {:type ::bootstrap-parse-error
              :message (str "Invalid line in bootstrap config file:\n\n\t"
                            line
                            "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")})))
@@ -45,12 +45,12 @@
    service-name :- schema/Str]
   (try (require (symbol resolve-ns))
        (catch FileNotFoundException e
-         (throw+ {:type :illegal-argument
+         (throw+ {:type ::bootstrap-parse-error
                   :message (str "Unable to load service: " resolve-ns "/" service-name)
                   :cause e})))
   (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
     (internal/validate-service-graph! (var-get service-def))
-    (throw+ {:type :illegal-argument
+    (throw+ {:type ::bootstrap-parse-error
              :message (str "Unable to load service: " resolve-ns "/" service-name)})))
 
 (schema/defn ^:private remove-comments :- schema/Str
@@ -140,16 +140,16 @@
   "Returns seq of [index, item] pairs
   [:a :b :c] -> ([0 :a] [1 :b] [2 :c])"
   [coll]
-  (map vector (iterate inc 0) coll))
+  (map vector (range) coll))
 
 (schema/defn get-annotated-bootstrap-entries :- [AnnotatedBootstrapEntry]
   [configs :- [(schema/protocol io/IOFactory)]]
-  (flatten (for [config configs]
-             (for [[line-number line-text] (indexed (map remove-comments (line-seq (io/reader config))))
-                   :when (not (empty? line-text))]
-               {:bootstrap-file (str config)
-                :line-number (inc line-number)
-                :entry line-text}))))
+  (for [config configs
+        [line-number line-text] (indexed (map remove-comments (line-seq (io/reader config))))
+        :when (not (empty? line-text))]
+    {:bootstrap-file config
+     :line-number (inc line-number)
+     :entry line-text}))
 
 (defn find-duplicates
   "Collects duplicates base on running f on each item.
@@ -161,9 +161,10 @@
        ; filter out map values with only 1 item
        (remove #(= 1 (count (val %))))))
 
-(schema/defn duplicate-protocol-error
-  "Returns an IllegalArgumentException with a nice error message
-   saying in what file and line each service entry was found"
+(schema/defn duplicate-protocol-error :- IllegalArgumentException
+  "Returns an IllegalArgumentException describing what services implement
+   the same protocol, including the line number and file the bootstrap entries
+   were found"
   [protocol-id :- schema/Keyword
    duplicate-services :- [(schema/protocol services/ServiceDefinition)]
    service->entry-map :- {(schema/protocol services/ServiceDefinition) AnnotatedBootstrapEntry}]
@@ -178,7 +179,7 @@
               protocol-id
               (string/join "\n" (map make-error-message duplicate-services))))))
 
-(schema/defn check-duplicate-service-implementations
+(schema/defn check-duplicate-service-implementations!
   "Throws an exception if two services implement the same service protocol"
   [services :- [(schema/protocol services/ServiceDefinition)]
    bootstrap-entries :- [AnnotatedBootstrapEntry]]
@@ -192,8 +193,11 @@
       (throw (duplicate-protocol-error (key duplicate) (val duplicate) service->entry-map)))))
 
 (schema/defn bootstrap-error :- IllegalArgumentException
+  "Returns an IllegalArgumentException meant to wrap other errors relating to
+   bootstrap problems. Includes the file and line number at which each
+   problematic service entry was found"
   [entry :- schema/Str
-   bootstrap-file :- schema/Str
+   bootstrap-file :- (schema/protocol io/IOFactory)
    line-number :- schema/Int
    original-message :- schema/Str]
   (IllegalArgumentException.
@@ -208,18 +212,36 @@
       (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
         (resolve-service! namespace service-name ))
       ; Catch and re-throw as java exception
-      (catch [:type :illegal-argument] {:keys [message]}
+      (catch [:type ::bootstrap-parse-error] {:keys [message]}
+        (throw (bootstrap-error entry bootstrap-file line-number message)))
+      (catch [:type ::internal/invalid-service-graph] {:keys [message]}
         (throw (bootstrap-error entry bootstrap-file line-number message))))))
 
 (schema/defn remove-duplicate-entries :- [AnnotatedBootstrapEntry]
-  "Removes duplicate entries by only looking at the :entry key in each entry map.
-   This way, duplicate entries in different files and on different lines are removed"
+  "Removes any duplicate entries from the list of AnnotatedBootstrapEntry maps.
+   A entry is considered a duplicate if the :entry key is the same between two
+   entries.
+   Logs warnings for each duplicate found."
   [entries :- [AnnotatedBootstrapEntry]]
-  ; Construct a [k v] pair where the key is the text of the bootstrap entry, and the
-  ; value is the original AnnotatedBootstrapEntry map. By shoving them into a map,
-  ; duplicate keys are ignored. We pick out the values with vals, and get back our
-  ; original list minus the duplicates.
-  (vals (into {} (for [entry entries] [(:entry entry) entry]))))
+  (let [into-ordered-list
+        ; Accumulates bootstrap entries into :set to test for duplicates, and
+        ; accumulates the AnnotatedBootstrapEntry's into :ordered-entries so
+        ; that the order of their line numbers is maintained
+        (fn [acc annotated-entry]
+          (if (contains? (:set acc) (:entry annotated-entry))
+            (do (log/warn
+                 (format "Duplicate bootstrap entry found for service '%s' on line number '%s' in file '%s'"
+                         (:entry annotated-entry)
+                         (:line-number annotated-entry)
+                         (:bootstrap-file annotated-entry)))
+                acc)
+            {:set (conj (:set acc) (:entry annotated-entry))
+             :ordered-entries (conj (:ordered-entries acc) annotated-entry)}))]
+    ; Reduce the bootstrap entries into an ordered list of unique entries and return it
+    (:ordered-entries (reduce
+                       into-ordered-list
+                       {:set #{} :ordered-entries []}
+                       entries))))
 
 (schema/defn parse-bootstrap-configs! :- [(schema/protocol services/ServiceDefinition)]
   [configs :- [(schema/protocol io/IOFactory)]]
@@ -229,8 +251,8 @@
   (let [bootstrap-entries (remove-duplicate-entries (get-annotated-bootstrap-entries configs))]
     (when (empty? bootstrap-entries)
       (throw (Exception. "Empty bootstrap config file")))
-    (let [resolved-services (resolve-services! bootstrap-entries)
-          _ (check-duplicate-service-implementations resolved-services bootstrap-entries)]
+    (let [resolved-services (resolve-services! bootstrap-entries)]
+      (check-duplicate-service-implementations! resolved-services bootstrap-entries)
       resolved-services)))
 
 (schema/defn parse-bootstrap-config! :- [(schema/protocol services/ServiceDefinition)]

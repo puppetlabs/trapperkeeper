@@ -13,7 +13,6 @@
 
 ;; Schemas
 (def ParsedBootstrapEntry {:namespace schema/Str :service-name schema/Str})
-(def BootstrapFiles [schema/Str])
 (def AnnotatedBootstrapEntry {:entry schema/Str
                               :bootstrap-file schema/Str
                               :line-number schema/Int})
@@ -62,7 +61,7 @@
       (string/replace #"(?:#|;).*$" "")
       (string/trim)))
 
-(schema/defn find-bootstraps-from-path :- BootstrapFiles
+(schema/defn find-bootstraps-from-path :- [schema/Str]
   "Given a path, return a list of .cfg files found there.
    - If the path leads directly to a file, return a list with a single item.
    - If the path leads to a directory, return a list of any .cfg files found there.
@@ -73,7 +72,7 @@
     (map str (fs/glob (fs/file config-path "*.cfg")))
     [config-path]))
 
-(schema/defn ^:private config-from-cli :- (schema/maybe BootstrapFiles)
+(schema/defn ^:private config-from-cli :- (schema/maybe [schema/Str])
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),
   check to see if the caller explicitly specified the location of one or more
   bootstrap config files.  If so, return an object that can be read via
@@ -90,7 +89,7 @@
                            (string/join "\n" config-files)))
         config-files))))
 
-(schema/defn ^:private config-from-cwd :- (schema/maybe BootstrapFiles)
+(schema/defn ^:private config-from-cwd :- (schema/maybe [schema/Str])
   "Check to see if there is a bootstrap config file in the current working
   directory;  if so, return it."
   []
@@ -111,7 +110,7 @@
     (log/debug (str "Loading bootstrap config from classpath: '" classpath-config "'"))
     [(.getPath classpath-config)]))
 
-(schema/defn find-bootstrap-configs :- BootstrapFiles
+(schema/defn find-bootstrap-configs :- [schema/Str]
   "Get the bootstrap config files from:
     1. the file path specified on the command line, or
     2. the current working directory, or
@@ -151,6 +150,8 @@
     (line-seq (io/reader config-file))))
 
 (schema/defn get-annotated-bootstrap-entries :- [AnnotatedBootstrapEntry]
+  "Reads each bootstrap entry into a map with the line number and file the
+  entry is from. Returns a list of maps."
   [configs :- [schema/Str]]
   (for [config configs
         [line-number line-text] (indexed (map remove-comments (read-config config)))
@@ -160,7 +161,7 @@
      :entry line-text}))
 
 (defn find-duplicates
-  "Collects duplicates base on running f on each item.
+  "Collects duplicates base on running f on each item in coll.
    Returns a map where the keys will be the result of running f on each item,
    and the values will be lists of items that are duplicates of eachother"
   [coll f]
@@ -213,8 +214,11 @@
                  "configuration file '%s':\n%s")
             entry line-number bootstrap-file original-message)))
 
-(schema/defn resolve-services!
-  [bootstrap-entries]
+(schema/defn resolve-services! :- [(schema/protocol services/ServiceDefinition)]
+  "Resolves each bootstrap entry into an instance of a trapperkeeper
+  ServiceDefinition.
+  Throws an IllegalArgumentException if the service can't be resolved"
+  [bootstrap-entries :- [AnnotatedBootstrapEntry]]
   (for [{:keys [bootstrap-file line-number entry]} bootstrap-entries]
     (try+
       (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
@@ -253,6 +257,9 @@
 
 (schema/defn parse-bootstrap-configs! :- [(schema/protocol services/ServiceDefinition)]
   [configs :- [schema/Str]]
+  "Parse multiple trapperkeeper bootstrap configuration files and return the
+  service graph that is the result of merging the graphs of all of the
+  services specified in the configuration files."
   ; We remove the duplicate entries to allow the user to have duplicate entries in their
   ; bootstrap files. If we didn't remove them, it would look like two services were trying
   ; to implement the same protocol when we check for duplicate service implementations

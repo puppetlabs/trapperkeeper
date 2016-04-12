@@ -125,7 +125,14 @@
     (doseq [level @#'puppetlabs.trapperkeeper.testutils.logging/levels]
       (tgt/with-test-logging
         (log/log level "foo")
-        (is (logged? "foo" level))))))
+        (is (logged? "foo" level))))
+    ;; Does not match when logged above or below correct level
+    (tgt/with-test-logging
+      (log/debug "debug")
+      (is (not (tgt/logged? #"debug" :warn))))
+    (tgt/with-test-logging
+      (log/debug "debug")
+      (is (not (tgt/logged? #"debug" :trace))))))
 
 (deftest with-test-logging-debug
   (testing "basic matching"
@@ -144,7 +151,13 @@
     (doseq [level @#'puppetlabs.trapperkeeper.testutils.logging/levels]
       (tgt/with-test-logging-debug
         (log/log level "foo")
-        (is (logged? "foo" level)))))
+        (is (logged? "foo" level))))
+    (tgt/with-test-logging-debug
+      (log/debug "debug")
+      (is (not (tgt/logged? #"debug" :warn))))
+    (tgt/with-test-logging
+      (log/debug "debug")
+      (is (not (tgt/logged? #"debug" :trace)))))
   (testing "that events are logged to *err*"
     (tgt/with-test-logging-debug
       (let [err (with-out-str (binding [*err* *out*]

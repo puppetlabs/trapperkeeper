@@ -327,8 +327,12 @@
    (let [match? (cond (ifn? msg-or-pred) msg-or-pred
                       (string? msg-or-pred) #(= msg-or-pred (:message %))
                       :else #(re-find msg-or-pred (:message %)))
-         one-element? #(and (seq %) (empty? (rest %)))]
-     (one-element? (filter match? (map event->map @*test-log-events*))))))
+         one-element? #(and (seq %) (empty? (rest %)))
+         correct-level? #(or (nil? maybe-level) (= maybe-level (:level %)))]
+     (->> (map event->map @*test-log-events*)
+          (filter correct-level?)
+          (filter match?)
+          (one-element?)))))
 
 (defmethod clojure.test/assert-expr 'logged? [is-msg form]
   "Asserts that exactly one event in *test-log-events* has a message

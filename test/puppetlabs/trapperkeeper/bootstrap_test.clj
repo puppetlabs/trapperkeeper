@@ -275,4 +275,100 @@
                              ":\nUnable to load service: non-existent-service/test-service"))
             (parse-bootstrap-config! bootstrap))))))
 
+(deftest get-annotated-bootstrap-entries-test
+  (testing "file with comments"
+    (let [bootstraps ["./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"]]
+      (let [entries (get-annotated-bootstrap-entries bootstraps)]
+        (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"
+                 :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
+                 :line-number 2}
+                {:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"
+                 :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service"
+                 :line-number 5}]
+               entries)))))
+  (testing "multiple bootstrap files"
+    (let [bootstraps ["./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_one.cfg"
+                      "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_two.cfg"]]
+      (let [entries (get-annotated-bootstrap-entries bootstraps)]
+        (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_one.cfg"
+                 :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service"
+                 :line-number 1}
+                {:bootstrap-file "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_one.cfg"
+                 :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
+                 :line-number 2}
+                {:bootstrap-file "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_two.cfg"
+                 :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/test-service-two"
+                 :line-number 1}
+                {:bootstrap-file "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_two.cfg"
+                 :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/test-service-three"
+                 :line-number 2}]
+               entries))))))
 
+(deftest find-duplicates-test
+  (testing "correct duplicates found"
+    (let [items [{:important-key :one
+                  :other-key 2}
+                 {:important-key :one
+                  :other-key 3}
+                 {:important-key :two
+                  :other-key 4}
+                 {:important-key :three
+                  :other-key 5}]]
+      ; List of key value pairs
+      (is (= [[:one [{:important-key :one
+                      :other-key 2}
+                     {:important-key :one
+                      :other-key 3}]]]
+             (find-duplicates items :important-key))))))
+
+(deftest check-duplicate-service-implementations!-test
+  (testing "no duplicate service implementations does not throw error"
+    (let [configs ["./dev-resources/bootstrapping/cli/bootstrap.cfg"]
+          bootstrap-entries (get-annotated-bootstrap-entries configs)
+          resolved-services (resolve-services! bootstrap-entries)]
+      (check-duplicate-service-implementations! resolved-services bootstrap-entries)))
+  (testing "duplicate service implementations throws error"
+    (let [configs ["./dev-resources/bootstrapping/cli/duplicate_services.cfg"]
+          bootstrap-entries (get-annotated-bootstrap-entries configs)
+          resolved-services (resolve-services! bootstrap-entries)]
+      (is (thrown-with-msg?
+           IllegalArgumentException
+           #"Duplicate implementations found for service protocol ':TestService'"
+           (check-duplicate-service-implementations!
+            resolved-services
+            bootstrap-entries))))))
+
+(deftest remove-duplicate-entries-test
+  (testing "single bootstrap with all duplicates"
+    (testing "only the first duplicate found is kept"
+      (let [configs ["./dev-resources/bootstrapping/cli/duplicate_entries.cfg"]
+            bootstrap-entries (get-annotated-bootstrap-entries configs)]
+        (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/duplicate_entries.cfg"
+                 :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
+                 :line-number 1}]
+               (remove-duplicate-entries bootstrap-entries))))))
+  (testing "two copies of the same set of services"
+    (let [configs ["./dev-resources/bootstrapping/cli/bootstrap.cfg"
+                   "./dev-resources/bootstrapping/cli/bootstrap.cfg"]
+          bootstrap-entries (get-annotated-bootstrap-entries configs)]
+      (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap.cfg"
+               :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service"
+               :line-number 1}
+              {:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap.cfg"
+               :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
+               :line-number 2}]
+             (remove-duplicate-entries bootstrap-entries))))))
+
+(deftest read-config-test
+  (testing "basic config"
+    (let [config "./dev-resources/bootstrapping/cli/bootstrap.cfg"]
+      (is (= ["puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service"
+              "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"]
+             (read-config config)))))
+  (testing "jar uri"
+    (let [jar "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar"
+          config (str "jar:file:///" (.getAbsolutePath (file jar)) "!/bootstrap.cfg")]
+      ; The bootstrap in the jar contains an emtpy line at the end
+      (is (= ["puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
+              ""]
+             (read-config config))))))

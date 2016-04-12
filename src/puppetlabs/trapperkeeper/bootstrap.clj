@@ -218,7 +218,7 @@
   (for [{:keys [bootstrap-file line-number entry]} bootstrap-entries]
     (try+
       (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
-        (resolve-service! namespace service-name ))
+        (resolve-service! namespace service-name))
       ; Catch and re-throw as java exception
       (catch [:type ::bootstrap-parse-error] {:keys [message]}
         (throw (bootstrap-error entry bootstrap-file line-number message)))

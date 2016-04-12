@@ -13,9 +13,9 @@
 
 ;; Schemas
 (def ParsedBootstrapEntry {:namespace schema/Str :service-name schema/Str})
-(def BootstrapFiles [(schema/protocol io/IOFactory)])
+(def BootstrapFiles [schema/Str])
 (def AnnotatedBootstrapEntry {:entry schema/Str
-                              :bootstrap-file (schema/protocol io/IOFactory)
+                              :bootstrap-file schema/Str
                               :line-number schema/Int})
 
 ;; Constants
@@ -69,20 +69,9 @@
    - If the path doesn't lead to a file or directory, attempt to load a file from
    a URI (for files in jars)"
   [config-path :- schema/Str]
-  (cond
-    (fs/file? config-path) [(fs/file config-path)]
-    (fs/directory? config-path) (fs/glob (fs/file config-path "*.cfg"))
-    :else (try
-            [(io/input-stream (URI. config-path))]
-            (catch Exception ignored
-              ;; If we can't find a file or a directory, and loading the URI
-              ;; fails, we give up and throw an exception.
-              ;; Don't wrap and re-throw here, as `ignored` may be misleading
-              ;; (in the case of a normal path, it is useless - there is no
-              ;; reason to mess with URIs)
-              (throw (IllegalArgumentException.
-                      (str "Specified bootstrap config file does not exist: '"
-                           config-path "'")))))))
+  (if (fs/directory? config-path)
+    (map str (fs/glob (fs/file config-path "*.cfg")))
+    [config-path]))
 
 (schema/defn ^:private config-from-cli :- (schema/maybe BootstrapFiles)
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),
@@ -109,17 +98,18 @@
                         (io/file)
                         (.getAbsoluteFile))]
     (when (.exists config-file)
-      (log/debug (str "Loading bootstrap config from current working directory: '"
-                      (.getAbsolutePath config-file) "'"))
-      [config-file])))
+      (let [config-file-path (.getAbsolutePath config-file)]
+        (log/debug (str "Loading bootstrap config from current working directory: '"
+                        config-file-path "'"))
+        [config-file-path]))))
 
-(schema/defn ^:private config-from-classpath :- (schema/maybe BootstrapFiles)
+(schema/defn ^:private config-from-classpath :- [(schema/maybe schema/Str)]
   "Check to see if there is a bootstrap config file available on the classpath;
   if so, return it."
   []
   (when-let [classpath-config (io/resource bootstrap-config-file-name)]
     (log/debug (str "Loading bootstrap config from classpath: '" classpath-config "'"))
-    [classpath-config]))
+    [(.getPath classpath-config)]))
 
 (schema/defn find-bootstrap-configs :- BootstrapFiles
   "Get the bootstrap config files from:
@@ -142,10 +132,28 @@
   [coll]
   (map vector (range) coll))
 
+(schema/defn read-config :- [schema/Str]
+  "Opens a bootstrap file from either a path or URI, and returns each line from
+  the config. Throws an exception if the file can't be found or if the URI
+  can't be loaded"
+  [config-path :- schema/Str]
+  (let [config-file (if (fs/file? config-path)
+                      (fs/file config-path)
+                      (try
+                        (io/input-stream (URI. config-path))
+                        (catch Exception ignored
+                          ;; If loading the URI fails, we give up and throw an exception.
+                          ;; Don't wrap and re-throw here, as `ignored` may be misleading
+                          (throw (IllegalArgumentException.
+                                  (str "Specified bootstrap config file does not exist: '"
+                                       config-path "'"))))))]
+
+    (line-seq (io/reader config-file))))
+
 (schema/defn get-annotated-bootstrap-entries :- [AnnotatedBootstrapEntry]
-  [configs :- [(schema/protocol io/IOFactory)]]
+  [configs :- [schema/Str]]
   (for [config configs
-        [line-number line-text] (indexed (map remove-comments (line-seq (io/reader config))))
+        [line-number line-text] (indexed (map remove-comments (read-config config)))
         :when (not (empty? line-text))]
     {:bootstrap-file config
      :line-number (inc line-number)
@@ -197,7 +205,7 @@
    bootstrap problems. Includes the file and line number at which each
    problematic service entry was found"
   [entry :- schema/Str
-   bootstrap-file :- (schema/protocol io/IOFactory)
+   bootstrap-file :- schema/Str
    line-number :- schema/Int
    original-message :- schema/Str]
   (IllegalArgumentException.
@@ -244,7 +252,7 @@
                        entries))))
 
 (schema/defn parse-bootstrap-configs! :- [(schema/protocol services/ServiceDefinition)]
-  [configs :- [(schema/protocol io/IOFactory)]]
+  [configs :- [schema/Str]]
   ; We remove the duplicate entries to allow the user to have duplicate entries in their
   ; bootstrap files. If we didn't remove them, it would look like two services were trying
   ; to implement the same protocol when we check for duplicate service implementations
@@ -259,5 +267,5 @@
   "Parse a single bootstrap configuration file and return the service graph
   that is the result of merging the graphs of all the services specified in the
   configuration file"
-  [config :- (schema/protocol io/IOFactory)]
+  [config :- schema/Str]
   (parse-bootstrap-configs! [config]))

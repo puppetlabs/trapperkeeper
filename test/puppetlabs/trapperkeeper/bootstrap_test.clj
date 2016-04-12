@@ -22,18 +22,13 @@
 
 (deftest bootstrapping
   (testing "Valid bootstrap configurations"
-    (let [bootstrap-config    "
-
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service
-
-"
-          app                 (parse-and-bootstrap (StringReader. bootstrap-config))]
+    (let [bootstrap-config "./dev-resources/bootstrapping/cli/bootstrap.cfg"
+          app (parse-and-bootstrap bootstrap-config)]
 
       (testing "Can load a service based on a valid bootstrap config string"
         (let [test-svc        (get-service app :TestService)
               hello-world-svc (get-service app :HelloWorldService)]
-          (is (= (test-fn test-svc) :foo))
+          (is (= (test-fn test-svc) :cli))
           (is (= (hello-world hello-world-svc) "hello world"))))
 
       (with-additional-classpath-entries ["./dev-resources/bootstrapping/classpath"]
@@ -72,7 +67,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
                   test-svc (get-service app :TestService)
                   hello-world-svc (get-service app :HelloWorldService)]
               (is (logged?
-                   (format "Loading bootstrap configs:\n%s" (fs/absolute bootstrap-path))
+                   (format "Loading bootstrap configs:\n%s" bootstrap-path)
                    :debug))
               (is (= (test-fn test-svc) :cli))
               (is (= (hello-world hello-world-svc) "hello world")))))))
@@ -105,57 +100,43 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-servic
           (is (true? @got-expected-exception))))
 
       (testing "Bad line in bootstrap config file"
-        (let [bootstrap-config (StringReader. "
-
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
-This is not a legit line.
-")]
+        (let [bootstrap-config "./dev-resources/bootstrapping/cli/invalid_entry_bootstrap.cfg"]
           (is (thrown-with-msg?
                IllegalArgumentException
                #"(?is)Invalid line in bootstrap.*This is not a legit line"
                (parse-and-bootstrap bootstrap-config)))))
 
       (testing "Bootstrap config file is empty."
-        (let [bootstrap-config (StringReader. "")]
+        (let [bootstrap-config "./dev-resources/bootstrapping/cli/empty_bootstrap.cfg"]
           (is (thrown-with-msg?
                Exception
                #"Empty bootstrap config file"
                (parse-and-bootstrap bootstrap-config)))))
 
       (testing "Service namespace doesn't exist"
-        (let [bootstrap-config (StringReader.
-                                "non-existent-service/test-service")]
+        (let [bootstrap-config "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
           (is (thrown-with-msg?
                IllegalArgumentException
-               #"Unable to load service: non-existent-service/test-service"
+               #"Problem loading service 'non-existent-service/test-service'"
                (parse-and-bootstrap bootstrap-config)))))
 
-      (testing "Service function doesn't exist"
-        (let [bootstrap-config (StringReader.
-                                "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service")]
+      (testing "Service definition doesn't exist"
+        (let [bootstrap-config "./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg"]
           (is (thrown-with-msg?
                IllegalArgumentException
                #"Unable to load service: puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service"
                (parse-and-bootstrap bootstrap-config)))))
 
       (testing "Invalid service graph"
-
-        (let [bootstrap-config (StringReader.
-                                "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/invalid-service-graph-service")]
+        (let [bootstrap-config "./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg"]
           (is (thrown-with-msg?
                IllegalArgumentException
                #"Invalid service definition;"
                (parse-and-bootstrap bootstrap-config)))))))
 
   (testing "comments allowed in bootstrap config file"
-    (let [bootstrap-config "
- # commented out line
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service # comment
-; another commented out line
- ;puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service
-puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ; comment"
+    (let [bootstrap-config "./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"
           service-maps      (->> bootstrap-config
-                                 (StringReader.)
                                  parse-bootstrap-config!
                                  (map service-map))]
       (is (= (count service-maps) 2))
@@ -175,8 +156,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
              (format "Loading bootstrap configs:\n%s\n%s"
-                     (fs/absolute bootstrap-one)
-                     (fs/absolute bootstrap-two))
+                     bootstrap-one
+                     bootstrap-two)
              :debug))
         (is (= (test-fn test-svc) :cli))
         (is (= (test-fn-two test-svc-two) :two))
@@ -214,7 +195,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
         (is (logged?
              (format "Loading bootstrap configs:\n%s\n%s"
                      (fs/absolute bootstrap-one)
-                     (fs/absolute bootstrap-two))
+                     bootstrap-two)
              :debug))
         (is (= (test-fn test-svc) :cli))
         (is (= (test-fn-two test-svc-two) :two))
@@ -230,7 +211,7 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
             test-svc (get-service app :TestService)
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
-             (format "Loading bootstrap configs:\n%s" (fs/absolute bootstrap-path))
+             (format "Loading bootstrap configs:\n%s" bootstrap-path)
              :debug))
         (is (= (test-fn test-svc) :cli))
         (is (= (hello-world hello-world-svc) "hello world")))))
@@ -246,8 +227,8 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
              (format "Loading bootstrap configs:\n%s\n%s"
-                     (fs/absolute bootstrap-one)
-                     (fs/absolute bootstrap-two))
+                     bootstrap-one
+                     bootstrap-two)
              :debug))
         (is (= (test-fn test-svc) :cli))
         (is (= (test-fn-two test-svc-two) :two))
@@ -285,13 +266,13 @@ puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service ;
 (deftest parse-bootstrap-config-throws-good-error
   (testing "throws error with line number and file"
     ; Load a bootstrap with a service that doesn't exist to generate an error
-    (let [bootstrap (file "./dev-resources/bootstrapping/cli/invalid_bootstrap.cfg")]
+    (let [bootstrap "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
       (is (thrown-with-msg?
             IllegalArgumentException
-            (re-pattern (str "Problem loading service 'fake.notreal/wont-find-me' "
+            (re-pattern (str "Problem loading service 'non-existent-service/test-service' "
                              "on line '3' in bootstrap configuration file "
-                             "'./dev-resources/bootstrapping/cli/invalid_bootstrap.cfg'"
-                             ":\nUnable to load service: fake.notreal/wont-find-me"))
+                             "'./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg'"
+                             ":\nUnable to load service: non-existent-service/test-service"))
             (parse-bootstrap-config! bootstrap))))))
 
 

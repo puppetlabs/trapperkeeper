@@ -204,9 +204,9 @@
                                        (:line-number entry)
                                        (:entry entry))))]
     (IllegalArgumentException.
-      (format (str "Duplicate implementations found for service protocol '%s':\n%s")
-              protocol-id
-              (string/join "\n" (map make-error-message duplicate-services))))))
+     (format (str "Duplicate implementations found for service protocol '%s':\n%s")
+             protocol-id
+             (string/join "\n" (map make-error-message duplicate-services))))))
 
 (schema/defn check-duplicate-service-implementations!
   "Throws an exception if two services implement the same service protocol"
@@ -230,9 +230,9 @@
    line-number :- schema/Int
    original-message :- schema/Str]
   (IllegalArgumentException.
-    (format (str "Problem loading service '%s' on line '%s' in bootstrap "
-                 "configuration file '%s':\n%s")
-            entry line-number bootstrap-file original-message)))
+   (format (str "Problem loading service '%s' on line '%s' in bootstrap "
+                "configuration file '%s':\n%s")
+           entry line-number bootstrap-file original-message)))
 
 (schema/defn resolve-services! :- [(schema/protocol services/ServiceDefinition)]
   "Resolves each bootstrap entry into an instance of a trapperkeeper

@@ -15,10 +15,11 @@
             [schema.test :as schema-test]
             [me.raynes.fs :as fs]))
 
-(use-fixtures :once
-  schema-test/validate-schemas
-  ;; Without this, "lein test NAMESPACE" and :only invocations may fail.
-  (fn [f] (reset-logging) (f)))
+(use-fixtures
+ :once
+ schema-test/validate-schemas
+ ;; Without this, "lein test NAMESPACE" and :only invocations may fail.
+ (fn [f] (reset-logging) (f)))
 
 (deftest bootstrapping
   (testing "Valid bootstrap configurations"
@@ -26,7 +27,7 @@
           app (parse-and-bootstrap bootstrap-config)]
 
       (testing "Can load a service based on a valid bootstrap config string"
-        (let [test-svc        (get-service app :TestService)
+        (let [test-svc (get-service app :TestService)
               hello-world-svc (get-service app :HelloWorldService)]
           (is (= (test-fn test-svc) :cli))
           (is (= (hello-world hello-world-svc) "hello world"))))
@@ -34,8 +35,8 @@
       (with-additional-classpath-entries ["./dev-resources/bootstrapping/classpath"]
         (testing "Looks for bootstrap config on classpath (dev-resources)"
           (with-test-logging
-            (let [app             (bootstrap-with-empty-config)
-                  test-svc        (get-service app :TestService)
+            (let [app (bootstrap-with-empty-config)
+                  test-svc (get-service app :TestService)
                   hello-world-svc (get-service app :HelloWorldService)]
               (is (logged?
                    #"Loading bootstrap config from classpath: 'file:/.*dev-resources/bootstrapping/classpath/bootstrap.cfg'"
@@ -50,8 +51,8 @@
                "user.dir"
                (.getAbsolutePath (file "./dev-resources/bootstrapping/cwd")))
               (with-test-logging
-                (let [app             (bootstrap-with-empty-config)
-                      test-svc        (get-service app :TestService)
+                (let [app (bootstrap-with-empty-config)
+                      test-svc (get-service app :TestService)
                       hello-world-svc (get-service app :HelloWorldService)]
                   (is (logged?
                        #"Loading bootstrap config from current working directory: '.*/dev-resources/bootstrapping/cwd/bootstrap.cfg'"
@@ -136,9 +137,9 @@
 
   (testing "comments allowed in bootstrap config file"
     (let [bootstrap-config "./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"
-          service-maps      (->> bootstrap-config
-                                 parse-bootstrap-config!
-                                 (map service-map))]
+          service-maps (->> bootstrap-config
+                            parse-bootstrap-config!
+                            (map service-map))]
       (is (= (count service-maps) 2))
       (is (contains? (first service-maps) :HelloWorldService))
       (is (contains? (second service-maps) :TestService)))))
@@ -172,8 +173,8 @@
             test-svc-three (get-service app :TestServiceThree)
             hello-world-svc (get-service app :HelloWorldService)]
         (is (logged?
-              ; We can't know what order it will find the files on disk, so just
-              ; look for a partial match with the path we gave TK.
+             ; We can't know what order it will find the files on disk, so just
+             ; look for a partial match with the path we gave TK.
              (re-pattern (format "Loading bootstrap configs:\n%s"
                                  (fs/absolute bootstrap-path)))
              :debug))
@@ -239,7 +240,7 @@
   (testing "duplicate bootstrap entries are allowed"
     (let [bootstrap-path "./dev-resources/bootstrapping/cli/duplicate_entries.cfg"
           app (bootstrap-with-empty-config
-                ["--bootstrap-config" bootstrap-path])
+               ["--bootstrap-config" bootstrap-path])
           hello-world-svc (get-service app :HelloWorldService)]
       (is (= (hello-world hello-world-svc) "hello world")))))
 
@@ -247,17 +248,17 @@
   (testing "Duplicate service definitions causes error with filename and line numbers"
     (let [bootstrap "./dev-resources/bootstrapping/cli/duplicate_services.cfg"]
       (is (thrown-with-msg?
-            IllegalArgumentException
-            (re-pattern (str "Duplicate implementations found for service protocol ':TestService':\n"
-                             ".*/duplicate_services.cfg:2\n"
-                             "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service\n"
-                             ".*/duplicate_services.cfg:3\n"
-                             "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service"))
-            (parse-bootstrap-config! bootstrap))))))
+           IllegalArgumentException
+           (re-pattern (str "Duplicate implementations found for service protocol ':TestService':\n"
+                            ".*/duplicate_services.cfg:2\n"
+                            "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service\n"
+                            ".*/duplicate_services.cfg:3\n"
+                            "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service"))
+           (parse-bootstrap-config! bootstrap))))))
 
 (deftest config-file-in-jar
   (testing "Bootstrapping via a config file contained in a .jar"
-    (let [jar           (file "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar")
+    (let [jar (file "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar")
           bootstrap-url (str "jar:file:///" (.getAbsolutePath jar) "!/bootstrap.cfg")]
       ;; just test that this bootstrap config file can be read successfully
       ;; (ie, this does not throw an exception)
@@ -268,12 +269,12 @@
     ; Load a bootstrap with a service that doesn't exist to generate an error
     (let [bootstrap "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
       (is (thrown-with-msg?
-            IllegalArgumentException
-            (re-pattern (str "Problem loading service 'non-existent-service/test-service' "
-                             "on line '3' in bootstrap configuration file "
-                             "'./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg'"
-                             ":\nUnable to load service: non-existent-service/test-service"))
-            (parse-bootstrap-config! bootstrap))))))
+           IllegalArgumentException
+           (re-pattern (str "Problem loading service 'non-existent-service/test-service' "
+                            "on line '3' in bootstrap configuration file "
+                            "'./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg'"
+                            ":\nUnable to load service: non-existent-service/test-service"))
+           (parse-bootstrap-config! bootstrap))))))
 
 (deftest get-annotated-bootstrap-entries-test
   (testing "file with comments"

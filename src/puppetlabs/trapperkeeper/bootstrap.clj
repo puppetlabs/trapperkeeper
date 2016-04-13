@@ -1,6 +1,6 @@
 (ns puppetlabs.trapperkeeper.bootstrap
   (:import (java.io FileNotFoundException)
-           (java.net URI))
+           (java.net URI URISyntaxException))
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]
@@ -141,23 +141,33 @@
   [coll]
   (map vector (range) coll))
 
+(schema/defn wrap-uri-error
+  [config-path :- schema/Str
+   cause :- Throwable]
+  (IllegalArgumentException.
+   (format "Specified bootstrap config file does not exist: '%s'" config-path)
+   cause))
+
 (schema/defn read-config :- [schema/Str]
   "Opens a bootstrap file from either a path or URI, and returns each line from
-  the config. Throws an exception if the file can't be found or if the URI
-  can't be loaded"
+  the config. Throws an exception if there is a problem reading the file or
+  the URI can't be loaded"
   [config-path :- schema/Str]
-  (let [config-file (if (fs/file? config-path)
-                      (fs/file config-path)
-                      (try
-                        (io/input-stream (URI. config-path))
-                        (catch Exception ignored
-                          ;; If loading the URI fails, we give up and throw an exception.
-                          ;; Don't wrap and re-throw here, as `ignored` may be misleading
-                          (throw (IllegalArgumentException.
-                                  (str "Specified bootstrap config file does not exist: '"
-                                       config-path "'"))))))]
-
-    (line-seq (io/reader config-file))))
+  (if (fs/file? config-path)
+    (line-seq (io/reader (fs/file config-path)))
+    (try
+      ; If it's not a file, attempt to read it as a URI
+      ; TODO: TK-363 - Check to make sure the URI points to a jar file
+      (line-seq (io/reader (URI. config-path)))
+      ; Thrown by URI constructor
+      (catch URISyntaxException e
+        (throw (wrap-uri-error config-path e)))
+      ; Thrown by reader URI.toURL() when URI is not absolute
+      (catch IllegalArgumentException e
+        (throw (wrap-uri-error config-path e)))
+      ; Thrown if a valid URI points to a file that does not exist
+      (catch FileNotFoundException e
+        (throw (wrap-uri-error config-path e))))))
 
 (schema/defn get-annotated-bootstrap-entries :- [AnnotatedBootstrapEntry]
   "Reads each bootstrap entry into a map with the line number and file the

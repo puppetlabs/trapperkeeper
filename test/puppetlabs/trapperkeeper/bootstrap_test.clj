@@ -368,7 +368,27 @@
   (testing "jar uri"
     (let [jar "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar"
           config (str "jar:file:///" (.getAbsolutePath (file jar)) "!/bootstrap.cfg")]
-      ; The bootstrap in the jar contains an emtpy line at the end
+      ; The bootstrap in the jar contains an empty line at the end
       (is (= ["puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
               ""]
-             (read-config config))))))
+             (read-config config)))))
+  (testing "malformed uri is wrapped in our exception"
+    (let [config "\n"]
+      (is (thrown-with-msg?
+           IllegalArgumentException
+           #"Specified bootstrap config file does not exist"
+           (read-config config)))))
+  (testing "Non-absolute uri is wrapped in our exception"
+    ; TODO This path is currently interpreted as a URI because TK checks
+    ; if it's a file, and if not, attemps to load as a URI
+    (let [config "./not-a-file"]
+      (is (thrown-with-msg?
+           IllegalArgumentException
+           #"Specified bootstrap config file does not exist"
+           (println (read-config config))))))
+  (testing "Non-existent file in URI is wrapped in our exception"
+    (let [config "file:///not-a-file"]
+      (is (thrown-with-msg?
+           IllegalArgumentException
+           #"Specified bootstrap config file does not exist"
+           (read-config config))))))

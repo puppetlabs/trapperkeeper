@@ -45,23 +45,6 @@
                            line
                            "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")})))
 
-(schema/defn ^:private resolve-service! :- (schema/protocol services/ServiceDefinition)
-  "Given the namespace and name of a service, loads the namespace,
-  calls the function, validates that the result is a valid service definition, and
-  returns the service definition.  Throws an `IllegalArgumentException` if the
-  service definition cannot be resolved."
-  [resolve-ns :- schema/Str
-   service-name :- schema/Str]
-  (try (require (symbol resolve-ns))
-       (catch FileNotFoundException e
-         (throw+ {:type ::bootstrap-parse-error
-                  :message (str "Unable to load service: " resolve-ns "/" service-name)
-                  :cause e})))
-  (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
-    (internal/validate-service-graph! (var-get service-def))
-    (throw+ {:type ::bootstrap-parse-error
-             :message (str "Unable to load service: " resolve-ns "/" service-name)})))
-
 (schema/defn ^:private remove-comments :- schema/Str
   "Given a line of text from the bootstrap config file, remove
   anything that is commented out with either a '#' or ';'. If
@@ -220,6 +203,23 @@
       (when (not (empty? duplicates))
         (throw (duplicate-protocol-error duplicates service->entry-map))))))
 
+(schema/defn ^:private resolve-service! :- (schema/protocol services/ServiceDefinition)
+  "Given the namespace and name of a service, loads the namespace,
+  calls the function, validates that the result is a valid service definition, and
+  returns the service definition.  Throws an `IllegalArgumentException` if the
+  service definition cannot be resolved."
+  [resolve-ns :- schema/Str
+   service-name :- schema/Str]
+  (try (require (symbol resolve-ns))
+       (catch FileNotFoundException e
+         (throw+ {:type ::missing-service
+                  :message (str "Unable to load service: " resolve-ns "/" service-name)
+                  :cause e})))
+  (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
+    (internal/validate-service-graph! (var-get service-def))
+    (throw+ {:type ::missing-service
+             :message (str "Unable to load service: " resolve-ns "/" service-name)})))
+
 (schema/defn bootstrap-error :- IllegalArgumentException
   "Returns an IllegalArgumentException meant to wrap other errors relating to
    bootstrap problems. Includes the file and line number at which each
@@ -229,24 +229,36 @@
    line-number :- schema/Int
    original-message :- schema/Str]
   (IllegalArgumentException.
-   (format (str "Problem loading service '%s' on line '%s' in bootstrap "
-                "configuration file '%s':\n%s")
-           entry line-number bootstrap-file original-message)))
+   (format (str "%s:%s\nProblem loading service '%s':\n%s")
+           bootstrap-file line-number entry original-message)))
+
+(schema/defn resolve-and-handle-errors! :- (schema/maybe (schema/protocol services/ServiceDefinition))
+  "Attemps to resolve a bootstrap entry into a ServiceDefinition.
+  If the bootstrap entry can't be resolved, logs a warning and returns nil.
+
+  Throws an IllegalArgumentException if there is a problem parsing the bootstrap
+  entry, or if the service is found but it has an invalid service graph."
+  [{:keys [bootstrap-file line-number entry] :as bootstrap-entry} :- AnnotatedBootstrapEntry]
+  (try+
+    (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
+      (resolve-service! namespace service-name))
+    (catch [:type ::missing-service] {:keys [message]}
+      (log/warnf "%s:%s\nUnable to load service '%s'" bootstrap-file line-number entry))
+    ; Catch and re-throw as java exception
+    (catch [:type ::internal/invalid-service-graph] {:keys [message]}
+      (throw (bootstrap-error entry bootstrap-file line-number message)))
+    (catch [:type ::bootstrap-parse-error] {:keys [message]}
+      (throw (bootstrap-error entry bootstrap-file line-number message)))))
 
 (schema/defn resolve-services! :- [(schema/protocol services/ServiceDefinition)]
   "Resolves each bootstrap entry into an instance of a trapperkeeper
   ServiceDefinition.
-  Throws an IllegalArgumentException if the service can't be resolved"
+
+  Logs a warning if the bootstrap entry can't be resolved.
+  Throws an IllegalArgumentException if there is a problem parsing the bootstrap
+  entry, or if the service is found but it has an invalid service graph."
   [bootstrap-entries :- [AnnotatedBootstrapEntry]]
-  (for [{:keys [bootstrap-file line-number entry]} bootstrap-entries]
-    (try+
-      (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
-        (resolve-service! namespace service-name))
-      ; Catch and re-throw as java exception
-      (catch [:type ::bootstrap-parse-error] {:keys [message]}
-        (throw (bootstrap-error entry bootstrap-file line-number message)))
-      (catch [:type ::internal/invalid-service-graph] {:keys [message]}
-        (throw (bootstrap-error entry bootstrap-file line-number message))))))
+  (remove nil? (map resolve-and-handle-errors! bootstrap-entries)))
 
 (schema/defn remove-duplicate-entries :- [AnnotatedBootstrapEntry]
   "Removes any duplicate entries from the list of AnnotatedBootstrapEntry maps.

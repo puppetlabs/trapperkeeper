@@ -4,6 +4,11 @@ The `nREPL` service is intended to be used as a debugging tool and not directly 
 
 The `nrepl` section in a _Trapperkeeper_ configuration file specifies all the settings needed to start up an `nREPL` server attached to _Trapperkeeper_.
 
+## `boostrap.cfg`
+
+By default, the nrepl service is not put into your application's `bootstrap.cfg`. If you want to use this service, add 
+`puppetlabs.trapperkeeper.services.nrepl.nrepl-service/nrepl-service` to your `bootstrap.cfg` and enable it in your config.
+
 ## `enabled`
 
 The `enabled` flag is a boolean value, which can be set to either `"true"` or `"false"`. When this is set to true, the `nREPL` server will start and accept connections. If this value is not specified then `enabled=false` is assumed.

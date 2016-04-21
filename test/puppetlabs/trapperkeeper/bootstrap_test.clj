@@ -114,20 +114,6 @@
                #"Empty bootstrap config file"
                (parse-and-bootstrap bootstrap-config)))))
 
-      (testing "Service namespace doesn't exist"
-        (let [bootstrap-config "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
-          (is (thrown-with-msg?
-               IllegalArgumentException
-               #"Problem loading service 'non-existent-service/test-service'"
-               (parse-and-bootstrap bootstrap-config)))))
-
-      (testing "Service definition doesn't exist"
-        (let [bootstrap-config "./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg"]
-          (is (thrown-with-msg?
-               IllegalArgumentException
-               #"Unable to load service: puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service"
-               (parse-and-bootstrap bootstrap-config)))))
-
       (testing "Invalid service graph"
         (let [bootstrap-config "./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg"]
           (is (thrown-with-msg?
@@ -285,16 +271,35 @@
       ;; (ie, this does not throw an exception)
       (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-url]))))
 
-(deftest parse-bootstrap-config-throws-good-error
-  (testing "throws error with line number and file"
-    ; Load a bootstrap with a service that doesn't exist to generate an error
-    (let [bootstrap "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
+(deftest parse-bootstrap-config-test
+  (testing "Missing service namespace logs warning"
+    (with-test-logging
+      (let [bootstrap-config "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
+        (parse-bootstrap-config! bootstrap-config)
+        (is (logged?
+             (str "Unable to load service 'non-existent-service/test-service' from "
+                  "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg:3")
+             :warn)))))
+
+  (testing "Missing service definition logs warning"
+    (with-test-logging
+      (let [bootstrap-config "./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg"]
+        (parse-bootstrap-config! bootstrap-config)
+        (is (logged?
+             (str "Unable to load service "
+                  "'puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service' "
+                  "from ./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg:3")
+             :warn)))))
+
+  (testing "errors are thrown with line number and file"
+    ; Load a bootstrap with a bad service graph to generate an error
+    (let [bootstrap "./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg"]
       (is (thrown-with-msg?
            IllegalArgumentException
-           (re-pattern (str "Problem loading service 'non-existent-service/test-service' "
-                            "on line '3' in bootstrap configuration file "
-                            "'./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg'"
-                            ":\nUnable to load service: non-existent-service/test-service"))
+           (re-pattern (str "Problem loading service "
+                            "'puppetlabs.trapperkeeper.examples.bootstrapping.test-services/invalid-service-graph-service' "
+                            "from ./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg:1:\n"
+                            "Invalid service definition"))
            (parse-bootstrap-config! bootstrap))))))
 
 (deftest get-annotated-bootstrap-entries-test

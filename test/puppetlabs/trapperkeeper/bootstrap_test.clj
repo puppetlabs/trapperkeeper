@@ -246,15 +246,36 @@
 
 (deftest duplicate-service-definitions
   (testing "Duplicate service definitions causes error with filename and line numbers"
-    (let [bootstrap "./dev-resources/bootstrapping/cli/duplicate_services.cfg"]
+    (let [bootstraps ["./dev-resources/bootstrapping/cli/duplicate_services/duplicates.cfg"]]
       (is (thrown-with-msg?
            IllegalArgumentException
            (re-pattern (str "Duplicate implementations found for service protocol ':TestService':\n"
-                            ".*/duplicate_services.cfg:2\n"
+                            ".*/duplicates.cfg:2\n"
                             "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service\n"
-                            ".*/duplicate_services.cfg:3\n"
-                            "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service"))
-           (parse-bootstrap-config! bootstrap))))))
+                            ".*/duplicates.cfg:3\n"
+                            "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service\n"
+                            "Duplicate implementations.*\n"
+                            ".*/duplicates.cfg:5\n"
+                            ".*test-service-two\n"
+                            ".*/duplicates.cfg:6\n"
+                            ".*test-service-two-duplicate"))
+           (parse-bootstrap-configs! bootstraps))))
+    (testing "Duplicate service definitions between two files throws error"
+      (let [bootstraps ["./dev-resources/bootstrapping/cli/duplicate_services/split_one.cfg"
+                        "./dev-resources/bootstrapping/cli/duplicate_services/split_two.cfg"]]
+        (is (thrown-with-msg?
+             IllegalArgumentException
+             (re-pattern (str "Duplicate implementations found for service protocol ':TestService':\n"
+                              ".*/split_one.cfg:2\n"
+                              "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service\n"
+                              ".*/split_two.cfg:2\n"
+                              "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service\n"
+                              "Duplicate implementations.*\n"
+                              ".*/split_one.cfg:4\n"
+                              ".*test-service-two-duplicate\n"
+                              ".*/split_two.cfg:4\n"
+                              ".*test-service-two"))
+             (parse-bootstrap-configs! bootstraps)))))))
 
 (deftest config-file-in-jar
   (testing "Bootstrapping via a config file contained in a .jar"
@@ -316,10 +337,10 @@
                  {:important-key :three
                   :other-key 5}]]
       ; List of key value pairs
-      (is (= [[:one [{:important-key :one
-                      :other-key 2}
-                     {:important-key :one
-                      :other-key 3}]]]
+      (is (= {:one [{:important-key :one
+                     :other-key 2}
+                    {:important-key :one
+                     :other-key 3}]}
              (find-duplicates items :important-key))))))
 
 (deftest check-duplicate-service-implementations!-test
@@ -329,7 +350,7 @@
           resolved-services (resolve-services! bootstrap-entries)]
       (check-duplicate-service-implementations! resolved-services bootstrap-entries)))
   (testing "duplicate service implementations throws error"
-    (let [configs ["./dev-resources/bootstrapping/cli/duplicate_services.cfg"]
+    (let [configs ["./dev-resources/bootstrapping/cli/duplicate_services/duplicates.cfg"]
           bootstrap-entries (get-annotated-bootstrap-entries configs)
           resolved-services (resolve-services! bootstrap-entries)]
       (is (thrown-with-msg?

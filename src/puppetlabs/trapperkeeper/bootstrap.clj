@@ -82,7 +82,7 @@
     (map str (fs/glob (fs/file config-path "*.cfg")))
     [config-path]))
 
-(schema/defn ^:private config-from-cli :- (schema/maybe [schema/Str])
+(schema/defn ^:private config-from-cli :- [schema/Str]
   "Given the data from the command-line (parsed via `core/parse-cli-args!`),
   check to see if the caller explicitly specified the location of one or more
   bootstrap config files.  If so, return an object that can be read via
@@ -99,7 +99,7 @@
                            (string/join "\n" config-files)))
         config-files))))
 
-(schema/defn ^:private config-from-cwd :- (schema/maybe [schema/Str])
+(schema/defn ^:private config-from-cwd :- [schema/Str]
   "Check to see if there is a bootstrap config file in the current working
   directory;  if so, return it."
   []
@@ -188,25 +188,23 @@
   (->> coll
        (group-by f)
        ; filter out map values with only 1 item
-       (remove #(= 1 (count (val %))))))
+       (remove #(= 1 (count (val %))))
+       (into {})))
 
 (schema/defn duplicate-protocol-error :- IllegalArgumentException
   "Returns an IllegalArgumentException describing what services implement
    the same protocol, including the line number and file the bootstrap entries
    were found"
-  [protocol-id :- schema/Keyword
-   duplicate-services :- [(schema/protocol services/ServiceDefinition)]
+  [duplicate-services :- {schema/Keyword [(schema/protocol services/ServiceDefinition)]}
    service->entry-map :- {(schema/protocol services/ServiceDefinition) AnnotatedBootstrapEntry}]
   (let [make-error-message (fn [service]
                              (let [entry (get service->entry-map service)]
-                               (format "%s:%s\n%s"
-                                       (:bootstrap-file entry)
-                                       (:line-number entry)
-                                       (:entry entry))))]
-    (IllegalArgumentException.
-     (format (str "Duplicate implementations found for service protocol '%s':\n%s")
-             protocol-id
-             (string/join "\n" (map make-error-message duplicate-services))))))
+                               (format "%s:%s\n%s" (:bootstrap-file entry) (:line-number entry) (:entry entry))))]
+    (let [error-messages (for [[protocol-id services] duplicate-services]
+                           (format (str "Duplicate implementations found for service protocol '%s':\n%s")
+                                   protocol-id
+                                   (string/join "\n" (map make-error-message services))))]
+      (IllegalArgumentException. (string/join "\n" error-messages)))))
 
 (schema/defn check-duplicate-service-implementations!
   "Throws an exception if two services implement the same service protocol"
@@ -218,8 +216,9 @@
   (let [service->entry-map (zipmap services bootstrap-entries)]
     ; Find duplicates base on the service id returned by calling service-def-id
     ; on each service
-    (if-let [duplicate (first (find-duplicates services services/service-def-id))]
-      (throw (duplicate-protocol-error (key duplicate) (val duplicate) service->entry-map)))))
+    (let [duplicates (find-duplicates services services/service-def-id)]
+      (when (not (empty? duplicates))
+        (throw (duplicate-protocol-error duplicates service->entry-map))))))
 
 (schema/defn bootstrap-error :- IllegalArgumentException
   "Returns an IllegalArgumentException meant to wrap other errors relating to
@@ -280,13 +279,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (schema/defn parse-bootstrap-configs! :- [(schema/protocol services/ServiceDefinition)]
-  [configs :- [schema/Str]]
   "Parse multiple trapperkeeper bootstrap configuration files and return the
   service graph that is the result of merging the graphs of all of the
   services specified in the configuration files."
-  ; We remove the duplicate entries to allow the user to have duplicate entries in their
-  ; bootstrap files. If we didn't remove them, it would look like two services were trying
-  ; to implement the same protocol when we check for duplicate service implementations
+  [configs :- [schema/Str]]
+  ; We remove the duplicate entries (the exact same namespace and name) to allow
+  ; the user to have duplicate entries in their bootstrap files. If we didn't
+  ; remove them, it would look like two services were trying to implement the
+  ; same protocol when we check for duplicate service implementations. We want
+  ; to allow entries with the same exact name in order to support workflows
+  ; where users are preparing to upgrade and might copy an entry to another file.
   (let [bootstrap-entries (remove-duplicate-entries (get-annotated-bootstrap-entries configs))]
     (when (empty? bootstrap-entries)
       (throw (Exception. "Empty bootstrap config file")))

@@ -229,11 +229,11 @@
    line-number :- schema/Int
    original-message :- schema/Str]
   (IllegalArgumentException.
-   (format (str "%s:%s\nProblem loading service '%s':\n%s")
-           bootstrap-file line-number entry original-message)))
+   (format (str "Problem loading service '%s' from %s:%s:\n%s")
+           entry bootstrap-file line-number original-message)))
 
 (schema/defn resolve-and-handle-errors! :- (schema/maybe (schema/protocol services/ServiceDefinition))
-  "Attemps to resolve a bootstrap entry into a ServiceDefinition.
+  "Attempts to resolve a bootstrap entry into a ServiceDefinition.
   If the bootstrap entry can't be resolved, logs a warning and returns nil.
 
   Throws an IllegalArgumentException if there is a problem parsing the bootstrap
@@ -243,7 +243,7 @@
     (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
       (resolve-service! namespace service-name))
     (catch [:type ::missing-service] {:keys [message]}
-      (log/warnf "%s:%s\nUnable to load service '%s'" bootstrap-file line-number entry))
+      (log/warnf "Unable to load service '%s' from %s:%s" entry bootstrap-file line-number))
     ; Catch and re-throw as java exception
     (catch [:type ::internal/invalid-service-graph] {:keys [message]}
       (throw (bootstrap-error entry bootstrap-file line-number message)))

@@ -277,8 +277,8 @@
       (let [bootstrap-config "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
         (parse-bootstrap-config! bootstrap-config)
         (is (logged?
-             (str "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg:3\n"
-                  "Unable to load service 'non-existent-service/test-service'")
+             (str "Unable to load service 'non-existent-service/test-service' from "
+                  "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg:3")
              :warn)))))
 
   (testing "Missing service definition logs warning"
@@ -286,9 +286,9 @@
       (let [bootstrap-config "./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg"]
         (parse-bootstrap-config! bootstrap-config)
         (is (logged?
-             (str "./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg:3\n"
-                  "Unable to load service "
-                  "'puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service'")
+             (str "Unable to load service "
+                  "'puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service' "
+                  "from ./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg:3")
              :warn)))))
 
   (testing "errors are thrown with line number and file"
@@ -296,8 +296,9 @@
     (let [bootstrap "./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg"]
       (is (thrown-with-msg?
            IllegalArgumentException
-           (re-pattern (str "./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg:1\n"
-                            "Problem loading service '.*invalid-service-graph-service':\n"
+           (re-pattern (str "Problem loading service "
+                            "'puppetlabs.trapperkeeper.examples.bootstrapping.test-services/invalid-service-graph-service' "
+                            "from ./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg:1:\n"
                             "Invalid service definition"))
            (parse-bootstrap-config! bootstrap))))))
 

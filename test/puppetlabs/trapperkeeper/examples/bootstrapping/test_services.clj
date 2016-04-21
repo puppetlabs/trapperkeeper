@@ -46,6 +46,10 @@
   TestServiceTwo
   []
   (test-fn-two [this] :two))
+(defservice test-service-two-duplicate
+  TestServiceTwo
+  []
+  (test-fn-two [this] :two))
 
 (defservice test-service-three
   TestServiceThree

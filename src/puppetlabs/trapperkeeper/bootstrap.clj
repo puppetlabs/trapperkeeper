@@ -303,7 +303,8 @@
   ; where users are preparing to upgrade and might copy an entry to another file.
   (let [bootstrap-entries (remove-duplicate-entries (get-annotated-bootstrap-entries configs))]
     (when (empty? bootstrap-entries)
-      (throw (Exception. "Empty bootstrap config file")))
+      (throw (Exception. (str "No entries found in any supplied bootstrap file(s):\n"
+                              (string/join "\n" configs)))))
     (let [resolved-services (resolve-services! bootstrap-entries)]
       (check-duplicate-service-implementations! resolved-services bootstrap-entries)
       resolved-services)))

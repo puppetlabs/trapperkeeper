@@ -13,7 +13,8 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]
             [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn test-fn-two test-fn-three hello-world]]
             [schema.test :as schema-test]
-            [me.raynes.fs :as fs]))
+            [me.raynes.fs :as fs]
+            [clojure.string :as string]))
 
 (use-fixtures
  :once
@@ -107,13 +108,6 @@
                #"(?is)Invalid line in bootstrap.*This is not a legit line"
                (parse-and-bootstrap bootstrap-config)))))
 
-      (testing "Bootstrap config file is empty."
-        (let [bootstrap-config "./dev-resources/bootstrapping/cli/empty_bootstrap.cfg"]
-          (is (thrown-with-msg?
-               Exception
-               #"Empty bootstrap config file"
-               (parse-and-bootstrap bootstrap-config)))))
-
       (testing "Invalid service graph"
         (let [bootstrap-config "./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg"]
           (is (thrown-with-msg?
@@ -129,6 +123,25 @@
       (is (= (count service-maps) 2))
       (is (contains? (first service-maps) :HelloWorldService))
       (is (contains? (second service-maps) :TestService)))))
+
+(deftest empty-bootstrap
+  (testing "Empty bootstrap causes error"
+    (testing "single bootstrap file"
+      (let [bootstrap-config "./dev-resources/bootstrapping/cli/empty_bootstrap.cfg"]
+        (is (thrown-with-msg?
+             Exception
+             (re-pattern (str "No entries found in any supplied bootstrap file\\(s\\):\n"
+                              "./dev-resources/bootstrapping/cli/empty_bootstrap.cfg"))
+             (parse-bootstrap-config! bootstrap-config)))))
+
+    (testing "multiple bootstrap files"
+      (let [bootstraps ["./dev-resources/bootstrapping/cli/split_bootstraps/empty/empty1.cfg"
+                        "./dev-resources/bootstrapping/cli/split_bootstraps/empty/empty2.cfg"]]
+        (is (thrown-with-msg?
+             Exception
+             (re-pattern (str "No entries found in any supplied bootstrap file\\(s\\):\n"
+                              (string/join "\n" bootstraps)))
+             (parse-bootstrap-configs! bootstraps)))))))
 
 (deftest multiple-bootstrap-files
   (testing "Multiple bootstrap files can be specified directly on the command line"

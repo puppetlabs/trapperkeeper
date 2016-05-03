@@ -1,3 +1,21 @@
+## 1.4.0
+
+This is feature/bugfix release. It is a re-release of 1.3.2
+
+* [TK-347](https://tickets.puppetlabs.com/browse/TK-347) - Support directories
+  and paths in TK's "bootstrap-config" CLI argument
+* [TK-211](https://tickets.puppetlabs.com/browse/TK-211) - Trapperkeeper
+  doesn't error if two services implementing the same protocol are started
+* [TK-349](https://tickets.puppetlabs.com/browse/TK-349) - TK should not
+  fail during startup if an unrecognized service is found in bootstrap config
+* [TK-351](https://tickets.puppetlabs.com/browse/TK-351) - Ensure all bootstrap
+  related errors log what file they come from
+
+## 1.3.2
+
+This version was released by mistake, it was intended to be 1.4.0
+
+
 ## 1.3.1
 
 This is a bugfix / maintenance / minor feature release

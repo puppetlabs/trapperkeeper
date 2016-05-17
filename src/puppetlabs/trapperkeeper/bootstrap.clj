@@ -95,13 +95,13 @@
                         config-file-path "'"))
         [config-file-path]))))
 
-(schema/defn ^:private config-from-classpath :- [(schema/maybe schema/Str)]
+(schema/defn config-from-classpath :- [(schema/maybe schema/Str)]
   "Check to see if there is a bootstrap config file available on the classpath;
   if so, return it."
   []
   (when-let [classpath-config (io/resource bootstrap-config-file-name)]
     (log/debug (str "Loading bootstrap config from classpath: '" classpath-config "'"))
-    [(.getPath classpath-config)]))
+    [(str classpath-config)]))
 
 (schema/defn find-bootstrap-configs :- [schema/Str]
   "Get the bootstrap config files from:

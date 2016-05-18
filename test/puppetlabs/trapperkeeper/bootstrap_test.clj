@@ -277,12 +277,32 @@
              (parse-bootstrap-configs! bootstraps)))))))
 
 (deftest config-file-in-jar
-  (testing "Bootstrapping via a config file contained in a .jar"
+  (testing "Bootstrapping via a config file contained in a .jar as command line option"
     (let [jar (file "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar")
           bootstrap-url (str "jar:file:///" (.getAbsolutePath jar) "!/bootstrap.cfg")]
       ;; just test that this bootstrap config file can be read successfully
       ;; (ie, this does not throw an exception)
       (bootstrap-with-empty-config ["--bootstrap-config" bootstrap-url]))))
+
+(deftest config-from-classpath-test
+  (testing "can locate bootstrap file on the classpath"
+    (let [bootstrap-file "./dev-resources/bootstrapping/classpath/bootstrap.cfg"
+          bootstrap-uri (str "file:" (.getCanonicalPath (file bootstrap-file)))]
+      (with-additional-classpath-entries
+       ["./dev-resources/bootstrapping/classpath/"]
+       (let [found-bootstraps (config-from-classpath)]
+         (is (= 1 (count found-bootstraps)))
+         (is (= bootstrap-uri (first found-bootstraps)))))))
+
+  (testing "can locate bootstrap file contained in a .jar on the classpath"
+    (let [jar "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar"
+          jar-uri (str "file:" (.getAbsolutePath (file jar)))
+          expected-resource-uri (format "jar:%s!/bootstrap.cfg" jar-uri)]
+      (with-additional-classpath-entries
+       ["./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar"]
+       (let [found-bootstraps (config-from-classpath)]
+         (is (= 1 (count found-bootstraps)))
+         (is (= expected-resource-uri (first found-bootstraps))))))))
 
 (deftest parse-bootstrap-config-test
   (testing "Missing service namespace logs warning"

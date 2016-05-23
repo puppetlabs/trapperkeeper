@@ -1,6 +1,6 @@
 ## 1.4.1
 
-This is bugfix release. It fixes a single issue
+This is a bugfix release. It fixes a single issue
 
 * [TK-375](https://tickets.puppetlabs.com/browse/TK-375) - Regression in 1.4.0
   when loading bootstrap.cfg from resources/classpath

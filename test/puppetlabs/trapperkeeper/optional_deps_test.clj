@@ -1,6 +1,6 @@
 (ns puppetlabs.trapperkeeper.optional-deps-test
   (:require  [clojure.test :refer :all]
-             [puppetlabs.trapperkeeper.services :refer [service defservice get-service] :as tks]
+             [puppetlabs.trapperkeeper.services :refer [service defservice get-service service-apply] :as tks]
              [puppetlabs.trapperkeeper.app :as tka]
              [puppetlabs.trapperkeeper.core :refer [build-app] :as tkc]
              [schema.test :as schema-test]))
@@ -30,6 +30,44 @@
   (sonnet [this topic couplet] (vec (concat ["imagine a sonnet"
                                              (format "about %s" topic)]
                                             couplet))))
+
+(deftest service-apply-test
+  (let [poetry-service (service PoetryService
+                                {:required []
+                                 :optional [SonnetService HaikuService]}
+                                (get-haiku [this]
+                                           (service-apply HaikuService :bad-haiku
+                                                          "the worker puts her life into the object"
+                                                          "foo" "bar" "baz"))
+                                (get-sonnet [this]
+                                            (service-apply SonnetService :sonnet
+                                                           "sigh"
+                                                           "designing futures"
+                                                           ["rhyming" "is overrated"])))]
+    (testing "when using service-apply"
+      (testing "and service exists"
+        (let [app (build-app [haiku-service sonnet-service poetry-service] {})
+              poetry-svc (tka/get-service app :PoetryService)]
+          (testing "and fn exists"
+            (is (= ["imagine a sonnet"
+                    "about designing futures"
+                    "rhyming"
+                    "is overrated"]
+                   (get-sonnet poetry-svc))))
+          (testing "and fn does not exist"
+            (is (thrown-with-msg? IllegalArgumentException
+                                  #"has no fn :bad-haiku"
+                                  (get-haiku poetry-svc))))))
+      (testing "and service does not exist"
+        (let [app (build-app [poetry-service] {})
+              poetry-svc (tka/get-service app :PoetryService)]
+          (testing "and fn does not exist"
+            (testing "you get the default"
+              (is (= "the worker puts her life into the object"
+                     (get-haiku poetry-svc)))))
+          (testing "and fn exists"
+            (testing "you get the default"
+              (is (= "sigh" (get-sonnet poetry-svc))))))))))
 
 (deftest optional-deps-test
   (testing "when not using a protocol"

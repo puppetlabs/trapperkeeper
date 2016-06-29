@@ -87,64 +87,36 @@
             optional-form (array-map dep optional-dep-default)]
         (recur (rest optional) (conj output optional-form))))))
 
-;; TODO Not converting to use schema since this fn's behavior should literally
-;; be a schema
-(defn validate-fn-forms!
-  "Validate that all of the fn forms in the service body appear to be
-  valid fn definitions.  Throws `IllegalArgumentException` otherwise."
-  [fns]
-  {:pre [(seq? fns)]
-   :post [(map? %)
-          (= #{:fns} (set (keys %)))]}
-  (if (every? seq? fns)
-    {:fns fns}
-    (throw (IllegalArgumentException.
-            (format
-             "Invalid service definition; expected function definitions following dependency list, invalid value: '%s'"
-             (pr-str (first (filter #(not (seq? %)) fns))))))))
-
-;; TODO Not converting to use schema since this fn's behavior should literally
-;; be a schema
-(defn validate-deps-form!
-  "Validate that the service body has a valid dependency specification.
-  Throws `IllegalArgumentException` otherwise."
-  [forms]
-  {:pre [(seq? forms)]
-   :post [(map? %)
-          (= #{:fns :dependencies} (set (keys %)))]}
-  (let [f (first forms)
-        deps (cond
-               (vector? f) f
-               (map? f) (transform-deps-map f)
-               :else (throw (IllegalArgumentException.
-                             (format
-                              "Invalid service definition; expected dependency list following protocol, found: '%s'"
-                              (pr-str f)))))]
-    (merge {:dependencies deps} (validate-fn-forms! (rest forms)))))
-
-;; TODO Not converting to use schema since this fn's behavior should literally
-;; be a schema
-(defn find-prot-and-deps-forms!
+(schema/defn ^:always-validate find-prot-and-deps-forms!
+  :- {:fns (schema/pred seq?) :dependencies (schema/pred vector?) :service-protocol-sym (schema/maybe Symbol)}
   "Given the forms passed to the service macro, find the service protocol
   (if one is provided), the dependency list, and the function definitions.
   Throws `IllegalArgumentException` if the forms do not represent a valid service.
   Returns a map containing the protocol, dependency list, and fn forms."
-  [forms]
-  {:pre [(seq? forms)]
-   :post [(map? %)
-          (= #{:fns :dependencies :service-protocol-sym} (set (keys %)))
-          ((some-fn nil? symbol?) (:service-protocol-sym %))
-          (vector? (:dependencies %))
-          (seq? (:fns %))]}
-  (let [f (first forms)]
-    (cond
-      (symbol? f) (merge {:service-protocol-sym f} (validate-deps-form! (rest forms)))
-      (map? f) (merge {:service-protocol-sym nil} (validate-deps-form! forms))
-      (vector? f) (merge {:service-protocol-sym nil} (validate-deps-form! forms))
-      :else (throw (IllegalArgumentException.
+  [forms :- (schema/pred seq?)]
+  (let [f (if (some true? ((juxt symbol? map? vector?) (first forms)))
+            (first forms)
+            (throw (IllegalArgumentException.
                     (format
                      "Invalid service definition; first form must be protocol or dependency list; found '%s'"
-                     (pr-str f)))))))
+                     (pr-str (first forms))))))
+        service-protocol-sym (if (symbol? f) f nil)
+        forms (if (nil? service-protocol-sym) forms (rest forms))
+        ff (first forms)
+        deps (cond (vector? ff) ff
+                   (map? ff) (transform-deps-map ff)
+                   :else (throw (IllegalArgumentException.
+                                 (format
+                                  "Invalid service definition; expected dependency list following protocol, found: '%s'"
+                                  (pr-str ff)))))]
+    (if (every? seq? (rest forms))
+      {:service-protocol-sym service-protocol-sym
+       :dependencies deps
+       :fns (rest forms)}
+      (throw (IllegalArgumentException.
+              (format
+               "Invalid service definition; expected function definitions following dependency list, invalid value: '%s'"
+               (pr-str (first (filter #(not (seq? %)) (rest forms))))))))))
 
 (schema/defn ^:always-validate validate-protocol-sym! :- Protocol
   "Given a var, validate that the var exists and that its value is a protocol.

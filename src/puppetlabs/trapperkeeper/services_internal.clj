@@ -58,6 +58,13 @@
    :dependencies (schema/pred sequential?)
    :fns-map FnsMap})
 
+(def ProtocolandDependenciesMap
+  "Schema defining the map used to represent the protocol and dependencies
+  of a service."
+  {:fns (schema/pred seq?)
+   :dependencies (schema/pred vector?)
+   :service-protocol-sym (schema/maybe Symbol)})
+
 (def ServiceMap
   "Schema defining the map used to represent a schema in the output service
    map."
@@ -87,14 +94,13 @@
             optional-form (array-map dep optional-dep-default)]
         (recur (rest optional) (conj output optional-form))))))
 
-(schema/defn ^:always-validate find-prot-and-deps-forms!
-  :- {:fns (schema/pred seq?) :dependencies (schema/pred vector?) :service-protocol-sym (schema/maybe Symbol)}
+(schema/defn ^:always-validate find-prot-and-deps-forms! :- ProtocolandDependenciesMap
   "Given the forms passed to the service macro, find the service protocol
   (if one is provided), the dependency list, and the function definitions.
   Throws `IllegalArgumentException` if the forms do not represent a valid service.
   Returns a map containing the protocol, dependency list, and fn forms."
   [forms :- (schema/pred seq?)]
-  (let [f (if (some true? ((juxt symbol? map? vector?) (first forms)))
+  (let [f (if ((some-fn symbol? map? vector?) (first forms))
             (first forms)
             (throw (IllegalArgumentException.
                     (format

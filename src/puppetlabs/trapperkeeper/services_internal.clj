@@ -61,7 +61,7 @@
 (def ProtocolandDependenciesMap
   "Schema defining the map used to represent the protocol and dependencies
   of a service."
-  {:fns (schema/pred seq?)
+  {:fns [(schema/pred seq?)]
    :dependencies (schema/pred vector?)
    :service-protocol-sym (schema/maybe Symbol)})
 

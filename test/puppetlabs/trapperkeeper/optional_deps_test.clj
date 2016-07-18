@@ -33,13 +33,41 @@
 
 (deftest optional-deps-test
   (testing "when not using a protocol"
-    (let [poetry-service (service {:required [HaikuService]
-                                   :optional [SonnetService]}
-                           (init [this ctx]
-                             (assoc ctx
-                                    :haiku-svc (get-service this :HaikuService)
-                                    :sonnet-svc (tks/maybe-get-service this :SonnetService))))]
-      (is (build-app [poetry-service haiku-service] {}))))
+    (let [find-poetry-svc-context (fn [app]
+                                    (let [contexts (-> app
+                                                       tka/init
+                                                       tka/app-context
+                                                       deref
+                                                       :service-contexts)]
+                                      (->> contexts
+                                           keys
+                                           (filter #(re-matches #"tk-service\d+" (name %)))
+                                           first
+                                           (get contexts))))]
+      (testing "and not destructuring fns"
+        (let [poetry-service (service {:required [HaikuService]
+                                       :optional [SonnetService]}
+                                      (init [this ctx]
+                                            (assoc ctx
+                                                   :haiku-svc (get-service this :HaikuService)
+                                                   :sonnet-svc (tks/maybe-get-service this :SonnetService))))]
+          (let [app (build-app [poetry-service haiku-service] {})
+                poetry-context (find-poetry-svc-context app)]
+            (is (nil? (:sonnet-svc poetry-context)))
+            (is (some? (:haiku-svc poetry-context))))))
+
+      (testing "and destructuring fns"
+        (let [poetry-service (service {:required [[:HaikuService haiku]]
+                                       :optional [SonnetService]}
+                                      (init [this ctx]
+                                            (assoc ctx
+                                                   :haiku-fn haiku
+                                                   :sonnet-svc (tks/maybe-get-service this :SonnetService))))]
+          (let [app (build-app [poetry-service haiku-service] {})
+                poetry-context (find-poetry-svc-context app)]
+            (is (nil? (:sonnet-svc poetry-context)))
+            (is (= ["here is a haiku" "about the topic you want" "meh"] ((:haiku-fn poetry-context) "meh"))))))))
+
   (testing "when dep form is well formed"
     (testing "when there are no optional deps"
       (let [poetry-service (service PoetryService

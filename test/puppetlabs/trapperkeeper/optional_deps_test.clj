@@ -32,6 +32,100 @@
                                             couplet))))
 
 (deftest optional-deps-test
+  (testing "when using defservice"
+    (testing "with destructuring"
+      (testing "and protocol"
+        (defservice poetry-svc-w-destructure-and-proto
+          PoetryService
+          {:required [[:HaikuService haiku]]
+           :optional [SonnetService]}
+          (init [this ctx] ctx)
+          (get-haiku [this] (haiku "meh"))
+          (get-sonnet [this] "feh"))
+        (is (build-app [poetry-svc-w-destructure-and-proto haiku-service] {})))
+      (testing "and no protocol"
+        (defservice poetry-svc-w-destructure
+          {:required [[:HaikuService haiku]]
+           :optional [SonnetService]}
+          (init [this ctx] ctx))
+        (is (build-app [poetry-svc-w-destructure haiku-service] {}))))
+
+    (testing "with a protocol"
+      (defservice poetry-svc-w-protocol
+        PoetryService
+        {:required [HaikuService]
+         :optional [SonnetService]}
+        (init [this ctx] ctx)
+        (get-haiku [this] "haiku")
+        (get-sonnet [this] "sonnet"))
+      (is (build-app [poetry-svc-w-protocol haiku-service] {})))
+
+    (testing "without a protocol"
+      (defservice poetry-svc-wo-protocol
+        {:required [HaikuService]
+         :optional [SonnetService]}
+        (init [this ctx] ctx))
+      (is (build-app [poetry-svc-wo-protocol haiku-service] {})))
+
+    (testing "with metadata"
+      (testing "and a protocol"
+        (defservice poetry-svc-w-meta-and-proto
+          {:private true}
+          PoetryService
+          {:required [HaikuService]
+           :optional [SonnetService]}
+          (init [this ctx] ctx)
+          (get-haiku [this] "haiku")
+          (get-sonnet [this] "sonnet"))
+        (is (build-app [poetry-svc-w-meta-and-proto haiku-service] {})))
+      (testing "and no protocol"
+        (defservice poetry-svc-w-meta-and-no-proto
+          {:private true}
+          {:required [HaikuService]
+           :optional [SonnetService]}
+          (init [this ctx] ctx))
+        (is (build-app [poetry-svc-w-meta-and-no-proto haiku-service] {}))))
+
+    (testing "with a docstring"
+      (testing "and a protocol"
+        (defservice poetry-svc-w-doc-and-proto
+          "foo bar butt"
+          PoetryService
+          {:required [HaikuService]
+           :optional [SonnetService]}
+          (init [this ctx] ctx)
+          (get-haiku [this] "haiku")
+          (get-sonnet [this] "sonnet"))
+        (is (build-app [poetry-svc-w-doc-and-proto haiku-service] {})))
+      (testing "and no protocol"
+        (defservice poetry-svc-w-doc-and-no-proto
+          "fop blop bork"
+          {:required [HaikuService]
+           :optional [SonnetService]}
+          (init [this ctx] ctx))
+        (is (build-app [poetry-svc-w-doc-and-no-proto haiku-service] {}))))
+
+    (testing "with docstring and metadata"
+      (testing "and a protocol"
+        (defservice poetry-svc-w-everything
+          "flarp"
+          {:private true}
+          PoetryService
+          {:required [HaikuService]
+           :optional [SonnetService]}
+          (init [this ctx] ctx)
+          (get-haiku [this] "haiku")
+          (get-sonnet [this] "sonnet"))
+        (is (build-app [poetry-svc-w-everything haiku-service] {})))
+      (testing "and no protocol"
+        (defservice poetry-svc-w-everything-but-proto
+          "fop blop bork"
+          {:required [HaikuService]
+           :optional [SonnetService]}
+          (init [this ctx] ctx))
+        (is (build-app [poetry-svc-w-everything-but-proto haiku-service] {})))))
+
+
   (testing "when not using a protocol"
     (let [poetry-service (service {:required [HaikuService]
                                    :optional [SonnetService]}

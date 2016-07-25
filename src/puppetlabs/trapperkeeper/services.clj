@@ -1,9 +1,9 @@
 (ns puppetlabs.trapperkeeper.services
-  (:require [clojure.tools.macro :refer [name-with-attributes]]
-            [clojure.set :refer [difference]]
+  (:require [clojure.set :refer [difference]]
             [plumbing.core :refer [fnk]]
             [puppetlabs.kitchensink.core :refer [select-values keyset]]
-            [puppetlabs.trapperkeeper.services-internal :as si]))
+            [puppetlabs.trapperkeeper.services-internal :as si]
+            [schema.core :as schema]))
 
 (defprotocol Lifecycle
   "Lifecycle functions for a service.  All services satisfy this protocol, and
@@ -34,6 +34,29 @@
   (service-map [this] "The map of service functions for the graph"))
 
 (def lifecycle-fn-names (map :name (vals (:sigs Lifecycle))))
+
+(defn name-with-attributes
+  "This is a plate of warm and nutritious copypasta of
+  clojure.tools.macro/name-with-attributes. Without this modified version,
+  name-with-attributes consumes a dependency map when a protocol is not present
+  in a defservice invocation. This version of the function double checks a map
+  that might be metadata and ignores it if it conforms to the DependencyMap
+  schema. Forgive me."
+  [name macro-args]
+  (let [[docstring macro-args] (if (string? (first macro-args))
+                                 [(first macro-args) (next macro-args)]
+                                 [nil macro-args])
+        [attr macro-args]          (if (and (map? (first macro-args))
+                                            (schema/check si/DependencyMap (first macro-args)))
+                                     [(first macro-args) (next macro-args)]
+                                     [{} macro-args])
+        attr                       (if docstring
+                                     (assoc attr :doc docstring)
+                                     attr)
+        attr                       (if (meta name)
+                                     (conj (meta name) attr)
+                                     attr)]
+    [(with-meta name attr) macro-args]))
 
 (defmacro service
   "Create a Trapperkeeper ServiceDefinition.

@@ -3,15 +3,17 @@
             [puppetlabs.trapperkeeper.services :refer
              [defservice service] :as svcs]
             [puppetlabs.trapperkeeper.app :as app]
+            [puppetlabs.kitchensink.core :as kitchensink]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
              [bootstrap-services-with-empty-config
-              with-app-with-empty-config]]
+              with-app-with-empty-config
+              with-app-with-config]]
             [schema.test :as schema-test]
             [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
             [puppetlabs.trapperkeeper.internal :as internal]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.core :as tk]
-            [puppetlabs.kitchensink.testutils :as ks-testutils])
+            [puppetlabs.kitchensink.testutils :as ks-testutils]
+            [me.raynes.fs :as fs])
   (:import (java.util.concurrent ExecutionException)))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
@@ -61,6 +63,67 @@
                      (service1-fn [this] "hi"))
           app (bootstrap-services-with-empty-config [service1])]
       (is (not (nil? app))))))
+
+(deftest test-restart-file-correct-count
+  (testing "create a restart file and check that it correctly increments when a service starts"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] "hi"))
+          temp-file (kitchensink/temp-file-name "counter")]
+          (with-app-with-config app [service1] {:global {:restart-file temp-file}}
+            (app/restart app)
+            (is (= (slurp temp-file) "2"))))))
+
+(deftest test-restart-file-HUP-restart
+  (testing "check that restart file correctly increments on HUP restarts"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] "hi"))
+          temp-file (kitchensink/temp-file-name "counter")]
+      (with-app-with-config app [service1] {:global {:restart-file temp-file}}
+        (app/restart app)
+        (is (= (slurp temp-file) "2"))))))
+
+(deftest test-restart-file-big-int-limit
+  (testing "restart file should reset to 1 if the counter is too large"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] "hi"))
+          temp-file (kitchensink/temp-file-name "counter")]
+      (spit temp-file "9223372036854775807")
+      (with-app-with-config app [service1] {:global {:restart-file temp-file}}
+        (is (= (slurp temp-file) "1")))
+      (with-app-with-config app [service1] {:global {:restart-file temp-file}}
+        (is (= (slurp temp-file) "2"))))))
+
+(deftest test-invalid-restart-file
+  (testing "restart file should reset to 1 if the file is unparesable"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] "hi"))
+          temp-file (kitchensink/temp-file-name "counter")]
+      (spit temp-file "hello")
+      (with-app-with-config app [service1] {:global {:restart-file temp-file}}
+        (is (= (slurp temp-file) "1"))))))
+
+(deftest test-restart-file-no-permissions
+  (testing "exception should be thrown if restart file is not readable/writeable"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] "hi"))
+          temp-file (kitchensink/temp-file-name "counter")]
+      (fs/chmod "u-rw" (fs/touch temp-file))
+      (is (thrown? IllegalStateException
+                   (with-app-with-config app [service1] {:global {:restart-file temp-file}}))))))
+
+(deftest test-restart-file-missing-parent-dirs
+  (testing "some portion of the parent directory structure does not exist"
+    (let [service1 (service Service1
+                            []
+                            (service1-fn [this] "hi"))
+          temp-file (fs/file (kitchensink/temp-dir "foo") "bar" "baz" "counter")]
+      (with-app-with-config app [service1] {:global {:restart-file temp-file}}
+        (is (= (slurp temp-file) "1"))))))
 
 (defn create-lifecycle-services
   [call-seq]

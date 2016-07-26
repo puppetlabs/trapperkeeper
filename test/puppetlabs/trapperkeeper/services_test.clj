@@ -121,6 +121,7 @@
                             []
                             (service1-fn [this] "hi"))
           temp-file (fs/file (kitchensink/temp-dir "foo") "bar" "baz" "counter")]
+      (is (false? (fs/exists? (fs/parent temp-file))))
       (is (false? (fs/exists? temp-file)))
       (with-app-with-config app [service1] {:global {:restart-file temp-file}}
         (is (= (slurp temp-file) "1"))))))

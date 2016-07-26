@@ -71,8 +71,7 @@
                             (service1-fn [this] "hi"))
           temp-file (kitchensink/temp-file-name "counter")]
           (with-app-with-config app [service1] {:global {:restart-file temp-file}}
-            (app/restart app)
-            (is (= (slurp temp-file) "2"))))))
+            (is (= (slurp temp-file) "1"))))))
 
 (deftest test-restart-file-HUP-restart
   (testing "check that restart file correctly increments on HUP restarts"
@@ -97,7 +96,7 @@
         (is (= (slurp temp-file) "2"))))))
 
 (deftest test-invalid-restart-file
-  (testing "restart file should reset to 1 if the file is unparesable"
+  (testing "restart file should reset to 1 if the file is unparseable"
     (let [service1 (service Service1
                             []
                             (service1-fn [this] "hi"))
@@ -122,6 +121,7 @@
                             []
                             (service1-fn [this] "hi"))
           temp-file (fs/file (kitchensink/temp-dir "foo") "bar" "baz" "counter")]
+      (is (false? (fs/exists? temp-file)))
       (with-app-with-config app [service1] {:global {:restart-file temp-file}}
         (is (= (slurp temp-file) "1"))))))
 

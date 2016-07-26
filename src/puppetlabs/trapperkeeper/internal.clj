@@ -49,21 +49,23 @@
 
 (defn inc-restart-counter!
   "Increments the counter in a restart-file for purposes of supporting HUP behavior"
-  [restart-file-path]
-  (try
-    (if (fs/exists? restart-file-path)
-      (if (and (fs/writeable? restart-file-path) (fs/readable? restart-file-path))
-        (spit restart-file-path (inc (Long/parseLong (slurp restart-file-path))))
-        (throw (IllegalStateException. (format "Restart file %s is not readable and/or writeable" restart-file-path))))
-      (let [dir-path (fs/parent restart-file-path)]
-        (fs/mkdirs dir-path)
-        (spit restart-file-path "1")))
-    (catch ArithmeticException e
-      (spit restart-file-path "1")
-      (log/debug "Number of restarts has exceeded Long/MAX_VALUE, resetting file to 1"))
-    (catch NumberFormatException e
-      (spit restart-file-path "1")
-      (log/error "Restart file is unparseable, resetting file to 1"))))
+  [app]
+  (when-let
+      [restart-file-path (get-in-config (a/get-service app :ConfigService) [:global :restart-file])]
+      (try
+        (if (fs/exists? restart-file-path)
+          (if (and (fs/writeable? restart-file-path) (fs/readable? restart-file-path))
+            (spit restart-file-path (inc (Long/parseLong (slurp restart-file-path))))
+            (throw (IllegalStateException. (format "Restart file %s is not readable and/or writeable" restart-file-path))))
+          (let [dir-path (fs/parent restart-file-path)]
+            (fs/mkdirs dir-path)
+            (spit restart-file-path "1")))
+        (catch ArithmeticException e
+          (spit restart-file-path "1")
+          (log/debug "Number of restarts has exceeded Long/MAX_VALUE, resetting file to 1"))
+        (catch NumberFormatException e
+          (spit restart-file-path "1")
+          (log/error "Restart file is unparseable, resetting file to 1")))))
 
 (defn validate-service-graph!
   "Validates that a ServiceDefinition contains a valid trapperkeeper service graph.
@@ -583,8 +585,7 @@
         this)
       (a/start [this]
         (run-lifecycle-fns app-context s/start "start" ordered-services)
-        (when-let [restart-file (get-in-config (a/get-service this :ConfigService) [:global :restart-file])]
-          (inc-restart-counter! restart-file))
+        (inc-restart-counter! this)
         this)
       (a/stop [this]
         (shutdown! app-context)
@@ -595,8 +596,7 @@
           (doseq [svc-id (keys services-by-id)] (swap! app-context assoc-in [:service-contexts svc-id] {}))
           (run-lifecycle-fns app-context s/init "init" ordered-services)
           (run-lifecycle-fns app-context s/start "start" ordered-services)
-          (when-let [restart-file (get-in-config (a/get-service this :ConfigService) [:global :restart-file])]
-            (inc-restart-counter! restart-file))
+          (inc-restart-counter! this)
           this
           (catch Throwable t
             (deliver shutdown-reason-promise {:cause :service-error

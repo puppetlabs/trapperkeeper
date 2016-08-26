@@ -1,6 +1,6 @@
 (def ks-version "1.0.0")
 
-(defproject puppetlabs/trapperkeeper "1.1.3"
+(defproject puppetlabs/trapperkeeper "1.1.4-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.
@@ -14,7 +14,9 @@
                  [prismatic/schema "0.4.0"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.clojure/tools.macro "0.1.2"]
-                 [ch.qos.logback/logback-classic "1.1.1"]
+                 [ch.qos.logback/logback-classic "1.1.7"]
+                 [ch.qos.logback/logback-core "1.1.7"]
+                 [ch.qos.logback/logback-access "1.1.7"]
                  [org.codehaus.janino/janino "2.7.8"]
                  [puppetlabs/typesafe-config "0.1.1"]
                  [me.raynes/fs "1.4.5"]

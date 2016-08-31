@@ -1,3 +1,13 @@
+## 1.5.0
+This is a feature/bugfix/maintenance release
+
+* [TK-345](https://tickets.puppetlabs.com/browse/TK-345) - Add support for optional
+  restart file which, if specified, will contain an integer that increments when
+  a TK app has successfully started all of its services
+* [TK-382](https://tickets.puppetlabs.com/browse/TK-382) - Fix bug where optional
+  dependencies could not be specified for a service without a protocol
+* [TK-397](https://tickets.puppetlabs.com/browse/TK-397) - Update to logback 1.1.7
+
 ## 1.4.1
 
 This is a bugfix release. It fixes a single issue

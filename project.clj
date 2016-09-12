@@ -26,6 +26,8 @@
                  ;; conflict with our version of logback-classic
                  [ch.qos.logback/logback-core]
                  [ch.qos.logback/logback-access]
+                 ;; Janino can be used for some advanced logback configurations
+                 [org.codehaus.janino/janino]
 
                  [clj-time]
                  [me.raynes/fs]
@@ -34,7 +36,6 @@
                  [prismatic/plumbing]
                  [prismatic/schema]
 
-                 [org.codehaus.janino/janino "2.7.8"]
                  [beckon "0.1.1"]
 
                  [puppetlabs/typesafe-config]

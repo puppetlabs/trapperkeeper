@@ -1,34 +1,46 @@
-(def ks-version "1.3.0")
-(def logback-version "1.1.7")
+(def ks-version "1.3.1")
 
 (defproject puppetlabs/trapperkeeper "1.5.2-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
+
+  :min-lein-version "2.7.0"
+
+  :parent-project {:coords [puppetlabs/clj-parent "0.1.0-SNAPSHOT"]
+                   :inherit [:managed-dependencies]}
+
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.
   ;; requires lein 2.2.0+.
   :pedantic? :abort
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/tools.logging "0.2.6"]
-                 [clj-time "0.5.1"]
-                 [puppetlabs/kitchensink ~ks-version]
-                 [prismatic/plumbing "0.4.2"]
-                 [prismatic/schema "1.0.4"]
-                 [org.clojure/tools.nrepl "0.2.3"]
-                 [org.clojure/tools.macro "0.1.2"]
-                 [ch.qos.logback/logback-classic ~logback-version]
+  :dependencies [[org.clojure/clojure]
+                 [org.clojure/tools.logging]
+                 [org.clojure/tools.nrepl]
+                 [org.clojure/tools.macro]
+                 [org.clojure/core.async]
+
+                 [org.slf4j/log4j-over-slf4j]
+                 [ch.qos.logback/logback-classic]
                  ;; even though we don't strictly have a dependency on the following two
                  ;; logback artifacts, specifying the dependency version here ensures
                  ;; that downstream projects don't pick up different versions that would
                  ;; conflict with our version of logback-classic
-                 [ch.qos.logback/logback-core ~logback-version]
-                 [ch.qos.logback/logback-access ~logback-version]
-                 [org.slf4j/log4j-over-slf4j "1.7.6"]
+                 [ch.qos.logback/logback-core]
+                 [ch.qos.logback/logback-access]
+
+                 [clj-time]
+                 [me.raynes/fs]
+                 [clj-yaml]
+
+                 [prismatic/plumbing]
+                 [prismatic/schema]
+
                  [org.codehaus.janino/janino "2.7.8"]
-                 [puppetlabs/typesafe-config "0.1.5"]
-                 [me.raynes/fs "1.4.6"]
-                 [clj-yaml "0.4.0"]
                  [beckon "0.1.1"]
-                 [org.clojure/core.async "0.2.374"]]
+
+                 [puppetlabs/typesafe-config "0.1.5"]
+                 [puppetlabs/kitchensink ~ks-version]
+
+                 ]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username
@@ -58,7 +70,7 @@
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
 
-  :plugins []
+  :plugins [[lein-parent "0.3.0"]]
 
   :main puppetlabs.trapperkeeper.main
   )

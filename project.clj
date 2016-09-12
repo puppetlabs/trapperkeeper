@@ -30,9 +30,6 @@
                  [beckon "0.1.1"]
                  [org.clojure/core.async "0.2.374"]]
 
-  :lein-release {:scm         :git
-                 :deploy-via  :lein-deploy}
-
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username
                                      :password :env/clojars_jenkins_password
@@ -55,15 +52,13 @@
              :dev {:source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
-                   :dependencies [[spyscope "0.1.4"]
-                                  [puppetlabs/kitchensink ~ks-version :classifier "test"]]
-                   :injections [(require 'spyscope.core)]}
+                   :dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]]}
 
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
 
-  :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]]
+  :plugins []
 
   :main puppetlabs.trapperkeeper.main
   )

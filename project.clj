@@ -36,7 +36,7 @@
                  [prismatic/plumbing]
                  [prismatic/schema]
 
-                 [beckon "0.1.1"]
+                 [beckon]
 
                  [puppetlabs/typesafe-config]
                  [puppetlabs/kitchensink]

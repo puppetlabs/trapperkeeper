@@ -8,11 +8,12 @@ Trapperkeeper's default mode of operation is to handle the processing of applica
 
 Note that if you absolutely need control over the command line argument processing, it is possible to circumvent the built-in handling by calling Trapperkeeper's `bootstrap` function directly; see additional details in the [Bootstrapping](Bootstrapping.md) page.
 
-Trapperkeeper supports three command-line arguments:
+Trapperkeeper supports four command-line arguments:
 
 * `--config/-c`: The path to the configuration file or directory. This option is used to initialize the configuration service. This argument is optional; if not specified, Trapperkeeper will act as if you had given it an empty configuration file.
 * `--bootstrap-config/-b`: This argument is optional; if specified, the value should be a path to a bootstrap configuration file, or a comma separated list of files and directories ([see below](#multiple-bootstrap-files)) that Trapperkeeper will use (instead of looking for `bootstrap.cfg` in the current working directory or on the classpath)
 * `--debug/-d`: This option is not required; it's a flag, so it will evaluate to a boolean.  If `true`, sets the logging level to DEBUG, and also sets the `:debug` key in the configuration map provided by the configuration-service.
+* `--restart-file/-r`: This argument is optional; if specified, the value should be a path to a file in which a start counter is incremented each time Trapperkeeper has started all of the services in an application.  See the [Restart File](Restart-File.md) page for additional details.
 
 ### Multiple bootstrap files
 The `--bootstrap-config` argument can be used to specify multiple bootstrap files. This way, a Trapperkeeper app's bootstrap configuration can be split up into multiple locations. You might want to do this to separate logically related services into their own files for instance.

@@ -29,6 +29,7 @@ Trapperkeeper is a Clojure framework for hosting long-running applications and s
 * [Service Interfaces](Service-Interfaces.md)
 * [Command Line Arguments](Command-Line-Arguments.md)
  * [Other Ways to Boot](Command-Line-Arguments.md#other-ways-to-boot)
+* [Restart File Feature for Determining When Services Have Been Started](Restart-File.md)
 * [Test Utils](Test-Utils.md)
 * [Trapperkeeper Best Practices](Trapperkeeper-Best-Practices.md)
  * [To Trapperkeeper Or Not To Trapperkeeper](Trapperkeeper-Best-Practices.md#to-trapperkeeper-or-not-to-trapperkeeper)

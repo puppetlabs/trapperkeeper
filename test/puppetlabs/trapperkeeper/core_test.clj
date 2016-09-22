@@ -9,7 +9,8 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.config :as config]
             [puppetlabs.trapperkeeper.testutils.logging :as logging]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test]
+            [puppetlabs.kitchensink.core :as ks]))
 
 (use-fixtures :each schema-test/validate-schemas logging/reset-logging-config-after-test)
 
@@ -55,12 +56,15 @@
   (testing "Parsed CLI data"
     (let [bootstrap-file "/fake/path/bootstrap.cfg"
           config-dir     "/fake/config/dir"
+          restart-file   "/fake/restart/file"
           cli-data         (parse-cli-args!
                             ["--debug"
                              "--bootstrap-config" bootstrap-file
-                             "--config" config-dir])]
+                             "--config" config-dir
+                             "--restart-file" restart-file])]
       (is (= bootstrap-file (cli-data :bootstrap-config)))
       (is (= config-dir (cli-data :config)))
+      (is (= restart-file (cli-data :restart-file)))
       (is (cli-data :debug))))
 
   (testing "Invalid CLI data"
@@ -103,3 +107,25 @@
     ;; Make sure --plugins is allowed; will throw an exception if not.
     (parse-cli-args! ["--config" "yo mama"
                       "--plugins" "some/plugin/directory"])))
+
+(deftest restart-file-config
+  (let [tk-config-file-with-restart (ks/temp-file "restart-global" ".conf")
+        tk-restart-file "/my/tk-restart-file"
+        cli-restart-file "/my/cli-restart-file"]
+    (spit tk-config-file-with-restart
+          (format "global: {\nrestart-file: %s\n}" tk-restart-file))
+    (testing "restart-file setting comes from TK config when CLI arg absent"
+      (let [config (config/parse-config-data
+                    {:config (str tk-config-file-with-restart)})]
+        (is (= tk-restart-file (get-in config [:global :restart-file])))))
+    (testing "restart-file setting comes from CLI arg when no TK config setting"
+      (let [empty-tk-config-file (ks/temp-file "empty" ".conf")
+            config (config/parse-config-data
+                    {:config (str empty-tk-config-file)
+                     :restart-file cli-restart-file})]
+        (is (= cli-restart-file (get-in config [:global :restart-file])))))
+    (testing "restart-file setting comes from CLI arg even when set in TK config"
+      (let [config (config/parse-config-data
+                    {:config (str tk-config-file-with-restart)
+                     :restart-file cli-restart-file})]
+        (is (= cli-restart-file (get-in config [:global :restart-file])))))))

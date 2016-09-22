@@ -9,4 +9,5 @@
               (schema/optional-key :bootstrap-config) schema/Str
               (schema/optional-key :config)           schema/Str
               (schema/optional-key :plugins)          schema/Str
+              (schema/optional-key :restart-file)     schema/Str
               (schema/optional-key :help)             schema/Bool})

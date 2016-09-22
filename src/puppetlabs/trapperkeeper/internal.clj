@@ -168,7 +168,8 @@
       --debug
       --bootstrap-config <bootstrap file>
       --config <.ini file or directory>
-      --plugins <plugins directory>"
+      --plugins <plugins directory>
+      --restart-file <restart file>"
   [cli-args :- [(schema/maybe schema/Str)]]
   (let [specs       [["-d" "--debug" "Turns on debug mode"]
                      ["-b" "--bootstrap-config BOOTSTRAP-CONFIG-FILE" "Path to bootstrap config file"]
@@ -176,7 +177,10 @@
                       (str "Path to a configuration file or directory of configuration files, "
                            "or a comma-separated list of such paths."
                            "See the documentation for a list of supported file types.")]
-                     ["-p" "--plugins PLUGINS-DIRECTORY" "Path to directory plugin .jars"]]
+                     ["-p" "--plugins PLUGINS-DIRECTORY" "Path to directory plugin .jars"]
+                     ["-r" "--restart-file RESTART-FILE"
+                      (str "Path to a file whose contents is incremented each time all of "
+                           "the configured services have been started.")]]
         required    []]
     (first (cli! cli-args specs required))))
 

@@ -62,7 +62,14 @@
 (defn override-restart-file-from-cli-data
   [config-data cli-data]
   (if-let [cli-restart-file (:restart-file cli-data)]
-    (assoc-in config-data [:global :restart-file] cli-restart-file)
+    (do
+      (if (get-in config-data [:global :restart-file])
+        (log/warnf
+         (str
+          "restart-file setting specified both on command-line and "
+          "in config file, using command-line value: '%s'")
+         cli-restart-file))
+      (assoc-in config-data [:global :restart-file] cli-restart-file))
     config-data))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

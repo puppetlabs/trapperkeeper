@@ -59,6 +59,19 @@
     #{".yaml" ".yml"}
     (yaml/parse-string (slurp file))))
 
+(defn override-restart-file-from-cli-data
+  [config-data cli-data]
+  (if-let [cli-restart-file (:restart-file cli-data)]
+    (do
+      (if (get-in config-data [:global :restart-file])
+        (log/warnf
+         (str
+          "restart-file setting specified both on command-line and "
+          "in config file, using command-line value: '%s'")
+         cli-restart-file))
+      (assoc-in config-data [:global :restart-file] cli-restart-file))
+    config-data))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -122,7 +135,8 @@
       {:debug debug?}
       (-> (:config cli-data)
           (load-config)
-          (assoc :debug debug?)))))
+          (assoc :debug debug?)
+          (override-restart-file-from-cli-data cli-data)))))
 
 (defn initialize-logging!
   "Initializes the logging system based on the configuration data."

@@ -2,6 +2,7 @@
   "version": 1,
   "file_format": "This MAINTAINERS file format is described at http://pup.pt/maintainers",
   "issues": "https://tickets.puppetlabs.com/browse/TK",
+  "internal_list": "https://groups.google.com/a/puppet.com/forum/?hl=en#!forum/discuss-trapperkeeper-maintainers",
   "people": [
     {
       "github": "cprice404",

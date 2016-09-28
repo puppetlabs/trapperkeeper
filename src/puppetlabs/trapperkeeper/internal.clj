@@ -179,7 +179,7 @@
                            "See the documentation for a list of supported file types.")]
                      ["-p" "--plugins PLUGINS-DIRECTORY" "Path to directory plugin .jars"]
                      ["-r" "--restart-file RESTART-FILE"
-                      (str "Path to a file whose contents is incremented each time all of "
+                      (str "Path to a file whose contents are incremented each time all of "
                            "the configured services have been started.")]]
         required    []]
     (first (cli! cli-args specs required))))

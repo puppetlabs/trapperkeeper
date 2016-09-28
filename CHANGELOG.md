@@ -1,4 +1,12 @@
+## 1.5.1
+
+This is a minor feature release
+
+* [TK-405](https://tickets.puppetlabs.com/browse/TK-405) - Add support for
+  specifying the restart file option via a command line argument
+
 ## 1.5.0
+
 This is a feature/bugfix/maintenance release
 
 * [TK-345](https://tickets.puppetlabs.com/browse/TK-345) - Add support for optional

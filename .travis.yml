@@ -1,5 +1,5 @@
 language: clojure
-lein: lein2
+lein: 2.7.1
 jdk:
   - oraclejdk7
   - openjdk7

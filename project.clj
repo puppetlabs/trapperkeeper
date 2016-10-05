@@ -1,11 +1,9 @@
-
-
 (defproject puppetlabs/trapperkeeper "1.5.2-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :min-lein-version "2.7.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "0.1.0-SNAPSHOT"]
+  :parent-project {:coords [puppetlabs/clj-parent "0.1.3"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -57,8 +55,7 @@
   ;; code that we have.
   :classifiers [["test" :testutils]]
 
-  :profiles {:cljfmt {:plugins [[lein-cljfmt "0.5.0"]
-                                [lein-parent "0.2.1"]]
+  :profiles {:cljfmt {:plugins [[lein-cljfmt "0.5.0"]]
                       :parent-project {:path "ext/pl-clojure-style/project.clj"
                                        :inherit [:cljfmt]}}
              :dev {:source-paths ["examples/shutdown_app/src"
@@ -70,7 +67,7 @@
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
 
-  :plugins [[lein-parent "0.3.0"]]
+  :plugins [[lein-parent "0.3.1"]]
 
   :main puppetlabs.trapperkeeper.main
   )

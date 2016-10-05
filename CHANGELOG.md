@@ -1,3 +1,10 @@
+## 1.5.2
+
+This is a maintenance release.
+
+* [SERVER-1494](https://tickets.puppetlabs.com/browse/SERVER-1494) - use `lein-parent`
+  plugin to inherit dependency versions from parent project.
+
 ## 1.5.1
 
 This is a minor feature release

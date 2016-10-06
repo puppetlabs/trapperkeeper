@@ -1,7 +1,7 @@
 (defproject puppetlabs/trapperkeeper "1.5.2-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
-  :min-lein-version "2.7.0"
+  :min-lein-version "2.7.1"
 
   :parent-project {:coords [puppetlabs/clj-parent "0.1.3"]
                    :inherit [:managed-dependencies]}

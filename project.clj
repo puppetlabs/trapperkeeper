@@ -38,6 +38,7 @@
 
                  [puppetlabs/typesafe-config]
                  [puppetlabs/kitchensink]
+                 [puppetlabs/i18n]
                  ]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
@@ -67,7 +68,8 @@
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
 
-  :plugins [[lein-parent "0.3.1"]]
+  :plugins [[lein-parent "0.3.1"]
+            [puppetlabs/i18n "0.4.3"]]
 
   :main puppetlabs.trapperkeeper.main
   )

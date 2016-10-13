@@ -4,7 +4,8 @@
            (org.slf4j Logger LoggerFactory)
            (ch.qos.logback.classic.joran JoranConfigurator))
   (:require [clojure.stacktrace :refer [print-cause-trace]]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [puppetlabs.i18n.core :as i18n]))
 
 (defn logging-context
   []
@@ -29,7 +30,7 @@
   where we want to make sure an exception is logged (because nobody
   higher up in the stack will log it for us)."
   ([exception]
-   (catch-all-logger exception "Uncaught exception"))
+   (catch-all-logger exception (i18n/trs "Uncaught exception")))
   ([exception message]
    (print-cause-trace exception)
    (flush)
@@ -102,4 +103,4 @@
      (configure-logger! logging-conf))
    (when debug
      (add-console-logger! Level/DEBUG)
-     (log/debug "Debug logging enabled"))))
+     (log/debug (i18n/trs "Debug logging enabled")))))

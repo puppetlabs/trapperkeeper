@@ -3,7 +3,8 @@
            (java.io File))
   (:require [clojure.java.io :refer [file]]
             [clojure.tools.logging :as log]
-            [puppetlabs.kitchensink.classpath :as kitchensink]))
+            [puppetlabs.kitchensink.classpath :as kitchensink]
+            [puppetlabs.i18n.core :as i18n]))
 
 (defn- should-process?
   "Helper for `process-file`.  Answers whether or not the duplicate detection
@@ -25,8 +26,8 @@
   if the duplicate is a .class or .clj file.  Otherwise, logs a warning and
   returns the accumulator."
   [container-filename acc filename]
-  (let [error-msg (str "Class or namespace " filename " found in both "
-                       container-filename " and " (acc filename))]
+  (let [error-msg (i18n/trs "Class or namespace {0} found in both {1} and {2}"
+                            filename container-filename (acc filename))]
     (if (or (.endsWith filename ".class") (.endsWith filename ".clj"))
       (throw (IllegalArgumentException. error-msg))
 
@@ -97,7 +98,7 @@
         (do
           (verify-no-duplicate-resources plugins)
           (doseq [jar (jars-in-dir plugins)]
-            (log/info "Adding plugin .jar " (.getAbsolutePath jar) " to classpath.")
+            (log/info (i18n/trs "Adding plugin .jar to classpath." (.getAbsolutePath jar)))
             (kitchensink/add-classpath jar)))
         (throw (IllegalArgumentException.
-                (str "Plugins directory " plugins-path " does not exist")))))))
+                 (i18n/trs "Plugins directory {0} does not exist" plugins-path)))))))

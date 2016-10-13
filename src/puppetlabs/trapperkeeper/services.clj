@@ -3,7 +3,8 @@
             [plumbing.core :refer [fnk]]
             [puppetlabs.kitchensink.core :refer [select-values keyset]]
             [puppetlabs.trapperkeeper.services-internal :as si]
-            [schema.core :as schema]))
+            [schema.core :as schema]
+            [puppetlabs.i18n.core :as i18n]))
 
 (defprotocol Lifecycle
   "Lifecycle functions for a service.  All services satisfy this protocol, and
@@ -97,9 +98,8 @@
                          (get-service [this# service-id#]
                            (or (get-in ~'@tk-app-context [:services-by-id service-id#])
                                (throw (IllegalArgumentException.
-                                       (format
-                                        "Call to 'get-service' failed; service '%s' does not exist."
-                                        service-id#)))))
+                                        (i18n/trs "Call to ''get-service'' failed; service ''{0}'' does not exist."
+                                          service-id#)))))
                          (maybe-get-service [this# service-id#]
                            (get-in ~'@tk-app-context [:services-by-id service-id#] nil))
                          (get-services [this#]
@@ -116,7 +116,7 @@
 
                          ~@(if service-protocol-sym
                              `(~service-protocol-sym
-                               ~@(si/fn-defs fns-map (vals service-fn-map)))))]
+                                ~@(si/fn-defs fns-map (vals service-fn-map)))))]
               (swap! ~'tk-service-refs assoc ~service-id svc#)
               (si/build-service-map ~service-fn-map svc#)))}))))
 

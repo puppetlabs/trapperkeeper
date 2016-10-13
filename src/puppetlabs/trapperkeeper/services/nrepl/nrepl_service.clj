@@ -1,9 +1,10 @@
 (ns puppetlabs.trapperkeeper.services.nrepl.nrepl-service
   (:require
-   [clojure.tools.logging :as log]
-   [clojure.tools.nrepl.server :as nrepl]
-   [puppetlabs.kitchensink.core :refer [to-bool]]
-   [puppetlabs.trapperkeeper.core :refer [defservice]]))
+    [clojure.tools.logging :as log]
+    [clojure.tools.nrepl.server :as nrepl]
+    [puppetlabs.kitchensink.core :refer [to-bool]]
+    [puppetlabs.trapperkeeper.core :refer [defservice]]
+    [puppetlabs.i18n.core :as i18n]))
 
 
 ;; If no port is specified in the config then 7888 is used
@@ -35,14 +36,14 @@
   [get-in-config]
   (let [{:keys [enabled? port bind handler]} (process-config get-in-config)]
     (if enabled?
-      (do (log/info "Starting nREPL service on" bind "port" port)
+      (do (log/info (i18n/trs "Starting nREPL service on {0} port {1}" bind port))
           (nrepl/start-server :port port :bind bind :handler handler))
-      (log/info "nREPL service disabled, not starting"))))
+      (log/info (i18n/trs "nREPL service disabled, not starting")))))
 
 (defn- shutdown-nrepl
   [nrepl-server]
   (when nrepl-server
-    (log/info "Shutting down nREPL service")
+    (log/info (i18n/trs "Shutting down nREPL service"))
     (nrepl/stop-server nrepl-server)))
 
 (defservice nrepl-service

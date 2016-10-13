@@ -9,7 +9,8 @@
             [puppetlabs.trapperkeeper.common :as common]
             [schema.core :as schema]
             [me.raynes.fs :as fs]
-            [slingshot.slingshot :refer [try+ throw+]]))
+            [slingshot.slingshot :refer [try+ throw+]]
+            [puppetlabs.i18n.core :as i18n]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Schemas
@@ -41,9 +42,7 @@
                                            line)]
     {:namespace namespace :service-name service-name}
     (throw+ {:type ::bootstrap-parse-error
-             :message (str "Invalid line in bootstrap config file:\n\n\t"
-                           line
-                           "\n\nAll lines must be of the form: '<namespace>/<service-fn-name>'.")})))
+             :message (i18n/trs "Invalid line in bootstrap config file:\n\n\t{0}\n\nAll lines must be of the form: ''<namespace>/<service-fn-name>''." line)})))
 
 (schema/defn ^:private remove-comments :- schema/Str
   "Given a line of text from the bootstrap config file, remove
@@ -78,8 +77,8 @@
       (let [config-files (flatten (map
                                    find-bootstraps-from-path
                                    (string/split config-path #",")))]
-        (log/debug (format "Loading bootstrap configs:\n%s"
-                           (string/join "\n" config-files)))
+        (log/debug (i18n/trs "Loading bootstrap configs:\n{0}"
+                             (string/join "\n" config-files)))
         config-files))))
 
 (schema/defn ^:private config-from-cwd :- [schema/Str]
@@ -91,8 +90,7 @@
                         (.getAbsoluteFile))]
     (when (.exists config-file)
       (let [config-file-path (.getAbsolutePath config-file)]
-        (log/debug (str "Loading bootstrap config from current working directory: '"
-                        config-file-path "'"))
+        (log/debug (i18n/trs "Loading bootstrap config from current working directory: ''{0}''" config-file-path))
         [config-file-path]))))
 
 (schema/defn config-from-classpath :- [(schema/maybe schema/Str)]
@@ -100,7 +98,7 @@
   if so, return it."
   []
   (when-let [classpath-config (io/resource bootstrap-config-file-name)]
-    (log/debug (str "Loading bootstrap config from classpath: '" classpath-config "'"))
+    (log/debug (i18n/trs "Loading bootstrap config from classpath: ''{0}''" classpath-config))
     [(str classpath-config)]))
 
 (schema/defn find-bootstrap-configs :- [schema/Str]
@@ -115,8 +113,7 @@
                                  (config-from-classpath))]
     bootstrap-configs
     (throw (IllegalStateException.
-            (str "Unable to find bootstrap.cfg file via --bootstrap-config "
-                 "command line argument, current working directory, or on classpath")))))
+             (i18n/trs "Unable to find bootstrap.cfg file via --bootstrap-config command line argument, current working directory, or on classpath")))))
 
 (schema/defn indexed
   "Returns seq of [index, item] pairs
@@ -128,7 +125,7 @@
   [config-path :- schema/Str
    cause :- Throwable]
   (IllegalArgumentException.
-   (format "Specified bootstrap config file does not exist: '%s'" config-path)
+   (i18n/trs "Specified bootstrap config file does not exist: ''{0}''" config-path)
    cause))
 
 (schema/defn read-config :- [schema/Str]
@@ -182,11 +179,11 @@
    service->entry-map :- {(schema/protocol services/ServiceDefinition) AnnotatedBootstrapEntry}]
   (let [make-error-message (fn [service]
                              (let [entry (get service->entry-map service)]
-                               (format "%s:%s\n%s" (:bootstrap-file entry) (:line-number entry) (:entry entry))))]
+                               (i18n/trs "{0}:{1}\n{2}" (:bootstrap-file entry) (:line-number entry) (:entry entry))))]
     (let [error-messages (for [[protocol-id services] duplicate-services]
-                           (format (str "Duplicate implementations found for service protocol '%s':\n%s")
-                                   protocol-id
-                                   (string/join "\n" (map make-error-message services))))]
+                           (i18n/trs "Duplicate implementations found for service protocol ''{0}'':\n{1}"
+                                     protocol-id
+                                     (string/join "\n" (map make-error-message services))))]
       (IllegalArgumentException. (string/join "\n" error-messages)))))
 
 (schema/defn check-duplicate-service-implementations!
@@ -213,12 +210,12 @@
   (try (require (symbol resolve-ns))
        (catch FileNotFoundException e
          (throw+ {:type ::missing-service
-                  :message (str "Unable to load service: " resolve-ns "/" service-name)
+                  :message (i18n/trs "Unable to load service: {0}/{1}" resolve-ns service-name)
                   :cause e})))
   (if-let [service-def (ns-resolve (symbol resolve-ns) (symbol service-name))]
     (internal/validate-service-graph! (var-get service-def))
     (throw+ {:type ::missing-service
-             :message (str "Unable to load service: " resolve-ns "/" service-name)})))
+             :message (i18n/trs "Unable to load service: {0}/{1}" resolve-ns service-name)})))
 
 (schema/defn bootstrap-error :- IllegalArgumentException
   "Returns an IllegalArgumentException meant to wrap other errors relating to
@@ -229,8 +226,8 @@
    line-number :- schema/Int
    original-message :- schema/Str]
   (IllegalArgumentException.
-   (format (str "Problem loading service '%s' from %s:%s:\n%s")
-           entry bootstrap-file line-number original-message)))
+    (i18n/trs "Problem loading service ''{0}'' from {1}:{2}:\n{3}"
+              entry bootstrap-file line-number original-message)))
 
 (schema/defn resolve-and-handle-errors! :- (schema/maybe (schema/protocol services/ServiceDefinition))
   "Attempts to resolve a bootstrap entry into a ServiceDefinition.
@@ -243,7 +240,7 @@
     (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
       (resolve-service! namespace service-name))
     (catch [:type ::missing-service] {:keys [message]}
-      (log/warnf "Unable to load service '%s' from %s:%s" entry bootstrap-file line-number))
+      (log/warn (i18n/trs "Unable to load service ''{0}'' from {1}:{2}" entry bootstrap-file line-number)))
     ; Catch and re-throw as java exception
     (catch [:type ::internal/invalid-service-graph] {:keys [message]}
       (throw (bootstrap-error entry bootstrap-file line-number message)))
@@ -273,10 +270,10 @@
         (fn [acc annotated-entry]
           (if (contains? (:set acc) (:entry annotated-entry))
             (do (log/warn
-                 (format "Duplicate bootstrap entry found for service '%s' on line number '%s' in file '%s'"
-                         (:entry annotated-entry)
-                         (:line-number annotated-entry)
-                         (:bootstrap-file annotated-entry)))
+                  (i18n/trs "Duplicate bootstrap entry found for service ''{0}'' on line number ''{1}'' in file ''{2}''"
+                            (:entry annotated-entry)
+                            (:line-number annotated-entry)
+                            (:bootstrap-file annotated-entry)))
                 acc)
             {:set (conj (:set acc) (:entry annotated-entry))
              :ordered-entries (conj (:ordered-entries acc) annotated-entry)}))]
@@ -303,8 +300,8 @@
   ; where users are preparing to upgrade and might copy an entry to another file.
   (let [bootstrap-entries (remove-duplicate-entries (get-annotated-bootstrap-entries configs))]
     (when (empty? bootstrap-entries)
-      (throw (Exception. (str "No entries found in any supplied bootstrap file(s):\n"
-                              (string/join "\n" configs)))))
+      (throw (Exception. (i18n/trs "No entries found in any supplied bootstrap file(s):\n{0}"
+                                   (string/join "\n" configs)))))
     (let [resolved-services (resolve-services! bootstrap-entries)]
       (check-duplicate-service-implementations! resolved-services bootstrap-entries)
       resolved-services)))

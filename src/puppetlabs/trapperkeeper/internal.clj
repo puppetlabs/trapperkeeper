@@ -1,7 +1,6 @@
 (ns puppetlabs.trapperkeeper.internal
   (:import (clojure.lang ExceptionInfo IFn IDeref)
-           (java.lang ArithmeticException NumberFormatException)
-           (java.io FileNotFoundException))
+           (java.lang ArithmeticException NumberFormatException))
   (:require [clojure.tools.logging :as log]
             [beckon]
             [plumbing.graph :as graph]
@@ -12,10 +11,10 @@
             [puppetlabs.trapperkeeper.common :as common]
             [puppetlabs.trapperkeeper.services :as s]
             [puppetlabs.kitchensink.core :as ks]
+            [puppetlabs.i18n.core :as i18n]
             [schema.core :as schema]
             [clojure.core.async :as async]
             [clojure.core.async.impl.protocols :as async-prot]
-            [clojure.string :as string]
             [me.raynes.fs :as fs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -56,16 +55,16 @@
         (if (fs/exists? restart-file-path)
           (if (and (fs/writeable? restart-file-path) (fs/readable? restart-file-path))
             (spit restart-file-path (inc (Long/parseLong (slurp restart-file-path))))
-            (throw (IllegalStateException. (format "Restart file %s is not readable and/or writeable" restart-file-path))))
+            (throw (IllegalStateException. (i18n/trs "Restart file {0} is not readable and/or writeable" restart-file-path))))
           (let [dir-path (fs/parent restart-file-path)]
             (fs/mkdirs dir-path)
             (spit restart-file-path "1")))
         (catch ArithmeticException e
           (spit restart-file-path "1")
-          (log/debug "Number of restarts has exceeded Long/MAX_VALUE, resetting file to 1"))
+          (log/debug (i18n/trs "Number of restarts has exceeded Long/MAX_VALUE, resetting file to 1")))
         (catch NumberFormatException e
           (spit restart-file-path "1")
-          (log/error "Restart file is unparseable, resetting file to 1")))))
+          (log/error (i18n/trs "Restart file is unparseable, resetting file to 1"))))))
 
 (defn validate-service-graph!
   "Validates that a ServiceDefinition contains a valid trapperkeeper service graph.
@@ -75,15 +74,12 @@
   {:post [(satisfies? s/ServiceDefinition %)]}
   (if-not (satisfies? s/ServiceDefinition service-def)
     (throw+ {:type ::invalid-service-graph
-             :message (str "Invalid service definition; expected a service "
-                           "definition (created via `service` or `defservice`); "
-                           "found: " (pr-str service-def))}))
+             :message (i18n/trs "Invalid service definition; expected a service definition (created via `service` or `defservice`); found: {0}" (pr-str service-def))}))
   (if (service-graph? (s/service-map service-def))
     service-def
     (throw+ {:type ::invalid-service-graph
-             :message (str "Invalid service graph; service graphs must "
-                           "be nested maps of keywords to functions.  Found: "
-                           (s/service-map service-def))})))
+             :message (i18n/trs "Invalid service graph; service graphs must be nested maps of keywords to functions.  Found: {0}"
+                                (s/service-map service-def))})))
 
 (defn parse-missing-required-key
   "Prismatic's graph compilation code throws `ExceptionInfo` objects if required
@@ -118,13 +114,13 @@
   (let [data (ex-data e)]
     (condp = (:error data)
       :missing-key
-      (throw (RuntimeException. (format "Service '%s' not found" (:key data))))
+      (throw (RuntimeException. (i18n/trs "Service ''{0}'' not found" (:key data))))
 
       :does-not-satisfy-schema
       (if-let [error-info (parse-missing-required-key (:failures data))]
-        (throw (RuntimeException. (format "Service function '%s' not found in service '%s'"
-                                          (:service-fn error-info)
-                                          (:service-name error-info))))
+        (throw (RuntimeException. (i18n/trs "Service function ''{0}'' not found in service ''{1}''"
+                                            (:service-fn error-info)
+                                            (:service-name error-info))))
         (throw e))
 
       (if (sequential? (:error data))
@@ -133,9 +129,9 @@
                                       (.error (first (:error data)))))]
           (if (= 1 (count missing-services))
             (throw (RuntimeException.
-                    (format "Service '%s' not found" (first missing-services))))
+                    (i18n/trs "Service ''{0}'' not found" (first missing-services))))
             (throw (RuntimeException.
-                    (format "Services '%s' not found" missing-services)))))
+                    (i18n/trs "Services ''{0}'' not found" missing-services)))))
         (throw e)))))
 
 (defn compile-graph
@@ -171,16 +167,13 @@
       --plugins <plugins directory>
       --restart-file <restart file>"
   [cli-args :- [(schema/maybe schema/Str)]]
-  (let [specs       [["-d" "--debug" "Turns on debug mode"]
-                     ["-b" "--bootstrap-config BOOTSTRAP-CONFIG-FILE" "Path to bootstrap config file"]
+  (let [specs       [["-d" "--debug" (i18n/trs "Turns on debug mode")]
+                     ["-b" "--bootstrap-config BOOTSTRAP-CONFIG-FILE" (i18n/trs "Path to bootstrap config file")]
                      ["-c" "--config CONFIG-PATH"
-                      (str "Path to a configuration file or directory of configuration files, "
-                           "or a comma-separated list of such paths."
-                           "See the documentation for a list of supported file types.")]
-                     ["-p" "--plugins PLUGINS-DIRECTORY" "Path to directory plugin .jars"]
+                      (i18n/trs "Path to a configuration file or directory of configuration files, or a comma-separated list of such paths. See the documentation for a list of supported file types.")]
+                     ["-p" "--plugins PLUGINS-DIRECTORY" (i18n/trs "Path to directory plugin .jars")]
                      ["-r" "--restart-file RESTART-FILE"
-                      (str "Path to a file whose contents are incremented each time all of "
-                           "the configured services have been started.")]]
+                      (i18n/trs "Path to a file whose contents are incremented each time all of the configured services have been started.")]]
         required    []]
     (first (cli! cli-args specs required))))
 
@@ -204,11 +197,10 @@
         updated-ctxt  (lifecycle-fn s (get-in @app-context [:service-contexts service-id] {}))]
     (if-not (map? updated-ctxt)
       (throw (IllegalStateException.
-              (format
-               "Lifecycle function '%s' for service '%s' must return a context map (got: %s)"
-               lifecycle-fn-name
-               (or (s/service-symbol s) service-id)
-               (pr-str updated-ctxt)))))
+               (i18n/trs "Lifecycle function ''{0}'' for service ''{1}'' must return a context map (got: {2})"
+                         lifecycle-fn-name
+                         (or (s/service-symbol s) service-id)
+                         (pr-str updated-ctxt)))))
     ;; store the updated service context map in the application context atom
     (swap! app-context assoc-in [:service-contexts service-id] updated-ctxt)))
 
@@ -232,16 +224,16 @@
    ordered-services :- a/TrapperkeeperAppOrderedServices]
   (try
     (doseq [[service-id s] ordered-services]
-      (log/debugf "Running lifecycle function '%s' for service '%s'"
-                  lifecycle-fn-name
-                  service-id)
+      (log/debug (i18n/trs "Running lifecycle function ''{0}'' for service ''{1}''"
+                           lifecycle-fn-name
+                           service-id))
       (run-lifecycle-fn! app-context
                          lifecycle-fn
                          lifecycle-fn-name
                          service-id
                          s))
     (catch Throwable t
-      (log/errorf t "Error during service %s!!!" lifecycle-fn-name)
+      (log/error t (i18n/trs "Error during service {0}!!!" lifecycle-fn-name))
       (throw t))))
 
 (schema/defn ^:always-validate initialize-lifecycle-worker :- (schema/protocol async-prot/Channel)
@@ -251,7 +243,7 @@
   [lifecycle-channel :- (schema/protocol async-prot/Channel)
    shutdown-channel :- (schema/protocol async-prot/Channel)
    shutdown-reason-promise :- IDeref]
-  (log/debug "Initializing lifecycle worker loop.")
+  (log/debug (i18n/trs "Initializing lifecycle worker loop."))
   (async/go-loop []
     (let [[task chan] (async/alts!
                        [shutdown-channel lifecycle-channel]
@@ -262,36 +254,36 @@
           #{:shutdown}
           (do
             (try
-              (log/debug "Received shutdown command, shutting down services")
+              (log/debug (i18n/trs "Received shutdown command, shutting down services"))
               (async/close! shutdown-channel)
               (async/close! lifecycle-channel)
 
-              (log/debug "Clearing lifecycle worker channels for shutdown.")
+              (log/debug (i18n/trs "Clearing lifecycle worker channels for shutdown."))
               ;; drain the channels to ensure that there are
               ;; no blocking puts, e.g. if a second shutdown request
               ;; was queued simultaneously
               (ks/while-let [msg (async/poll! shutdown-channel)]
-                            (log/debug "Shutdown in progress, ignoring message on shutdown channel:"
-                                       (:type msg)))
+                            (log/debug (i18n/trs "Shutdown in progress, ignoring message on shutdown channel: {0}"
+                                                 (:type msg))))
               (ks/while-let [msg (async/poll! lifecycle-channel)]
-                            (log/debug "Shutdown in progress, ignoring message on main lifecycle channel:"
-                                       (:type msg)))
+                            (log/debug (i18n/trs "Shutdown in progress, ignoring message on main lifecycle channel: {0}"
+                                                 (:type msg))))
 
               (task-function)
 
-              (log/debug "Service shutdown complete, exiting lifecycle worker loop")
+              (log/debug (i18n/trs "Service shutdown complete, exiting lifecycle worker loop"))
               (catch Exception e
-                (log/debug e "Exception caught during shutdown!")))
+                (log/debug e (i18n/trs "Exception caught during shutdown!"))))
             :done)
 
           #{:boot :restart}
           (do
             (try
-              (log/debugf "Lifecycle worker executing %s lifecycle task." type)
+              (log/debug (i18n/trs "Lifecycle worker executing {0} lifecycle task." type))
               (task-function)
-              (log/debugf "Lifecycle worker completed %s lifecycle task; awaiting next task." type)
+              (log/debug (i18n/trs "Lifecycle worker completed {0} lifecycle task; awaiting next task." type))
               (catch Exception e
-                (log/debug e "Exception caught in lifecycle worker loop")
+                (log/debug e (i18n/trs "Exception caught in lifecycle worker loop"))
                 (deliver shutdown-reason-promise
                          {:cause :service-error
                           :error e})))
@@ -300,21 +292,21 @@
           (do
             (deliver shutdown-reason-promise
                      {:cause :service-error
-                      :error (IllegalStateException. "Unrecognized lifecycle task:" task)})
+                      :error (IllegalStateException. (i18n/trs "Unrecognized lifecycle task: %s" task))})
             (recur)))))))
 
 (defn restart-tk-apps
   "Call restart on all tk apps."
   [apps]
-  (log/debug "SIGHUP handler restarting TK apps.")
+  (log/debug (i18n/trs "SIGHUP handler restarting TK apps."))
   (doseq [app apps]
     (let [{:keys [lifecycle-channel]} @(a/app-context app)
           restart-fn #(a/restart app)]
       (when-not (async/offer! lifecycle-channel
                               {:type :restart
                                :task-function restart-fn})
-        (log/warnf "Ignoring new SIGHUP restart requests; too many requests queued (%s)"
-                   max-pending-lifecycle-events)))))
+        (log/warn (i18n/trs "Ignoring new SIGHUP restart requests; too many requests queued ({0})"
+                            max-pending-lifecycle-events))))))
 
 (defn register-sighup-handler
   "Register a handler for SIGHUP that restarts all trapperkeeper apps. The
@@ -323,7 +315,7 @@
   ([]
    (register-sighup-handler @tk-apps))
   ([apps]
-   (log/debug "Registering SIGHUP handler for restarting TK apps")
+   (log/debug (i18n/trs "Registering SIGHUP handler for restarting TK apps"))
    (reset! (beckon/signal-atom "HUP") #{(partial restart-tk-apps apps)})))
 
 ;;;; Application Shutdown Support
@@ -392,7 +384,7 @@
 
      (f)
      (catch Throwable t
-       (log/error t "shutdown-on-error triggered because of exception!")
+       (log/error t (i18n/trs "shutdown-on-error triggered because of exception!"))
        (deliver shutdown-reason-promise {:cause       :service-error
                                          :error       t
                                          :on-error-fn (when on-error-fn
@@ -437,25 +429,24 @@
   "Perform shutdown calling the `stop` lifecycle function on each service,
    in reverse order (to account for dependency relationships)."
   [app-context :- (schema/atom a/TrapperkeeperAppContext)]
-  (log/info "Beginning shutdown sequence")
+  (log/info (i18n/trs "Beginning shutdown sequence"))
   (let [{:keys [ordered-services shutdown-channel lifecycle-worker]} @app-context
         shutdown-fn (fn [] (doseq [[service-id s] (reverse ordered-services)]
                              (try
                                (run-lifecycle-fn! app-context s/stop "stop" service-id s)
                                (catch Exception e
-                                 (log/error e "Encountered error during shutdown sequence")))))]
-    (log/trace "Putting shutdown message on shutdown channel.")
+                                 (log/error e (i18n/trs "Encountered error during shutdown sequence"))))))]
+    (log/trace (i18n/trs "Putting shutdown message on shutdown channel."))
     (async/>!! shutdown-channel {:type :shutdown
                                  :task-function shutdown-fn})
     ;; wait for the channel to send us the return value so we know it's done
-    (log/trace "Waiting for response to shutdown message from lifecycle worker.")
+    (log/trace (i18n/trs "Waiting for response to shutdown message from lifecycle worker."))
     (if (not (nil? (async/<!! lifecycle-worker)))
-      (log/info "Finished shutdown sequence")
+      (log/info (i18n/trs "Finished shutdown sequence"))
       ;; else, the read from the channel returned a nil because it was closed,
       ;; indicating that there was already a shutdown in progress, and thus the
       ;; redundant shutdown request was ignored
-      (log/trace (str "Response from lifecycle worker indicates shutdown already in progress,"
-                      "ignoring additional shutdown attempt.")))))
+      (log/trace (i18n/trs "Response from lifecycle worker indicates shutdown already in progress, ignoring additional shutdown attempt.")))))
 
 (schema/defn ^:always-validate initialize-shutdown-service! :- (schema/protocol s/ServiceDefinition)
   "Initialize the shutdown service and add a shutdown hook to the JVM."
@@ -465,7 +456,7 @@
                                                   app-context)]
     (add-shutdown-hook! (fn []
                           (when-not (realized? shutdown-reason-promise)
-                            (log/info "Shutting down due to JVM shutdown hook.")
+                            (log/info (i18n/trs "Shutting down due to JVM shutdown hook."))
                             (shutdown! app-context)
                             (deliver shutdown-reason-promise {:cause :jvm-shutdown-hook}))))
     shutdown-service))
@@ -530,7 +521,7 @@
     (try
       (on-error-fn)
       (catch Throwable t
-        (log/error t "Error occurred during shutdown")))))
+        (log/error t (i18n/trs "Error occurred during shutdown"))))))
 
 ;;;; end of shutdown-related functions
 
@@ -639,7 +630,7 @@
                                   (build-app* services
                                               config-data-fn)
                                   (catch Throwable t
-                                    (log/error t "Error during app buildup!")
+                                    (log/error t (i18n/trs "Error during app buildup!"))
                                     (throw t)))]
     (boot-services-for-app* app)
     app))

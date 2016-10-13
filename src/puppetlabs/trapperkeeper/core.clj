@@ -9,7 +9,8 @@
             [puppetlabs.trapperkeeper.config :as config]
             [puppetlabs.trapperkeeper.plugins :as plugins]
             [schema.core :as schema]
-            [puppetlabs.trapperkeeper.common :as common]))
+            [puppetlabs.trapperkeeper.common :as common]
+            [puppetlabs.i18n.core :as i18n]))
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
@@ -177,5 +178,5 @@
           :cli-help (quit 0 (:message m) *out*)
           (throw+)))
       (finally
-        (log/debug "Finished TK main lifecycle, shutting down Clojure agent threads.")
+        (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
         (shutdown-agents)))))

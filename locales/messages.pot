@@ -1,0 +1,362 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Puppet <docs@puppet.com>
+# This file is distributed under the same license as the puppetlabs.trapperkeeper package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: puppetlabs.trapperkeeper \n"
+"Report-Msgid-Bugs-To: docs@puppet.com\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid ""
+"Invalid line in bootstrap config file:nnt{0}nnAll lines must be of the form: "
+"''<namespace>/<service-fn-name>''."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Loading bootstrap configs:n{0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Loading bootstrap config from current working directory: ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Loading bootstrap config from classpath: ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid ""
+"Unable to find bootstrap.cfg file via --bootstrap-config command line "
+"argument, current working directory, or on classpath"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Specified bootstrap config file does not exist: ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "{0}:{1}n{2}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Duplicate implementations found for service protocol ''{0}'':n{1}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Unable to load service: {0}/{1}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Problem loading service ''{0}'' from {1}:{2}:n{3}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "Unable to load service ''{0}'' from {1}:{2}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid ""
+"Duplicate bootstrap entry found for service ''{0}'' on line number ''{1}'' "
+"in file ''{2}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
+msgid "No entries found in any supplied bootstrap file(s):n{0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/config.clj
+msgid ""
+"restart-file setting specified both on command-line and in config file, "
+"using command-line value: ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/config.clj
+msgid "Configuration path ''{0}'' must exist and must be readable."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/config.clj
+msgid "Duplicate configuration entry: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/core.clj
+msgid "Finished TK main lifecycle, shutting down Clojure agent threads."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Restart file {0} is not readable and/or writeable"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Number of restarts has exceeded Long/MAX_VALUE, resetting file to 1"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Restart file is unparseable, resetting file to 1"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid ""
+"Invalid service definition; expected a service definition (created via "
+"`service` or `defservice`); found: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid ""
+"Invalid service graph; service graphs must be nested maps of keywords to "
+"functions.  Found: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Service ''{0}'' not found"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Service function ''{0}'' not found in service ''{1}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Services ''{0}'' not found"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Turns on debug mode"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Path to bootstrap config file"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid ""
+"Path to a configuration file or directory of configuration files, or a comma-"
+"separated list of such paths. See the documentation for a list of supported "
+"file types."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Path to directory plugin .jars"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid ""
+"Path to a file whose contents are incremented each time all of the "
+"configured services have been started."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid ""
+"Lifecycle function ''{0}'' for service ''{1}'' must return a context map "
+"(got: {2})"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Running lifecycle function ''{0}'' for service ''{1}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Error during service {0}!!!"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Initializing lifecycle worker loop."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Received shutdown command, shutting down services"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Clearing lifecycle worker channels for shutdown."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Shutdown in progress, ignoring message on shutdown channel: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Shutdown in progress, ignoring message on main lifecycle channel: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Service shutdown complete, exiting lifecycle worker loop"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Exception caught during shutdown!"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Lifecycle worker executing {0} lifecycle task."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Lifecycle worker completed {0} lifecycle task; awaiting next task."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Exception caught in lifecycle worker loop"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Unrecognized lifecycle task: %s"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "SIGHUP handler restarting TK apps."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Ignoring new SIGHUP restart requests; too many requests queued ({0})"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Registering SIGHUP handler for restarting TK apps"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "shutdown-on-error triggered because of exception!"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Beginning shutdown sequence"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Encountered error during shutdown sequence"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Putting shutdown message on shutdown channel."
+msgstr ""
+
+#. wait for the channel to send us the return value so we know it's done
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Waiting for response to shutdown message from lifecycle worker."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Finished shutdown sequence"
+msgstr ""
+
+#. else, the read from the channel returned a nil because it was closed,
+#. indicating that there was already a shutdown in progress, and thus the
+#. redundant shutdown request was ignored
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid ""
+"Response from lifecycle worker indicates shutdown already in progress, "
+"ignoring additional shutdown attempt."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Shutting down due to JVM shutdown hook."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Error occurred during shutdown"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Error during app buildup!"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/logging.clj
+msgid "Uncaught exception"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/logging.clj
+msgid "Debug logging enabled"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/plugins.clj
+msgid "Class or namespace {0} found in both {1} and {2}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/plugins.clj
+msgid "Adding plugin .jar to classpath."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/plugins.clj
+msgid "Plugins directory {0} does not exist"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services.clj
+msgid "Call to ''get-service'' failed; service ''{0}'' does not exist."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/nrepl/nrepl_service.clj
+msgid "Starting nREPL service on {0} port {1}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/nrepl/nrepl_service.clj
+msgid "nREPL service disabled, not starting"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/nrepl/nrepl_service.clj
+msgid "Shutting down nREPL service"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Invalid service definition; first form must be protocol or dependency list; "
+"found ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Invalid service definition; expected dependency list following protocol, "
+"found: ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Invalid service definition; expected function definitions following "
+"dependency list, invalid value: ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid "Unrecognized service protocol ''{0}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid "Specified service protocol ''{0}'' does not appear to be a protocol!"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Service protocol ''{0}'' includes function named ''{1}'', which conflicts "
+"with lifecycle function by same name"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Service attempts to define function ''{0}'', but does not provide protocol"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Service attempts to define function ''{0}'', which does not exist in "
+"protocol ''{1}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Service does not define function ''{0}'', which is required by protocol "
+"''{1}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services_internal.clj
+msgid ""
+"Incorrect macro usage: service functions must be defined the same as a call "
+"to `reify`, eg: `(my-service-fn [this other-args] ...)`"
+msgstr ""

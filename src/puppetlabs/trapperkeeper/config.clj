@@ -28,7 +28,8 @@
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
             [clojure.tools.logging :as log]
             [schema.core :as schema]
-            [puppetlabs.trapperkeeper.common :as common]))
+            [puppetlabs.trapperkeeper.common :as common]
+            [puppetlabs.i18n.core :as i18n]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Service protocol
@@ -64,11 +65,8 @@
   (if-let [cli-restart-file (:restart-file cli-data)]
     (do
       (if (get-in config-data [:global :restart-file])
-        (log/warnf
-         (str
-          "restart-file setting specified both on command-line and "
-          "in config file, using command-line value: '%s'")
-         cli-restart-file))
+        (log/warnf (i18n/trs "restart-file setting specified both on command-line and in config file, using command-line value: ''{0}''"
+                             cli-restart-file)))
       (assoc-in config-data [:global :restart-file] cli-restart-file))
     config-data))
 
@@ -81,8 +79,8 @@
   [path]
   (when-not (.canRead (io/file path))
     (throw (FileNotFoundException.
-            (format "Configuration path '%s' must exist and must be readable."
-                    path))))
+             (i18n/trs "Configuration path ''{0}'' must exist and must be readable."
+                       path))))
   (if-not (fs/directory? path)
     [path]
     (mapcat
@@ -102,7 +100,7 @@
          (apply ks/deep-merge-with-keys
                 (fn [ks & _]
                   (throw (IllegalArgumentException.
-                          (str "Duplicate configuration entry: " ks)))))
+                           (i18n/trs "Duplicate configuration entry: {0}" ks)))))
          (merge {}))))
 
 (defn config-service

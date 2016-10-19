@@ -4,3 +4,5 @@ target/
 checkouts/
 pom.xml
 .nrepl-port
+/resources/locales.clj
+/resources/puppetlabs/trapperkeeper/*.class

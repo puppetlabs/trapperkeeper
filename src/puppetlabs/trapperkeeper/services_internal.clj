@@ -3,7 +3,8 @@
   (:require [clojure.walk :refer [postwalk]]
             [clojure.set :refer [difference union intersection]]
             [schema.core :as schema]
-            [puppetlabs.kitchensink.core :as ks]))
+            [puppetlabs.kitchensink.core :as ks]
+            [puppetlabs.i18n.core :as i18n]))
 
 (def optional-dep-default
   "This value is used in place of an optional service
@@ -103,26 +104,23 @@
   (let [f (if ((some-fn symbol? map? vector?) (first forms))
             (first forms)
             (throw (IllegalArgumentException.
-                    (format
-                     "Invalid service definition; first form must be protocol or dependency list; found '%s'"
-                     (pr-str (first forms))))))
+                     (i18n/trs "Invalid service definition; first form must be protocol or dependency list; found ''{0}''"
+                               (pr-str (first forms))))))
         service-protocol-sym (if (symbol? f) f nil)
         forms (if (nil? service-protocol-sym) forms (rest forms))
         ff (first forms)
         deps (cond (vector? ff) ff
                    (map? ff) (transform-deps-map ff)
                    :else (throw (IllegalArgumentException.
-                                 (format
-                                  "Invalid service definition; expected dependency list following protocol, found: '%s'"
-                                  (pr-str ff)))))]
+                                  (i18n/trs "Invalid service definition; expected dependency list following protocol, found: ''{0}''"
+                                            (pr-str ff)))))]
     (if (every? seq? (rest forms))
       {:service-protocol-sym service-protocol-sym
        :dependencies deps
        :fns (rest forms)}
       (throw (IllegalArgumentException.
-              (format
-               "Invalid service definition; expected function definitions following dependency list, invalid value: '%s'"
-               (pr-str (first (filter #(not (seq? %)) (rest forms))))))))))
+               (i18n/trs "Invalid service definition; expected function definitions following dependency list, invalid value: ''{0}''"
+                         (pr-str (first (filter #(not (seq? %)) (rest forms))))))))))
 
 (schema/defn ^:always-validate validate-protocol-sym! :- Protocol
   "Given a var, validate that the var exists and that its value is a protocol.
@@ -132,12 +130,12 @@
    var :- (schema/maybe Var)]
   (if-not var
     (throw (IllegalArgumentException.
-            (format "Unrecognized service protocol '%s'" sym))))
+            (i18n/trs "Unrecognized service protocol ''{0}''" sym))))
   (let [protocol (var-get var)]
     (if-not (protocol? protocol)
       (throw (IllegalArgumentException.
-              (format "Specified service protocol '%s' does not appear to be a protocol!"
-                      sym))))
+               (i18n/trs "Specified service protocol ''{0}'' does not appear to be a protocol!"
+                         sym))))
     protocol))
 
 (schema/defn ^:always-validate validate-protocol-fn-names! :- nil
@@ -150,9 +148,9 @@
                                  (set (map name lifecycle-fn-names)))]
     (if-not (empty? collisions)
       (throw (IllegalArgumentException.
-              (format "Service protocol '%s' includes function named '%s', which conflicts with lifecycle function by same name"
-                      (name service-protocol-sym)
-                      (first collisions)))))))
+               (i18n/trs "Service protocol ''{0}'' includes function named ''{1}'', which conflicts with lifecycle function by same name"
+                         (name service-protocol-sym)
+                         (first collisions)))))))
 
 (schema/defn ^:always-validate validate-provided-fns! :- nil
   "Validate that the seq of fns specified in a service body does not include
@@ -164,15 +162,13 @@
   (if (and (nil? service-protocol-sym)
            (> (count provided-fns) 0))
     (throw (IllegalArgumentException.
-            (format
-             "Service attempts to define function '%s', but does not provide protocol"
-             (name (first provided-fns))))))
+             (i18n/trs "Service attempts to define function ''{0}'', but does not provide protocol"
+                       (name (first provided-fns))))))
   (let [extras (difference provided-fns service-fns)]
     (when-not (empty? extras)
       (throw (IllegalArgumentException.
-              (format
-               "Service attempts to define function '%s', which does not exist in protocol '%s'"
-               (name (first extras)) (name service-protocol-sym)))))))
+               (i18n/trs "Service attempts to define function ''{0}'', which does not exist in protocol ''{1}''"
+                         (name (first extras)) (name service-protocol-sym)))))))
 
 (schema/defn ^:always-validate validate-required-fns! :- nil
   "Given a map of fn forms and a list of required function names,
@@ -185,8 +181,8 @@
     (let [fn-name (ks/without-ns (keyword fn-name))]
       (if-not (contains? fns-map fn-name)
         (throw (IllegalArgumentException.
-                (format "Service does not define function '%s', which is required by protocol '%s'"
-                        (name fn-name) (name protocol-sym))))))))
+                 (i18n/trs "Service does not define function ''{0}'', which is required by protocol ''{1}''"
+                           (name fn-name) (name protocol-sym))))))))
 
 (schema/defn ^:always-validate add-default-lifecycle-fn :- FnsMap
   "Given a map of fns defined by a service, and the name of a lifecycle function,
@@ -268,10 +264,7 @@
                            ; `(service-fn "docs about service-fn..." [this] ... )`
                           (throw
                            (Exception.
-                            (str
-                             "Incorrect macro usage: service functions must "
-                             "be defined the same as a call to `reify`, eg: "
-                             "`(my-service-fn [this other-args] ...)`"))))
+                            (i18n/trs  "Incorrect macro usage: service functions must be defined the same as a call to `reify`, eg: `(my-service-fn [this other-args] ...)`"))))
                         (let [k    (keyword (first f))
                               cur  (acc k)]
                           (if cur

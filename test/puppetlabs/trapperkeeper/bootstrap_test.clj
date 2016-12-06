@@ -91,13 +91,13 @@
           (try+
             (bootstrap-with-empty-config ["--bootstrap-config" nil])
             (catch map? m
-              (is (contains? m :type))
-              (is (= :cli-error (without-ns (:type m))))
-              (is (= :puppetlabs.kitchensink.core/cli-error (:type m)))
-              (is (contains? m :message))
+              (is (contains? m :kind))
+              (is (= :cli-error (without-ns (:kind m))))
+              (is (= :puppetlabs.kitchensink.core/cli-error (:kind m)))
+              (is (contains? m :msg))
               (is (re-find
                    #"Missing required argument for.*--bootstrap-config"
-                   (m :message)))
+                   (m :msg)))
               (reset! got-expected-exception true)))
           (is (true? @got-expected-exception))))
 

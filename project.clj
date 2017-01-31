@@ -3,7 +3,7 @@
 
   :min-lein-version "2.7.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "0.2.4"]
+  :parent-project {:coords [puppetlabs/clj-parent "0.3.3"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -69,7 +69,7 @@
                        :classifiers ^:replace []}}
 
   :plugins [[lein-parent "0.3.1"]
-            [puppetlabs/i18n "0.4.3"]]
+            [puppetlabs/i18n "0.6.0"]]
 
   :main puppetlabs.trapperkeeper.main
   )

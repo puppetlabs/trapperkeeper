@@ -6,3 +6,4 @@ pom.xml
 .nrepl-port
 /resources/locales.clj
 /resources/puppetlabs/trapperkeeper/*.class
+/dev-resources/i18n/bin

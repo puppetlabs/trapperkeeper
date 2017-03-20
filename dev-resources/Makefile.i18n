@@ -4,12 +4,12 @@
 #   lein i18n init
 #
 
-# The locale in which our messages are written, and for which we therefore
-# have messages without any further effort
-MESSAGE_LOCALE=en
-
 # The name of the package into which the translations bundle will be placed
 BUNDLE=puppetlabs.trapperkeeper
+
+# The name of the POT file into which the gettext code strings (msgid) will be placed
+POT_NAME=trapperkeeper.pot
+
 # The list of names of packages covered by the translation bundle;
 # by default it contains a single package - the same where the translations
 # bundle itself is placed - but this can be overridden - preferably in
@@ -17,7 +17,7 @@ BUNDLE=puppetlabs.trapperkeeper
 PACKAGES?=$(BUNDLE)
 LOCALES=$(basename $(notdir $(wildcard locales/*.po)))
 BUNDLE_DIR=$(subst .,/,$(BUNDLE))
-BUNDLE_FILES=$(patsubst %,resources/$(BUNDLE_DIR)/Messages_%.class,$(MESSAGE_LOCALE) $(LOCALES))
+BUNDLE_FILES=$(patsubst %,resources/$(BUNDLE_DIR)/Messages_%.class,$(LOCALES))
 FIND_SOURCES=find src -name \*.clj
 # xgettext before 0.19 does not understand --add-location=file. Even CentOS
 # 7 ships with an older gettext. We will therefore generate full location
@@ -27,7 +27,7 @@ LOC_OPT=$(shell xgettext --add-location=file -f - </dev/null >/dev/null 2>&1 && 
 LOCALES_CLJ=resources/locales.clj
 define LOCALES_CLJ_CONTENTS
 {
-  :locales  #{$(patsubst %,"%",$(MESSAGE_LOCALE) $(LOCALES))}
+  :locales  #{$(patsubst %,"%",$(LOCALES))}
   :packages [$(patsubst %,"%",$(PACKAGES))]
   :bundle   $(patsubst %,"%",$(BUNDLE).Messages)
 }
@@ -35,12 +35,12 @@ endef
 export LOCALES_CLJ_CONTENTS
 
 
-i18n: update-pot msgfmt
+i18n: msgfmt
 
-# Update locales/messages.pot
-update-pot: locales/messages.pot
+# Update locales/<project-name>.pot
+update-pot: locales/$(POT_NAME)
 
-locales/messages.pot: $(shell $(FIND_SOURCES)) | locales
+locales/$(POT_NAME): $(shell $(FIND_SOURCES)) | locales
 	@tmp=$$(mktemp $@.tmp.XXXX);                                            \
 	$(FIND_SOURCES)                                                         \
 	    | xgettext --from-code=UTF-8 --language=lisp                        \
@@ -68,30 +68,37 @@ locales/messages.pot: $(shell $(FIND_SOURCES)) | locales
 
 # Run msgfmt over all .po files to generate Java resource bundles
 # and create the locales.clj file
-msgfmt: $(BUNDLE_FILES) $(LOCALES_CLJ)
+msgfmt: $(BUNDLE_FILES) $(LOCALES_CLJ) clean-orphaned-bundles
 
-# force rebuild of locales.clj if its contents is not the
-# the desired one
-ifneq ($(shell cat $(LOCALES_CLJ) 2> /dev/null),$(shell echo '$(subst ','\'',$(LOCALES_CLJ_CONTENTS))'))
+# Force rebuild of locales.clj if its contents is not the the desired one. The
+# shell echo is used to add a trailing newline to match the one from `cat`
+ifneq ($(shell cat $(LOCALES_CLJ) 2> /dev/null),$(shell echo '$(LOCALES_CLJ_CONTENTS)'))
 .PHONY: $(LOCALES_CLJ)
 endif
 $(LOCALES_CLJ): | resources
 	@echo "Writing $@"
 	@echo "$$LOCALES_CLJ_CONTENTS" > $@
 
+# Remove every resource bundle that wasn't generated from a PO file.
+# We do this because we used to generate the english bundle directly from the POT.
+.PHONY: clean-orphaned-bundles
+clean-orphaned-bundles:
+	@for bundle in resources/$(BUNDLE_DIR)/Messages_*.class; do                                  \
+	  locale=$$(basename "$$bundle" | sed -E -e 's/\$$?1?\.class$$/_class/' | cut -d '_' -f 2;); \
+	  if [ ! -f "locales/$$locale.po" ]; then                                                    \
+	    rm "$$bundle";                                                                           \
+	  fi                                                                                         \
+	done
+
 resources/$(BUNDLE_DIR)/Messages_%.class: locales/%.po | resources
 	msgfmt --java2 -d resources -r $(BUNDLE).Messages -l $(*F) $<
 
-resources/$(BUNDLE_DIR)/Messages_$(MESSAGE_LOCALE).class: locales/messages.pot | resources
-	msgfmt --java2 -d resources -r $(BUNDLE).Messages -l $(MESSAGE_LOCALE) $<
-
-# Translators use this when they update translations; this copies any
-# changes in the pot file into their language-specific po file
-locales/%.po: locales/messages.pot
-	@if [ -f $@ ]; then                                           \
-	    msgmerge -U $@ $< && touch $@;                            \
-	else                                                          \
-	    touch $@ && msginit --no-translator -l $(*F) -o $@ -i $<; \
+# Use this to initialize translations. Updating the PO files is done
+# automatically through a CI job that utilizes the scripts in the project's
+# `bin` file, which themselves come from the `clj-i18n` project.
+locales/%.po: | locales
+	@if [ ! -f $@ ]; then                                         \
+	    touch $@ && msginit --no-translator -l $(*F) -o $@ -i locales/$(POT_NAME); \
 	fi
 
 resources locales:
@@ -108,7 +115,7 @@ This Makefile assists in handling i18n related tasks during development. Files
 that need to be checked into source control are put into the locales/ directory.
 They are
 
-  locales/messages.pot   - the POT file generated by 'make update-pot'
+  locales/$(POT_NAME)   - the POT file generated by 'make update-pot'
   locales/$$LANG.po       - the translations for $$LANG
 
 Only the $$LANG.po files should be edited manually; this is usually done by
@@ -117,8 +124,8 @@ translators.
 You can use the following targets:
 
   i18n:             refresh all the files in locales/ and recompile resources
-  update-pot:       extract strings and update locales/messages.pot
-  locales/LANG.po:  refresh or create translations for LANG
+  update-pot:       extract strings and update locales/$(POT_NAME)
+  locales/LANG.po:  create translations for LANG
   msgfmt:           compile the translations into Java classes; this step is
                     needed to make translations available to the Clojure code
                     and produces Java class files in resources/

@@ -231,7 +231,10 @@
                          lifecycle-fn
                          lifecycle-fn-name
                          service-id
-                         s))
+                         s)
+      (log/debug (i18n/trs "Finished running lifecycle function ''{0}'' for service ''{1}''"
+                           lifecycle-fn-name
+                           service-id)))
     (catch Throwable t
       (log/error t (i18n/trs "Error during service {0}!!!" lifecycle-fn-name))
       (throw t))))

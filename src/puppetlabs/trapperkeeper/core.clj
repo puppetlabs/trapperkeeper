@@ -173,10 +173,12 @@
           (internal/parse-cli-args!)
           (run))
       (catch map? m
-        (case (without-ns (:type m))
-          :cli-error (quit 1 (:message m) *err*)
-          :cli-help (quit 0 (:message m) *out*)
-          (throw+)))
+        (let [type (:type m)]
+          (if (keyword? type)
+            (case (without-ns (:type m))
+              :cli-error (quit 1 (:message m) *err*)
+              :cli-help (quit 0 (:message m) *out*))))
+        (throw+))
       (finally
         (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
         (shutdown-agents)))))

@@ -1,12 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Puppet <docs@puppet.com>
-# This file is distributed under the same license as the puppetlabs.trapperkeeper package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: puppetlabs.trapperkeeper \n"
+"X-Git-Ref: cbb4829e76b27018c135b43730db68b0bb1daa02\n"
 "Report-Msgid-Bugs-To: docs@puppet.com\n"
 "POT-Creation-Date: \n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -53,6 +54,7 @@ msgstr ""
 msgid "Duplicate implementations found for service protocol ''{0}'':n{1}"
 msgstr ""
 
+#: src/puppetlabs/trapperkeeper/bootstrap.clj
 #: src/puppetlabs/trapperkeeper/bootstrap.clj
 msgid "Unable to load service: {0}/{1}"
 msgstr ""
@@ -118,6 +120,7 @@ msgid ""
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/internal.clj
+#: src/puppetlabs/trapperkeeper/internal.clj
 msgid "Service ''{0}'' not found"
 msgstr ""
 
@@ -162,6 +165,10 @@ msgstr ""
 
 #: src/puppetlabs/trapperkeeper/internal.clj
 msgid "Running lifecycle function ''{0}'' for service ''{1}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/internal.clj
+msgid "Finished running lifecycle function ''{0}'' for service ''{1}''"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/internal.clj

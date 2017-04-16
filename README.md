@@ -3,6 +3,8 @@
 
 # Trapperkeeper
 
+Do not merge.
+
 [![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper.png?branch=master)](https://travis-ci.org/puppetlabs/trapperkeeper)
 
 Trapperkeeper is a Clojure framework for hosting long-running applications and services.

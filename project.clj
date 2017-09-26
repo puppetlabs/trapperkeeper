@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper "1.5.3-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "1.5.3"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :min-lein-version "2.7.1"

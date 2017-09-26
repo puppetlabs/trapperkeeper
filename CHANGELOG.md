@@ -1,3 +1,9 @@
+## 1.5.3
+
+This is a maintenance release.
+
+* Fix symbol redef warnings under Clojure 1.9
+
 ## 1.5.2
 
 This is a maintenance release.

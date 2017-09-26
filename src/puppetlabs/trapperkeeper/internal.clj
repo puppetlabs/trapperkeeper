@@ -1,4 +1,5 @@
 (ns puppetlabs.trapperkeeper.internal
+  (:refer-clojure :exclude [boolean?])
   (:import (clojure.lang ExceptionInfo IFn IDeref)
            (java.lang ArithmeticException NumberFormatException))
   (:require [clojure.tools.logging :as log]

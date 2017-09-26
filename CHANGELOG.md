@@ -2,7 +2,11 @@
 
 This is a maintenance release.
 
+* [TK-411](https://tickets.puppetlabs.com/browse/TK-411) - Externalize strings for i18n
+* [TK-439](https://tickets.puppetlabs.com/browse/TK-439) - Handle exceptions having no
+  type key in main
 * Fix symbol redef warnings under Clojure 1.9
+* Improved lifecycle debug logging
 
 ## 1.5.2
 

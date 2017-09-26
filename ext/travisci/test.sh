@@ -1,3 +1,3 @@
 #!/bin/bash
 
-lein2 test
+lein test

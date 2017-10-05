@@ -1,6 +1,9 @@
 (defproject puppetlabs/trapperkeeper "1.5.4-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
+  :license {:name "Apache License, Version 2.0"
+            :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
+
   :min-lein-version "2.7.1"
 
   :parent-project {:coords [puppetlabs/clj-parent "0.4.3"]

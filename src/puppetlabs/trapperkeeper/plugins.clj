@@ -98,7 +98,8 @@
         (do
           (verify-no-duplicate-resources plugins)
           (doseq [jar (jars-in-dir plugins)]
-            (log/info (i18n/trs "Adding plugin .jar to classpath." (.getAbsolutePath jar)))
-            (kitchensink/add-classpath jar)))
+            (log/warn (i18n/trs "Adding plugin {0} to classpath." (.getAbsolutePath jar)))
+            (kitchensink/add-classpath jar)
+            (kitchensink/add-classpath jar (clojure.lang.RT/baseLoader))))
         (throw (IllegalArgumentException.
                  (i18n/trs "Plugins directory {0} does not exist" plugins-path)))))))

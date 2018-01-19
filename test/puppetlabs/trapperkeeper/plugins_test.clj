@@ -1,6 +1,6 @@
 (ns puppetlabs.trapperkeeper.plugins-test
   (:require [clojure.test :refer :all]
-            [clojure.java.io :refer [file]]
+            [clojure.java.io :refer [file resource]]
             [puppetlabs.trapperkeeper.plugins :refer :all]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.app :refer [get-service service-graph]]
@@ -42,4 +42,6 @@
           service-fn (-> (service-graph app)
                          :PluginTestService
                          :moo)]
-      (is (= "This message comes from the plugin test service." (service-fn))))))
+      (is (= "This message comes from the plugin test service." (service-fn)))
+      ;; Can it also load resources from that jar
+      (is (resource "test_services/plugin_test_services.clj")))))

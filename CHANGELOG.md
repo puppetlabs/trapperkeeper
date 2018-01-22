@@ -1,3 +1,9 @@
+## 1.5.4
+
+This is a maintenance release.
+
+* Fix adding to classpath under Java 9
+
 ## 1.5.3
 
 This is a maintenance release.

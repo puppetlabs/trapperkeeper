@@ -1,3 +1,5 @@
+(def ks-version "2.5.2")
+
 (defproject puppetlabs/trapperkeeper "1.5.4-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
@@ -40,7 +42,7 @@
                  [beckon]
 
                  [puppetlabs/typesafe-config]
-                 [puppetlabs/kitchensink]
+                 [puppetlabs/kitchensink ~ks-version]
                  [puppetlabs/i18n]
                  ]
 
@@ -65,7 +67,7 @@
              :dev {:source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
-                   :dependencies [[puppetlabs/kitchensink nil :classifier "test"]]}
+                   :dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]]}
 
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]

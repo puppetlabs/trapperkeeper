@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: puppetlabs.trapperkeeper \n"
-"X-Git-Ref: cbb4829e76b27018c135b43730db68b0bb1daa02\n"
+"X-Git-Ref: 4e206f03bd4d25a0810af670f2b7866124ad9850\n"
 "Report-Msgid-Bugs-To: docs@puppet.com\n"
 "POT-Creation-Date: \n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -54,7 +54,6 @@ msgstr ""
 msgid "Duplicate implementations found for service protocol ''{0}'':n{1}"
 msgstr ""
 
-#: src/puppetlabs/trapperkeeper/bootstrap.clj
 #: src/puppetlabs/trapperkeeper/bootstrap.clj
 msgid "Unable to load service: {0}/{1}"
 msgstr ""
@@ -119,7 +118,6 @@ msgid ""
 "functions.  Found: {0}"
 msgstr ""
 
-#: src/puppetlabs/trapperkeeper/internal.clj
 #: src/puppetlabs/trapperkeeper/internal.clj
 msgid "Service ''{0}'' not found"
 msgstr ""
@@ -290,7 +288,7 @@ msgid "Class or namespace {0} found in both {1} and {2}"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/plugins.clj
-msgid "Adding plugin .jar to classpath."
+msgid "Adding plugin {0} to classpath."
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/plugins.clj

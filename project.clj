@@ -1,6 +1,6 @@
 (def ks-version "2.5.2")
 
-(defproject puppetlabs/trapperkeeper "1.5.5-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "1.5.5"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :license {:name "Apache License, Version 2.0"

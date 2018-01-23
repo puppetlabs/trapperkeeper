@@ -98,7 +98,7 @@
         (do
           (verify-no-duplicate-resources plugins)
           (doseq [jar (jars-in-dir plugins)]
-            (log/warn (i18n/trs "Adding plugin {0} to classpath." (.getAbsolutePath jar)))
+            (log/info (i18n/trs "Adding plugin {0} to classpath." (.getAbsolutePath jar)))
             (kitchensink/add-classpath jar)
             (kitchensink/add-classpath jar (clojure.lang.RT/baseLoader))))
         (throw (IllegalArgumentException.

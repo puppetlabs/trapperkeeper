@@ -302,7 +302,7 @@
 (defn restart-tk-apps
   "Call restart on all tk apps."
   [apps]
-  (log/debug (i18n/trs "SIGHUP handler restarting TK apps."))
+  (log/info (i18n/trs "SIGHUP handler restarting TK apps."))
   (doseq [app apps]
     (let [{:keys [lifecycle-channel]} @(a/app-context app)
           restart-fn #(a/restart app)]

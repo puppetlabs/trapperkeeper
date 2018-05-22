@@ -1,12 +1,10 @@
 (ns puppetlabs.trapperkeeper.internal
-  (:refer-clojure :exclude [boolean?])
   (:import (clojure.lang ExceptionInfo IFn IDeref)
            (java.lang ArithmeticException NumberFormatException))
   (:require [clojure.tools.logging :as log]
             [beckon]
             [plumbing.graph :as graph]
             [slingshot.slingshot :refer [throw+]]
-            [puppetlabs.kitchensink.core :refer [add-shutdown-hook! boolean? cli!]]
             [puppetlabs.trapperkeeper.config :refer [config-service get-in-config]]
             [puppetlabs.trapperkeeper.app :as a]
             [puppetlabs.trapperkeeper.common :as common]
@@ -176,7 +174,7 @@
                      ["-r" "--restart-file RESTART-FILE"
                       (i18n/trs "Path to a file whose contents are incremented each time all of the configured services have been started.")]]
         required    []]
-    (first (cli! cli-args specs required))))
+    (first (ks/cli! cli-args specs required))))
 
 (schema/defn ^:always-validate run-lifecycle-fn!
   "Run a lifecycle function for a service.  Required arguments:
@@ -458,7 +456,7 @@
    shutdown-reason-promise :- IDeref]
   (let [shutdown-service        (shutdown-service shutdown-reason-promise
                                                   app-context)]
-    (add-shutdown-hook! (fn []
+    (ks/add-shutdown-hook! (fn []
                           (when-not (realized? shutdown-reason-promise)
                             (log/info (i18n/trs "Shutting down due to JVM shutdown hook."))
                             (shutdown! app-context)
@@ -512,7 +510,7 @@
   to rely on control returning to the main thread where it can perform shutdown."
   [shutdown-reason]
   {:pre  [(map? shutdown-reason)]
-   :post [(boolean? %)]}
+   :post [(ks/boolean? %)]}
   (contains? (disj shutdown-causes :jvm-shutdown-hook) (:cause shutdown-reason)))
 
 (defn call-error-handler!

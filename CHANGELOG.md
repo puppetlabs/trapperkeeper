@@ -1,3 +1,15 @@
+## 1.5.6
+
+This is a maintenance release
+
+* [TK-466](https://tickets.puppetlabs.com/browse/TK-466) - Log SIGHUP events at INFO level
+
+## 1.5.5
+
+This is a maintenance release
+
+* Fix log message accidentally converted to a warning
+
 ## 1.5.4
 
 This is a maintenance release.

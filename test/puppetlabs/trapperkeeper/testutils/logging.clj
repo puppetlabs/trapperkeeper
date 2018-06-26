@@ -42,6 +42,33 @@
    :message (.getMessage event)
    :exception (.getThrowableProxy event)})
 
+(defn log-level-greater-than-or-equal?
+  "Tests if the first log level is greater than the second."
+  [left-level right-level]
+  (.isGreaterOrEqual (left-level keyword-levels) (right-level keyword-levels)))
+
+(defn log-level-equal?
+  "Tests if the two log levels given are equal."
+  [left-level right-level]
+  (and (log-level-greater-than-or-equal? left-level right-level)
+       (log-level-greater-than-or-equal? right-level left-level)))
+
+(defn log-level-greater-than?
+  "Tests if the first log level is greater than or equal to the second."
+  [left-level right-level]
+  (and (log-level-greater-than-or-equal? left-level right-level)
+       (not (log-level-equal? left-level right-level))))
+
+(defn log-level-less-than?
+  "Tests if the first log level is less than the second."
+  [left-level right-level]
+  (log-level-greater-than? right-level left-level))
+
+(defn log-level-less-than-or-equal?
+  "Test if the first log level if less than or equal to the second."
+  [left-level right-level]
+  (not (log-level-greater-than? left-level right-level)))
+
 ;; Perhaps make call-with-started and with-started public in
 ;; kitchensink or some other namespace?
 

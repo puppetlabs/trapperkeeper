@@ -39,7 +39,7 @@
   messages to \"\"."
   {:logger (.getLoggerName event)
    :level  (level-keywords (.getLevel event))
-   :message (.getMessage event)
+   :message (.getFormattedMessage event)
    :exception (.getThrowableProxy event)})
 
 ;; Perhaps make call-with-started and with-started public in
@@ -448,7 +448,7 @@
                             entry [(.getLoggerName logging-event)
                                    (.getLevel logging-event)
                                    ex
-                                   (str (.getMessage logging-event))]]
+                                   (str (.getFormattedMessage logging-event))]]
                         (when debug? (log-to-console entry))
                         (swap! destination conj entry)))
                     (close []))]

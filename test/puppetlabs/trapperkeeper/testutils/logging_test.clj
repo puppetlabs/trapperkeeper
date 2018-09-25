@@ -4,7 +4,9 @@
    [clojure.tools.logging :as log]
    [puppetlabs.kitchensink.core :as kitchensink]
    [puppetlabs.trapperkeeper.logging :refer [reset-logging root-logger-name]]
-   [puppetlabs.trapperkeeper.testutils.logging :as tgt :refer [event->map]]))
+   [puppetlabs.trapperkeeper.testutils.logging :as tgt :refer [event->map]])
+  (import
+    (org.slf4j LoggerFactory)))
 
 ;; Without this, "lein test NAMESPACE" and :only invocations may fail.
 (use-fixtures :once (fn [f] (reset-logging) (f)))
@@ -132,7 +134,12 @@
       (is (not (tgt/logged? #"debug" :warn))))
     (tgt/with-test-logging
       (log/debug "debug")
-      (is (not (tgt/logged? #"debug" :trace))))))
+      (is (not (tgt/logged? #"debug" :trace)))))
+  (testing "captures parameterized slf4j messages"
+    (tgt/with-test-logging
+      (let [test-logger (LoggerFactory/getLogger "tk-test")]
+      (.info test-logger "Log message: {}" "odelay")
+      (is (tgt/logged? #"odelay"))))))
 
 (deftest with-test-logging-debug
   (testing "basic matching"

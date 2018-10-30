@@ -1,4 +1,5 @@
 (ns puppetlabs.trapperkeeper.core
+  (:import (clojure.lang IFn))
   (:require [clojure.tools.logging :as log]
             [slingshot.slingshot :refer [try+ throw+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
@@ -93,6 +94,18 @@
    :post [(satisfies? app/TrapperkeeperApp %)]}
   (boot-services-with-config-fn services (constantly config-data)))
 
+(schema/defn boot-with-config-fn :- (schema/protocol app/TrapperkeeperApp)
+  "Boot a Trapperkeeper application given parsed CLI arguments and a function
+  providing the application configuration."
+  [cli-data :- common/CLIData
+   config-data-fn :- IFn]
+  (config/initialize-logging! (config-data-fn))
+  (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
+  (-> cli-data
+      (bootstrap/find-bootstrap-configs)
+      (bootstrap/parse-bootstrap-configs!)
+      (internal/boot-services* config-data-fn)))
+
 (schema/defn boot-with-cli-data :- (schema/protocol app/TrapperkeeperApp)
   "Create and boot a trapperkeeper application.  This is accomplished by reading a
   bootstrap configuration file containing a list of (namespace-qualified)
@@ -111,7 +124,7 @@
   `cli-data` is a map of the command-line arguments and their values.
   `puppetlabs.kitchensink/cli!` can handle the parsing for you.
 
-  Their must be a `:config` key in this map which defines the .ini file
+  There must be a `:config` key in this map which defines the .ini file
   (or directory of files) used by the configuration service.
 
   Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
@@ -122,13 +135,36 @@
   ;; 2. initialize logging
   ;; 3. initialize plugin system
   ;; 4. bootstrap rest of framework
-  (let [config-data-fn #(config/parse-config-data cli-data)]
-    (config/initialize-logging! (config-data-fn))
-    (plugins/add-plugin-jars-to-classpath! (cli-data :plugins))
-    (-> cli-data
-        (bootstrap/find-bootstrap-configs)
-        (bootstrap/parse-bootstrap-configs!)
-        (internal/boot-services* config-data-fn))))
+  (boot-with-config-fn cli-data #(config/parse-config-data cli-data)))
+
+(schema/defn boot-with-config :- (schema/protocol app/TrapperkeeperApp)
+  "Create and boot a trapperkeeper application.  This is accomplished by reading a
+  bootstrap configuration file containing a list of (namespace-qualified)
+  service functions.  These functions will be called to generate a service
+  graph for the application; dependency resolution between the services will
+  be handled automatically to ensure that they are started in the correct order.
+  Functions that a service expresses dependencies on will be injected prior to
+  instantiation of a service.
+
+  The bootstrap config file will be searched for in this order:
+
+  * At a path specified by the optional command-line argument `--bootstrap-config`
+  * In the current working directory, in a file named `bootstrap.cfg`
+  * On the classpath, in a file named `bootstrap.cfg`.
+
+  `config` is a parsed configuration map, which allows the caller to add any
+  overrides or logic to the configuration prior to the services starting.
+
+  Returns a TrapperkeeperApp instance.  Call `run-app` on it if you'd like to
+  block the main thread to wait for a shutdown event."
+  [config :- (schema/pred map?)
+   cli-data :- common/CLIData]
+  ;; There is a strict order of operations that need to happen here:
+  ;; 1. parse config files
+  ;; 2. initialize logging
+  ;; 3. initialize plugin system
+  ;; 4. bootstrap rest of framework
+  (boot-with-config-fn cli-data (constantly config)))
 
 (defn run-app
   "Given a bootstrapped TrapperKeeper app, let the application run until shut down,
@@ -143,19 +179,34 @@
       (when-let [error (:error shutdown-reason)]
         (throw error)))))
 
+(schema/defn bootstrap-with-app
+  "Bootstraps a Trapperkeeper application and runs it."
+  [app :- (schema/protocol app/TrapperkeeperApp)]
+  ;; This adds the TrapperkeeperApp instance to the tk-apps list, so that
+  ;; it can be referenced in a remote nREPL session, etc.
+  (swap! internal/tk-apps conj app)
+  (internal/register-sighup-handler)
+  (run-app app)
+  (swap! internal/tk-apps (partial remove #{app})))
+
 (schema/defn run
   "Bootstraps a trapperkeeper application and runs it.
   Blocks the calling thread until trapperkeeper is shut down.
   `cli-data` is expected to be a map constructed by parsing the CLI args.
   (see `parse-cli-args`)"
   [cli-data :- common/CLIData]
-  (let [app (boot-with-cli-data cli-data)]
-    ;; This adds the TrapperkeeperApp instance to the tk-apps list, so that
-    ;; it can be referenced in a remote nREPL session, etc.
-    (swap! internal/tk-apps conj app)
-    (internal/register-sighup-handler)
-    (run-app app)
-    (swap! internal/tk-apps (partial remove #{app}))))
+  (bootstrap-with-app (boot-with-cli-data cli-data)))
+
+(schema/defn run-with-config
+  "Bootstraps a trapperkeeper application and runs it.
+  Blocks the calling thread until trapperkeeper is shut down.
+  `config` is expected to be a map constructed by parsing the configuration.
+  (see `parse-config-data`)
+  `cli-data` is expected to be a map constructed by parsing the CLI args.
+  (see `parse-cli-args`)"
+  [config :- (schema/pred map?)
+   cli-data :- common/CLIData]
+  (bootstrap-with-app (boot-with-config config cli-data)))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
@@ -182,3 +233,4 @@
       (finally
         (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
         (shutdown-agents)))))
+

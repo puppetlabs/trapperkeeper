@@ -1,7 +1,7 @@
 (ns puppetlabs.trapperkeeper.services.nrepl.nrepl-test-send-middleware
-  (:require [clojure.tools.nrepl.transport :as t]
-            [clojure.tools.nrepl.middleware :refer [set-descriptor!]])
-  (:use [clojure.tools.nrepl.misc :only [response-for]]))
+  (:require [nrepl.transport :as t]
+            [nrepl.middleware :refer [set-descriptor!]])
+  (:use [nrepl.misc :only [response-for]]))
 
 (defn send-test
   [h]

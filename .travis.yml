@@ -2,6 +2,5 @@ language: clojure
 jdk:
   - oraclejdk9
   - oraclejdk8
-  - openjdk7
 notifications:
   email: false

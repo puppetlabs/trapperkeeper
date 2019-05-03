@@ -1,3 +1,14 @@
+## 2.0.0
+
+This is a maintenance release
+
+* [ORCH-2282](https://tickets.puppetlabs.com/browse/ORCH-2282) - Updates to current clj-parent
+to support using nrepl/nrepl
+* Updates required for using nrepl/nrepl; mainline development for nrepl moved from
+org.clojure/tools.nrepl as of the 0.3.x series (last on this line was 0.2.13)
+* Updating to this version of trapperkeeper requires lein >=2.9.0 (:min-lein-version updated)
+* Drops support for JDK7
+
 ## 1.5.6
 
 This is a maintenance release

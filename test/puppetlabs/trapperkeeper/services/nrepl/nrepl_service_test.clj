@@ -1,6 +1,6 @@
 (ns puppetlabs.trapperkeeper.services.nrepl.nrepl-service-test
   (:require [clojure.test :refer :all]
-            [clojure.tools.nrepl :as repl]
+            [nrepl.core :as repl]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [with-app-with-config]]
             [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]
             [schema.test :as schema-test]))

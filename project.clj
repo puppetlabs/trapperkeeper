@@ -1,14 +1,14 @@
 (def ks-version "2.5.2")
 
-(defproject puppetlabs/trapperkeeper "1.5.7-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "2.0.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
 
-  :min-lein-version "2.7.1"
+  :min-lein-version "2.9.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "0.4.3"]
+  :parent-project {:coords [puppetlabs/clj-parent "1.7.24"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -17,7 +17,6 @@
   :pedantic? :abort
   :dependencies [[org.clojure/clojure]
                  [org.clojure/tools.logging]
-                 [org.clojure/tools.nrepl]
                  [org.clojure/tools.macro]
                  [org.clojure/core.async]
 
@@ -34,7 +33,7 @@
 
                  [clj-time]
                  [me.raynes/fs]
-                 [clj-yaml]
+                 [circleci/clj-yaml]
 
                  [prismatic/plumbing]
                  [prismatic/schema]
@@ -44,6 +43,7 @@
                  [puppetlabs/typesafe-config]
                  [puppetlabs/kitchensink ~ks-version]
                  [puppetlabs/i18n]
+                 [nrepl/nrepl]
                  ]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"

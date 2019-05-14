@@ -177,7 +177,9 @@
           (if (keyword? type)
             (case (without-ns (:type m))
               :cli-error (quit 1 (:message m) *err*)
-              :cli-help (quit 0 (:message m) *out*))))
+              :cli-help (quit 0 (:message m) *out*)
+              ;; By default let the throw below reraise the error
+              nil)))
         (throw+))
       (finally
         (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))

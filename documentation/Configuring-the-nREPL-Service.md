@@ -20,12 +20,17 @@ The port that the `nREPL` server is bound to. If no port is defined then the def
 
 A list of nREPL middlewares to load; for example, for compatibility with LightTable or other editors.
 
+## `cider-enabled`
+
+The `cider-enabled` flag is a boolean value, which can be either `"true"` or `"false"`. When this is set to true, the `cider-nrepl` middleware will be injected into the nrepl session. If this value is not specified then `cider-enabled=false` is assumed.
+
 ## Typical `config.ini` for nREPL
 
 ```ini
 [nrepl]
 port = 12345
 enabled = true
+cider-enabled = true
 middlewares = [lighttable.nrepl.handler/lighttable-ops]
 ```
 

@@ -65,3 +65,16 @@
       (is (= "success" (with-open [conn (repl/connect :port 7888)]
                          (:test (first (-> (repl/client conn 1000)
                                            (repl/message {:op "middlewaretest"}))))))))))
+
+(deftest test-nrepl-service
+  (testing "An nREPL service with cider enabled and a test middleware"
+    (with-app-with-config app
+      [nrepl-service]
+      {:nrepl {:port          7888
+               :host          "0.0.0.0"
+               :enabled       "true"
+               :cider-enabled "true"
+               :middlewares    ["puppetlabs.trapperkeeper.services.nrepl.nrepl-test-send-middleware/send-test"]}}
+      (is (= "success" (with-open [conn (repl/connect :port 7888)]
+                         (:test (first (-> (repl/client conn 1000)
+                                           (repl/message {:op "middlewaretest"}))))))))))

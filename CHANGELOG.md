@@ -1,3 +1,9 @@
+## 2.0.1
+
+This is a maintenance release
+
+* Ensures that all errors are correctly thrown, notably errors about bad config schemas.
+
 ## 2.0.0
 
 This is a maintenance release

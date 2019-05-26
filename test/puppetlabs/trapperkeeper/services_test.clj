@@ -360,11 +360,14 @@
                      (service1-fn [this] "FOO!"))
           service2 (service Service2
                      [[:Service1 service1-fn]]
-                     (init [this context] (service1-fn) context)
-                     (service2-fn [this] "service2"))
+                     (init [this context] (assoc context
+                                                 :injected-fn-result
+                                                 (service1-fn)))
+                     (service2-fn [this]
+                                  ((svcs/service-context this) :injected-fn-result)))
           app (bootstrap-services-with-empty-config [service1 service2])
           s2  (app/get-service app :Service2)]
-      (is (= "service2" (service2-fn s2))))))
+      (is (= "FOO!" (service2-fn s2))))))
 
 (defprotocol Service4
   (service4-fn1 [this])

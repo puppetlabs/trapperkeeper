@@ -569,12 +569,12 @@
 
 (deftest service-fn-invalid-docstring
   (testing "defining a service function, mistakenly adding a docstring"
-    (is (thrown-with-msg?
-         Exception
-         #"Incorrect macro usage"
-         (macroexpand '(puppetlabs.trapperkeeper.services/service
+    (try (macroexpand '(puppetlabs.trapperkeeper.services/service
                          puppetlabs.trapperkeeper.services-test/Service1
                          []
                          (service1-fn
                            "This is an example of an invalid docstring"
-                           [this] nil)))))))
+                           [this] nil)))
+      (catch Exception e
+        (let [cause (-> e Throwable->map :cause)]
+          (is (re-matches #"Incorrect macro usage.*" cause)))))))

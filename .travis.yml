@@ -1,6 +1,7 @@
 language: clojure
+lein: 2.9.1
 jdk:
-  - oraclejdk9
-  - oraclejdk8
+  - openjdk11
+  - openjdk8
 notifications:
   email: false

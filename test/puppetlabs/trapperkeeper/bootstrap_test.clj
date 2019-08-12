@@ -1,7 +1,7 @@
 (ns puppetlabs.trapperkeeper.bootstrap-test
   (:import (java.io StringReader))
   (:require [clojure.test :refer :all]
-            [clojure.java.io :refer [file]]
+            [clojure.java.io :refer [file] :as io]
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
@@ -46,21 +46,24 @@
               (is (= (hello-world hello-world-svc) "hello world")))))
 
         (testing "Gives precedence to bootstrap config in cwd"
-          (let [old-cwd (System/getProperty "user.dir")]
+          (let [cwd-config (io/file (System/getProperty "user.dir") "bootstrap.cfg")
+                test-config (io/file "./dev-resources/bootstrapping/cwd/bootstrap.cfg")]
+            ;; This test used to set the user.dir property to the dev-resources dir above,
+            ;; however in Java 11 it is illegal to set user.dir at runtime.
+            (is (not (.exists cwd-config))
+                "A bootstrap config file exists in the cwd, cannot reliably test cwd bootstrap loading!")
             (try
-              (System/setProperty
-               "user.dir"
-               (.getAbsolutePath (file "./dev-resources/bootstrapping/cwd")))
+              (io/copy test-config cwd-config)
               (with-test-logging
                 (let [app (bootstrap-with-empty-config)
                       test-svc (get-service app :TestService)
                       hello-world-svc (get-service app :HelloWorldService)]
                   (is (logged?
-                       #"Loading bootstrap config from current working directory: '.*/dev-resources/bootstrapping/cwd/bootstrap.cfg'"
+                       #"Loading bootstrap config from current working directory: '.*/bootstrap.cfg'"
                        :debug))
                   (is (= (test-fn test-svc) :cwd))
                   (is (= (hello-world hello-world-svc) "hello world"))))
-              (finally (System/setProperty "user.dir" old-cwd)))))
+              (finally (io/delete-file cwd-config)))))
 
         (testing "Gives precedence to bootstrap config specified as CLI arg"
           (with-test-logging

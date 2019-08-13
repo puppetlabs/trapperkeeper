@@ -45,12 +45,13 @@
                broken-service])))
         (is (logged? #"Error during app buildup!" :error)
             "App buildup error message not logged")))
-    (is (thrown-with-msg?
-         RuntimeException #"Service does not define function 'foo'"
-         (macroexpand '(puppetlabs.trapperkeeper.services/service
-                         puppetlabs.trapperkeeper.core-test/FooService
-                         []
-                         (init [this context] context)))))))
+    (try (macroexpand '(puppetlabs.trapperkeeper.services/service
+                       puppetlabs.trapperkeeper.core-test/FooService
+                       []
+                       (init [this context] context)))
+      (catch RuntimeException e
+        (let [cause (-> e Throwable->map :cause)]
+          (is (re-matches #"Service does not define function 'foo'.*" cause)))))))
 
 (deftest test-main
   (testing "Parsed CLI data"

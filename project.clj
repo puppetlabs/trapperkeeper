@@ -1,6 +1,4 @@
-(def ks-version "2.5.2")
-
-(defproject puppetlabs/trapperkeeper "2.0.2-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "3.0.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :license {:name "Apache License, Version 2.0"
@@ -8,7 +6,7 @@
 
   :min-lein-version "2.9.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "1.7.24"]
+  :parent-project {:coords [puppetlabs/clj-parent "4.0.1"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -32,8 +30,8 @@
                  [org.codehaus.janino/janino]
 
                  [clj-time]
-                 [me.raynes/fs]
-                 [circleci/clj-yaml]
+                 [clj-commons/fs]
+                 [clj-commons/clj-yaml]
 
                  [prismatic/plumbing]
                  [prismatic/schema]
@@ -41,7 +39,7 @@
                  [beckon]
 
                  [puppetlabs/typesafe-config]
-                 [puppetlabs/kitchensink ~ks-version]
+                 [puppetlabs/kitchensink]
                  [puppetlabs/i18n]
                  [nrepl/nrepl]
                  ]
@@ -67,14 +65,14 @@
              :dev {:source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
-                   :dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]]}
+                   :dependencies [[puppetlabs/kitchensink :classifier "test"]]}
 
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]
                        :classifiers ^:replace []}}
 
-  :plugins [[lein-parent "0.3.1"]
-            [puppetlabs/i18n "0.7.1"]]
+  :plugins [[lein-parent "0.3.7"]
+            [puppetlabs/i18n "0.8.0"]]
 
   :main puppetlabs.trapperkeeper.main
   )

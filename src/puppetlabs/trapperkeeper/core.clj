@@ -1,6 +1,5 @@
 (ns puppetlabs.trapperkeeper.core
   (:require [clojure.tools.logging :as log]
-            [slingshot.slingshot :refer [try+ throw+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.app :as app]
@@ -10,7 +9,9 @@
             [puppetlabs.trapperkeeper.plugins :as plugins]
             [schema.core :as schema]
             [puppetlabs.trapperkeeper.common :as common]
-            [puppetlabs.i18n.core :as i18n]))
+            [puppetlabs.i18n.core :as i18n])
+  (:import
+   (clojure.lang ExceptionInfo)))
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
@@ -168,19 +169,14 @@
   (let [quit (fn [status msg stream]
                (binding [*out* stream] (println msg) (flush))
                (System/exit status))]
-    (try+
-      (-> (or args '())
-          (internal/parse-cli-args!)
-          (run))
-      (catch map? m
-        (let [type (:kind m)]
-          (if (keyword? type)
-            (case (without-ns (:kind m))
-              :cli-error (quit 1 (:msg m) *err*)
-              :cli-help (quit 0 (:msg m) *out*)
-              ;; By default let the throw below reraise the error
-              nil)))
-        (throw+))
+    (try
+      (run (internal/parse-cli-args! (or args '())))
+      (catch ExceptionInfo ex
+        (let [{:keys [kind msg] :as data} (ex-data ex)]
+          (case (some-> kind without-ns)
+            :cli-error (quit 1 msg *err*)
+            :cli-help (quit 0 msg *out*)
+            (throw ex))))
       (finally
         (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
         (shutdown-agents)))))

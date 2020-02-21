@@ -158,6 +158,21 @@
     (run-app app)
     (swap! internal/tk-apps (partial remove #{app}))))
 
+(defn- parse-args [args]
+  (let [quit (fn [status msg stream]
+               (binding [*out* stream]
+                 (println msg)
+                 (flush))
+               (System/exit status))]
+    (try
+      (internal/parse-cli-args! (or args ()))
+      (catch ExceptionInfo ex
+        (let [{:keys [kind msg] :as data} (ex-data ex)]
+          (case (some-> kind without-ns)
+            :cli-error (quit 1 msg *err*)
+            :cli-help (quit 0 msg *out*)
+            (throw ex)))))))
+
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
   trapperkeeper is shut down. This may be called directly, but is also called by
@@ -166,17 +181,8 @@
   [& args]
   {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
-  (let [quit (fn [status msg stream]
-               (binding [*out* stream] (println msg) (flush))
-               (System/exit status))]
-    (try
-      (run (internal/parse-cli-args! (or args '())))
-      (catch ExceptionInfo ex
-        (let [{:keys [kind msg] :as data} (ex-data ex)]
-          (case (some-> kind without-ns)
-            :cli-error (quit 1 msg *err*)
-            :cli-help (quit 0 msg *out*)
-            (throw ex))))
-      (finally
-        (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
-        (shutdown-agents)))))
+  (try
+    (run (parse-args args))
+    (finally
+      (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
+      (shutdown-agents))))

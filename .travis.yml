@@ -1,7 +1,29 @@
 language: clojure
 lein: 2.9.1
-jdk:
-  - openjdk11
-  - openjdk8
+
+jobs:
+  include:
+    - jdk: openjdk8
+      name: lein test (openjdk8)
+    - jdk: openjdk11
+      name: lein test (openjdk11)
+    - jdk: openjdk8
+      name: external tests (openjdk8)
+      script: lein uberjar && ext/test/run-all
+    - jdk: openjdk11
+      name: external tests (openjdk11)
+      script: lein uberjar && ext/test/run-all
+    - name: external tests (openjdk11)
+      # Apparently travis' lein support is broken right now
+      language: java
+      os: osx
+      osx_image: xcode10.3
+      script: |
+        # prep in standalone script so things like set -x don't affect travis
+        ext/travisci/prep-macos \
+        && export PATH="$(pwd)/ext/travisci/bin:$PATH" \
+        && lein uberjar \
+        && ext/test/run-all
+
 notifications:
   email: false

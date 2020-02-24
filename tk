@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -e
+
+jar_glob='trapperkeeper-*-SNAPSHOT-standalone.jar'
+
+if test "${TRAPPERKEEPER_JAR:-}"; then
+    jar="$TRAPPERKEEPER_JAR"
+else
+    # Find the standalone jar and make sure there's only one.
+    # FIXME: minor race here between find runs
+    # Use a bash array expansion to count the files so we don't have
+    # to worry about strange paths (though admittedly unlikely here).
+    shopt -s nullglob
+    jars=(target/$jar_glob)
+    shopt -u nullglob
+    if test "${#jars[@]}" -gt 1; then
+        echo "error: found more than one SNAPSHOT jar:" 1>&2
+        find target -maxdepth 1 -name "$jar_glob" 1>&2
+        exit 2
+    fi
+    jar="${jars[0]}"
+fi
+
+if ! test -e "$jar"; then
+    printf 'Unable to find target/%s; have you run "lein uberjar"?\n' \
+           "$jar" 1>&2
+    exit 2
+fi
+
+exec java -jar "$jar" "$@"

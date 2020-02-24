@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -exu
+
+java -version
+
+# Something was wrong with travis' macos lein, so just grab our own
+mkdir -p ext/travisci/bin
+curl -o lein 'https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein'
+chmod +x lein
+mv lein ext/travisci/bin/

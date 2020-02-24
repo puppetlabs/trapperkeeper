@@ -173,11 +173,11 @@
           (internal/parse-cli-args!)
           (run))
       (catch map? m
-        (let [type (:type m)]
+        (let [type (:kind m)]
           (if (keyword? type)
-            (case (without-ns (:type m))
-              :cli-error (quit 1 (:message m) *err*)
-              :cli-help (quit 0 (:message m) *out*)
+            (case (without-ns (:kind m))
+              :cli-error (quit 1 (:msg m) *err*)
+              :cli-help (quit 0 (:msg m) *out*)
               ;; By default let the throw below reraise the error
               nil)))
         (throw+))

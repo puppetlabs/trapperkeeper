@@ -54,7 +54,10 @@ To use them, you may simply specify a dependency on them:
 
 ### `request-shutdown`
 
-`request-shutdown` is a no-arg function that will simply cause Trapperkeeper to initiate a normal shutdown of the application container (which will, in turn, cause all registered shutdown hooks to be called).  It is asynchronous.
+`request-shutdown` is a no-arg function that will simply cause
+Trapperkeeper to initiate a normal shutdown of the application
+container (which will, in turn, cause all registered shutdown hooks to
+be called).  It is asynchronous.
 
 ### `shutdown-on-error`
 

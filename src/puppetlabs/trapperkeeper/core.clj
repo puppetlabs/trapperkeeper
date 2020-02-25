@@ -158,20 +158,58 @@
     (run-app app)
     (swap! internal/tk-apps (partial remove #{app}))))
 
+(def exit-request-schema
+  "A process exit request like
+  {:kind :puppetlabs.trapperkeeper.core/exit
+   :status 7
+   :messages [[\"something for stderr\n\" *err*]]
+              [\"something for stdout\n\" *out*]]
+              [\"something else for stderr\n\" *err*]]"
+  {:kind ::exit
+   :status schema/Int
+   :messages [[(schema/one schema/Str "message")
+               (schema/one java.io.Writer "stream")]]})
+
 (defn- parse-args [args]
-  (let [quit (fn [status msg stream]
-               (binding [*out* stream]
-                 (println msg)
-                 (flush))
-               (System/exit status))]
+  "Returns valid CLIData or throws an ::exit."
+  (letfn [(quit [status msg stream ex-msg]
+            (throw (ex-info ex-msg
+                            ;; Matches exit-request-schema
+                            {:kind ::exit
+                             :status status
+                             :messages [[(str msg "\n") stream]]})))]
     (try
       (internal/parse-cli-args! (or args ()))
       (catch ExceptionInfo ex
         (let [{:keys [kind msg] :as data} (ex-data ex)]
           (case (some-> kind without-ns)
-            :cli-error (quit 1 msg *err*)
-            :cli-help (quit 0 msg *out*)
+            :cli-error (quit 1 msg *err* (i18n/trs "Invalid program arguments"))
+            :cli-help (quit 0 msg *out* (i18n/trs "Command line --help requested"))
             (throw ex)))))))
+
+(defn- handle-exit
+  "Prints any messages provided to the indicated streams, and returns
+  the appropriate process exit status."
+  [{:keys [status messages]}]
+  ;; Check values carefully here since throwing ::exit is a public interface
+  (letfn [(show [stream msg]
+            (binding [*out* stream]
+              (print msg)
+              (flush)))]
+    (doseq [[string stream :as message] messages
+            :when (try
+                    (schema/validate [(schema/one schema/Str "message")
+                                      (schema/one java.io.Writer "stream")]
+                                     message)
+                    (catch Exception ex
+                      (show *err* (i18n/trs "Malformed exit message: {0}\n" ex))
+                      false))]
+      (show stream string))
+    (if (integer? status)
+      status
+      (do
+        (show *err* (i18n/trs "Invalid exit status requested, exiting with 2"))
+        2))))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
@@ -182,7 +220,14 @@
   {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
   (try
-    (run (parse-args args))
-    (finally
-      (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
-      (shutdown-agents))))
+    (let [cli (parse-args args)]
+      (try
+        (run cli)
+        (finally
+          (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
+          (shutdown-agents))))
+    (catch ExceptionInfo ex
+      (let [{:keys [kind] :as data} (ex-data ex)]
+        (when-not (= ::exit kind)
+          (throw ex))
+        (System/exit (handle-exit data))))))

@@ -54,10 +54,33 @@ To use them, you may simply specify a dependency on them:
 
 ### `request-shutdown`
 
-`request-shutdown` is a no-arg function that will simply cause
-Trapperkeeper to initiate a normal shutdown of the application
-container (which will, in turn, cause all registered shutdown hooks to
-be called).  It is asynchronous.
+`request-shutdown` initiates a shutdown of the application container
+which will, in turn, cause all registered shutdown hooks to be called.
+It is asynchronous and will eventually cause the `run` function to
+return.
+
+It accepts an optional argument which can be used to provide a map
+specifying a process exit status and final messages like this:
+
+```clj
+{:puppetlabs.trapperkepper.core/exit`
+ {:status 3
+  :messages [["Unexpected filesystem error ..." *err*]]}}
+```
+
+which will finally be thrown from `run` as an `ex-info` of `:kind`
+`:puppetlabs.trapperkepper.core/exit` like this:
+
+
+```clj
+{:kind :puppetlabs.trapperkepper.core/exit`
+ :status 3
+ :messages [["Unexpected filesystem error ..." *err*]]}}
+```
+
+The `:messages` should include any desired newlines, and when relying
+on `:puppetlabs.trapperkepper.core/main`, the `:messages` will be
+printed and `exit` will be called with the given `:status`.
 
 ### `shutdown-on-error`
 

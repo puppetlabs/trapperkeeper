@@ -142,7 +142,9 @@
       (internal/call-error-handler! shutdown-reason)
       (internal/shutdown! (app/app-context app))
       (when-let [error (:error shutdown-reason)]
-        (throw error)))))
+        (throw error))
+      (when (= :requested (:cause shutdown-reason))
+        (select-keys shutdown-reason [::exit])))))
 
 (schema/defn run
   "Bootstraps a trapperkeeper application and runs it.
@@ -155,26 +157,20 @@
     ;; it can be referenced in a remote nREPL session, etc.
     (swap! internal/tk-apps conj app)
     (internal/register-sighup-handler)
-    (run-app app)
-    (swap! internal/tk-apps (partial remove #{app}))))
-
-(def exit-request-schema
-  "A process exit request like
-  {:kind :puppetlabs.trapperkeeper.core/exit
-   :status 7
-   :messages [[\"something for stderr\n\" *err*]]
-              [\"something for stdout\n\" *out*]]
-              [\"something else for stderr\n\" *err*]]"
-  {:kind ::exit
-   :status schema/Int
-   :messages [[(schema/one schema/Str "message")
-               (schema/one java.io.Writer "stream")]]})
+    (let [{:keys [::exit] :as result} (run-app app)]
+      ;; Q: If it's appropriate (or even just acceptable) for this
+      ;; removal to be handled via catch/finally, then it'd be a bit
+      ;; simpler to just throw the exit from run-app.
+      (swap! internal/tk-apps (partial remove #{app}))
+      (when exit
+        (throw (ex-info (i18n/trs "Process exit requested")
+                        (assoc (::exit result) :kind ::exit)))))))
 
 (defn- parse-args [args]
   "Returns valid CLIData or throws an ::exit."
   (letfn [(quit [status msg stream ex-msg]
             (throw (ex-info ex-msg
-                            ;; Matches exit-request-schema
+                            ;; :status and :messages match exit-request-schema
                             {:kind ::exit
                              :status status
                              :messages [[(str msg "\n") stream]]})))]
@@ -213,9 +209,12 @@
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
-  trapperkeeper is shut down. This may be called directly, but is also called by
-  `puppetlabs.trapperkeeper.core/-main` if you use `puppetlabs.trapperkeeper.core`
-  as the `:main` namespace in your leinengen project."
+  trapperkeeper is shut down. This may be called directly, but is also
+  called by `puppetlabs.trapperkeeper.core/-main` if you use
+  `puppetlabs.trapperkeeper.core` as the `:main` namespace in your
+  leinengen project.  Never returns (calls System/exit) after argument
+  processing errors, `--help` requests, or calls to `request-shutdown`
+  that specify a specific process exit status."
   [& args]
   {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}

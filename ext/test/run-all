@@ -8,3 +8,4 @@ misuse() { usage 1>&2; exit 2; }
 test $# -eq 0 || misuse
 
 ext/test/top-level-cli
+ext/test/custom-exit-behavior

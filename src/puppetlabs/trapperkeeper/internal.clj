@@ -345,19 +345,35 @@
 ;;;; regarding the cause of the shutdown, and is intended to be passed back
 ;;;; in to the top-level functions that perform various shutdown steps.
 
+(def exit-request-schema
+  "A process exit request like
+  {:status 7
+   :messages [[\"something for stderr\n\" *err*]]
+              [\"something for stdout\n\" *out*]]
+              [\"something else for stderr\n\" *err*]]"
+  {:status schema/Int
+   :messages [[(schema/one schema/Str "message")
+               (schema/one java.io.Writer "stream")]]})
+
 (def ^{:private true
        :doc "The possible causes for shutdown to be initiated."}
   shutdown-causes #{:requested :service-error :jvm-shutdown-hook})
 
-(defn request-shutdown*
+(schema/defn request-shutdown*
   "Initiate the normal shutdown of TrapperKeeper. This is asynchronous.
-  It is assumed that `wait-for-app-shutdown` has been called and is blocking.
-  Intended to be used by application services (likely their worker threads)
-  to programatically trigger application shutdown.
-  Note that this is exposed via the `shutdown-service` where it is a no-arg
-  function."
-  [shutdown-reason-promise]
-  (deliver shutdown-reason-promise {:cause :requested}))
+  It is assumed that `wait-for-app-shutdown` has been called and is
+  blocking.  Intended to be used by application services (likely their
+  worker threads) to programatically trigger application shutdown.
+  Note that this is exposed via the `shutdown-service`.  See the
+  protocol documentation for addiitonal information."
+  ([shutdown-reason-promise]
+   (request-shutdown* shutdown-reason-promise {}))
+  ([shutdown-reason-promise
+    opts :- {(schema/optional-key :puppetlabs.trapperkeeper.core/exit)
+             exit-request-schema}]
+   (deliver shutdown-reason-promise
+            (merge {:cause :requested}
+                   (select-keys opts [:puppetlabs.trapperkeeper.core/exit])))))
 
 (defn shutdown-on-error*
   "A higher-order function that is intended to be used as a wrapper around
@@ -395,7 +411,11 @@
 (defprotocol ShutdownService
   (get-shutdown-reason [this])
   (wait-for-shutdown [this])
-  (request-shutdown [this] "Asynchronously trigger normal shutdown")
+  (request-shutdown [this] [this opts]
+    "Asynchronously triggers normal shutdown.  A specific exit status
+    and final messages to display can be requested by associating an
+    exit-request-schema compatible value with
+    the :puppetlabs.trapperkeeper.core/exit key in the opts map.")
   (shutdown-on-error [this svc-id f] [this svc-id f on-error]
     "Higher-order function to execute application logic and trigger shutdown in
     the event of an exception"))
@@ -424,6 +444,7 @@
                                   @shutdown-reason-promise))
     (wait-for-shutdown [this] (deref shutdown-reason-promise))
     (request-shutdown [this]  (request-shutdown* shutdown-reason-promise))
+    (request-shutdown [this opts]  (request-shutdown* shutdown-reason-promise opts))
     (shutdown-on-error [this svc-id f] (shutdown-on-error* shutdown-reason-promise app-context svc-id f))
     (shutdown-on-error [this svc-id f on-error] (shutdown-on-error* shutdown-reason-promise app-context svc-id f on-error))))
 

@@ -56,6 +56,10 @@ If you don't want to defer to Trapperkeeper as your `:main` namespace, you can s
   (apply trapperkeeper/main args))
 ```
 
+Trapperkeeper's `main` will call `exit` itself in some cases,
+e.g. after argument processing errors, `--help` requests, or calls to
+`request-shutdown` that specify a specific process exit status.
+
 ### Call Trapperkeeper's `run` function directly
 
 If your application needs to handle command line arguments directly, rather than allowing Trapperkeeper to handle them, you can circumvent Trapperkeeper's `main` function and call `run` directly.
@@ -79,6 +83,11 @@ But, if you absolutely must...  Here's how it can be done:
 ```
 
 Note that Trapperkeeper's `run` function requires a map as an argument, and this map must contain the `:config` key which Trapperkeeper will use just as it would have used the `--config` value from the command line.  You may also (optionally) provide `:bootstrap-config` and `:debug` keys, to override the path to the bootstrap configuration file and/or enable debugging on the application.
+
+If shutdown is initiatiated by a call to `request-shutdown` asking for
+a specific exit status, `run` will throw an ex-info exception with a
+`:kind` of `puppetlabs.trapperkeeper.core/exit`.  See the
+`request-shutdown` documentation for additional information.
 
 ### Other Ways to Boot
 

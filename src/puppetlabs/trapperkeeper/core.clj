@@ -1,6 +1,5 @@
 (ns puppetlabs.trapperkeeper.core
   (:require [clojure.tools.logging :as log]
-            [slingshot.slingshot :refer [try+ throw+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
             [puppetlabs.trapperkeeper.services :as services]
             [puppetlabs.trapperkeeper.app :as app]
@@ -10,7 +9,9 @@
             [puppetlabs.trapperkeeper.plugins :as plugins]
             [schema.core :as schema]
             [puppetlabs.trapperkeeper.common :as common]
-            [puppetlabs.i18n.core :as i18n]))
+            [puppetlabs.i18n.core :as i18n])
+  (:import
+   (clojure.lang ExceptionInfo)))
 
 (def #^{:macro true
         :doc "An alias for the `puppetlabs.trapperkeeper.services/service` macro
@@ -141,7 +142,9 @@
       (internal/call-error-handler! shutdown-reason)
       (internal/shutdown! (app/app-context app))
       (when-let [error (:error shutdown-reason)]
-        (throw error)))))
+        (throw error))
+      (when (= :requested (:cause shutdown-reason))
+        (select-keys shutdown-reason [::exit])))))
 
 (schema/defn run
   "Bootstraps a trapperkeeper application and runs it.
@@ -154,33 +157,76 @@
     ;; it can be referenced in a remote nREPL session, etc.
     (swap! internal/tk-apps conj app)
     (internal/register-sighup-handler)
-    (run-app app)
-    (swap! internal/tk-apps (partial remove #{app}))))
+    (let [{:keys [::exit] :as result} (run-app app)]
+      ;; Q: If it's appropriate (or even just acceptable) for this
+      ;; removal to be handled via catch/finally, then it'd be a bit
+      ;; simpler to just throw the exit from run-app.
+      (swap! internal/tk-apps (partial remove #{app}))
+      (when exit
+        (throw (ex-info (i18n/trs "Process exit requested")
+                        (assoc (::exit result) :kind ::exit)))))))
+
+(defn- parse-args [args]
+  "Returns valid CLIData or throws an ::exit."
+  (letfn [(quit [status msg stream ex-msg]
+            (throw (ex-info ex-msg
+                            ;; :status and :messages match exit-request-schema
+                            {:kind ::exit
+                             :status status
+                             :messages [[(str msg "\n") stream]]})))]
+    (try
+      (internal/parse-cli-args! (or args ()))
+      (catch ExceptionInfo ex
+        (let [{:keys [kind msg] :as data} (ex-data ex)]
+          (case (some-> kind without-ns)
+            :cli-error (quit 1 msg *err* (i18n/trs "Invalid program arguments"))
+            :cli-help (quit 0 msg *out* (i18n/trs "Command line --help requested"))
+            (throw ex)))))))
+
+(defn- handle-exit
+  "Prints any messages provided to the indicated streams, and returns
+  the appropriate process exit status."
+  [{:keys [status messages]}]
+  ;; Check values carefully here since throwing ::exit is a public interface
+  (letfn [(show [stream msg]
+            (binding [*out* stream]
+              (print msg)
+              (flush)))]
+    (doseq [[string stream :as message] messages
+            :when (try
+                    (schema/validate [(schema/one schema/Str "message")
+                                      (schema/one java.io.Writer "stream")]
+                                     message)
+                    (catch Exception ex
+                      (show *err* (i18n/trs "Malformed exit message: {0}\n" ex))
+                      false))]
+      (show stream string))
+    (if (integer? status)
+      status
+      (do
+        (show *err* (i18n/trs "Invalid exit status requested, exiting with 2"))
+        2))))
 
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
-  trapperkeeper is shut down. This may be called directly, but is also called by
-  `puppetlabs.trapperkeeper.core/-main` if you use `puppetlabs.trapperkeeper.core`
-  as the `:main` namespace in your leinengen project."
+  trapperkeeper is shut down. This may be called directly, but is also
+  called by `puppetlabs.trapperkeeper.core/-main` if you use
+  `puppetlabs.trapperkeeper.core` as the `:main` namespace in your
+  leinengen project.  Never returns (calls System/exit) after argument
+  processing errors, `--help` requests, or calls to `request-shutdown`
+  that specify a specific process exit status."
   [& args]
   {:pre [((some-fn sequential? nil?) args)
          (every? string? args)]}
-  (let [quit (fn [status msg stream]
-               (binding [*out* stream] (println msg) (flush))
-               (System/exit status))]
-    (try+
-      (-> (or args '())
-          (internal/parse-cli-args!)
-          (run))
-      (catch map? m
-        (let [type (:type m)]
-          (if (keyword? type)
-            (case (without-ns (:type m))
-              :cli-error (quit 1 (:message m) *err*)
-              :cli-help (quit 0 (:message m) *out*)
-              ;; By default let the throw below reraise the error
-              nil)))
-        (throw+))
-      (finally
-        (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
-        (shutdown-agents)))))
+  (try
+    (let [cli (parse-args args)]
+      (try
+        (run cli)
+        (finally
+          (log/debug (i18n/trs "Finished TK main lifecycle, shutting down Clojure agent threads."))
+          (shutdown-agents))))
+    (catch ExceptionInfo ex
+      (let [{:keys [kind] :as data} (ex-data ex)]
+        (when-not (= ::exit kind)
+          (throw ex))
+        (System/exit (handle-exit data))))))

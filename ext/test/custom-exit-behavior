@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -uexo pipefail
+
+usage() { echo "Usage: $(basename "$0")"; }
+misuse() { usage 1>&2; exit 2; }
+tk() { lein trampoline run "$@"; }
+
+test $# -eq 0 || misuse
+
+tmpdir="$(mktemp -d "test-top-level-cli-XXXXXX")"
+tmpdir="$(cd "$tmpdir" && pwd)"
+trap "$(printf 'rm -rf %q' "$tmpdir")" EXIT
+
+rc=0
+tk -d -b ext/test/lib/custom-exit-behavior/bootstrap.cfg \
+   1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
+cat "$tmpdir/out" "$tmpdir/err"
+test "$rc" -eq 7
+grep -F 'Some excitement!' "$tmpdir/out"
+grep -F 'More excitement!' "$tmpdir/err"

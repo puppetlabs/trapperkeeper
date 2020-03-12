@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -uexo pipefail
+
+usage() { echo "Usage: [TRAPPERKEEPER_JAR=JAR] $(basename "$0")"; }
+misuse() { usage 1>&2; exit 2; }
+
+test $# -eq 0 || misuse
+
+ext/test/top-level-cli
+ext/test/custom-exit-behavior

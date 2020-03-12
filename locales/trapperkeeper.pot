@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Puppet <docs@puppet.com>
-# This file is distributed under the same license as the PACKAGE package.
+# This file is distributed under the same license as the puppetlabs.trapperkeeper package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: puppetlabs.trapperkeeper \n"
-"X-Git-Ref: 4e206f03bd4d25a0810af670f2b7866124ad9850\n"
+"X-Git-Ref: 8aa311d5dc275d5f88dde3d6c4ab53e235bf32ec\n"
 "Report-Msgid-Bugs-To: docs@puppet.com\n"
 "POT-Creation-Date: \n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -88,6 +88,26 @@ msgstr ""
 
 #: src/puppetlabs/trapperkeeper/config.clj
 msgid "Duplicate configuration entry: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/core.clj
+msgid "Process exit requested"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/core.clj
+msgid "Invalid program arguments"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/core.clj
+msgid "Command line --help requested"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/core.clj
+msgid "Malformed exit message: {0}n"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/core.clj
+msgid "Invalid exit status requested, exiting with 2"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/core.clj

@@ -2,6 +2,7 @@
   (:require
     [clojure.tools.logging :as log]
     [nrepl.server :as nrepl]
+    [cider.nrepl :as cider]
     [puppetlabs.kitchensink.core :refer [to-bool]]
     [puppetlabs.trapperkeeper.core :refer [defservice]]
     [puppetlabs.i18n.core :as i18n]))
@@ -22,22 +23,23 @@
   (let [middlewares (parse-middlewares-if-necessary middlewares)]
     (doseq [middleware (map #(symbol (namespace %)) middlewares)]
       (require middleware))
-    (let [resolved (map #(resolve %) middlewares)]
-      (apply nrepl/default-handler resolved))))
+    (map #(resolve %) middlewares)))
 
 (defn process-config
   [get-in-config]
   {:enabled? (to-bool (get-in-config [:nrepl :enabled]))
    :port     (get-in-config [:nrepl :port] default-nrepl-port)
    :bind     (get-in-config [:nrepl :host] default-bind-addr)
-   :handler  (process-middlewares (get-in-config [:nrepl :middlewares] default-middlewares))})
+   :middlewares  (process-middlewares (get-in-config [:nrepl :middlewares] default-middlewares))
+   :cider-middlewares (when (get-in-config [:nrepl :cider-enabled]) (map resolve cider/cider-middleware))})
 
 (defn- startup-nrepl
   [get-in-config]
-  (let [{:keys [enabled? port bind handler]} (process-config get-in-config)]
+  (let [{:keys [enabled? port bind middlewares cider-middlewares]} (process-config get-in-config)]
     (if enabled?
-      (do (log/info (i18n/trs "Starting nREPL service on {0} port {1}" bind port))
-          (nrepl/start-server :port port :bind bind :handler handler))
+      (let [handler (apply nrepl/default-handler (concat middlewares cider-middlewares))]
+        (log/info (i18n/trs "Starting nREPL service on {0} port {1}" bind port))
+        (nrepl/start-server :port port :bind bind :handler handler))
       (log/info (i18n/trs "nREPL service disabled, not starting")))))
 
 (defn- shutdown-nrepl

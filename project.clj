@@ -42,6 +42,7 @@
                  [puppetlabs/kitchensink]
                  [puppetlabs/i18n]
                  [nrepl/nrepl]
+                 [cider/cider-nrepl "0.21.0"]
                  ]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"

@@ -19,7 +19,10 @@
    (not (.startsWith name "META-INF"))
 
     ;; lein includes project.clj ... no thank you
-   (not (= name "project.clj"))))
+   (not (= name "project.clj"))
+
+    ;; *data-readers* extensions can exist in multiple projects
+   (not (= name "data_readers.clj"))))
 
 (defn- handle-duplicate!
   "Helper for `process-file`; handles a found duplicate.  Throws an exception

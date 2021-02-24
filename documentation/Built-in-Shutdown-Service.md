@@ -82,6 +82,11 @@ The `:messages` should include any desired newlines, and when relying
 on `:puppetlabs.trapperkepper.core/main`, the `:messages` will be
 printed and `exit` will be called with the given `:status`.
 
+This map is exactly the same map that can be thrown from an `init` or
+`start` method via `ex-info` to initiate an immediate shutdown.
+(Calls to `request-shutdown` only trigger a shutdown later, currently
+after all of the services have been initialized and started.)
+
 ### `shutdown-on-error`
 
 `shutdown-on-error` is a higher-order function that can be used as a wrapper around some logic in your services; its functionality is simple:

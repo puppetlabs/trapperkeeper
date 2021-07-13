@@ -133,16 +133,43 @@
                     (i18n/trs "Services ''{0}'' not found" missing-services)))))
         (throw e)))))
 
+(schema/defschema GraphCompiler
+  (schema/=> (schema/=> (schema/pred service-graph?)
+                        (schema/pred map?))
+             (schema/pred service-graph?)))
+
+(schema/defn compile-graph*
+  "Helper function for `compile-graph` for testing purposes."
+  [graph-map
+   eager-compile :- GraphCompiler
+   interpreted-eager-compile :- GraphCompiler]
+  {:pre  [(service-graph? graph-map)]
+   :post [(ifn? %)]}
+  (try
+    (eager-compile graph-map)
+    (catch ExceptionInfo e
+      (handle-prismatic-exception! e))
+    ;; work around https://github.com/plumatic/plumbing/issues/138
+    ;; approach: switch to interpreted compilation, which scales to large
+    ;;           service graphs.
+    (catch clojure.lang.Compiler$CompilerException e
+      (log/debug e (str "Error while compiling specialized service graph, trying interpreted mode"
+                        " to handle larger graphs."))
+      (try
+        (interpreted-eager-compile graph-map)
+        (catch ExceptionInfo e
+          (handle-prismatic-exception! e))))))
+
 (defn compile-graph
   "Given the merged map of services, compile it into a function suitable for instantiation.
   Throws an exception if there is a dependency on a service that is not found in the map."
   [graph-map]
   {:pre  [(service-graph? graph-map)]
    :post [(ifn? %)]}
-  (try
-    (graph/eager-compile graph-map)
-    (catch ExceptionInfo e
-      (handle-prismatic-exception! e))))
+  (compile-graph*
+    graph-map
+    graph/eager-compile
+    graph/interpreted-eager-compile))
 
 (defn instantiate
   "Given the compiled graph function, instantiate the application. Throws an exception

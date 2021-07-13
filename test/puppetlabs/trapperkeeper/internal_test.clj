@@ -1,10 +1,13 @@
 (ns puppetlabs.trapperkeeper.internal-test
   (:require [clojure.test :refer :all]
+            [plumbing.core :refer [fnk]]
+            [plumbing.graph :as graph]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.app :as tk-app]
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
-            [puppetlabs.trapperkeeper.testutils.logging :as logging]))
+            [puppetlabs.trapperkeeper.testutils.logging :as logging]
+            [schema.core :as schema]))
 
 (deftest test-queued-restarts
   (testing "main lifecycle and calls to `restart-tk-apps` are not executed concurrently"
@@ -109,3 +112,61 @@
       ;; and make sure that we got one last :stop
       (is (= (conj expected-lifecycle-events :stop)
              @lifecycle-events)))))
+
+(def dummy-service-map-val 
+  (fnk dummy-service-map-val
+       :- schema/Any
+       []
+       (assert nil)))
+
+;; related: https://github.com/puppetlabs/trapperkeeper/issues/294
+(deftest compile-graph-test
+  (testing "specialized compilation"
+    (let [dummy-small-service-graph {:Service1 dummy-service-map-val}]
+      (is (ifn? (internal/compile-graph dummy-small-service-graph)))))
+  (testing "interpreted compilation"
+    (let [dummy-huge-service-graph (into {}
+                                         (map (fn [i]
+                                                {(keyword (str "Service" i))
+                                                 dummy-service-map-val}))
+                                         ;; should be larger than the number of fields
+                                         ;; allowed in a defrecord in practice.
+                                         ;; related: https://github.com/plumatic/plumbing/issues/138
+                                         (range 1000))]
+      (is (ifn? (internal/compile-graph dummy-huge-service-graph)))))
+  (testing "internal logic"
+    (let [eager-compile-succeed (fn [g]
+                                  ::eager-compile-succeed)
+          eager-compile-too-large (fn [g]
+                                    ;; simulate a "Method too large!"
+                                    ;; or "Too many arguments in method signature in class file" exception
+                                    ;; (ie., the symptoms of hitting the limits of graph/eager-compile).
+                                    (throw (clojure.lang.Compiler$CompilerException.
+                                             ""
+                                             0
+                                             0
+                                             (Exception.))))
+          interpreted-eager-compile-succeed (fn [g]
+                                              ::interpreted-eager-compile-succeed)
+          interpreted-eager-compile-fail (fn [g]
+                                           (throw (Exception. "Interpreted compile failed")))]
+      (testing "specialization succeeds"
+        (is (= ::eager-compile-succeed
+               (internal/compile-graph*
+                 {}
+                 eager-compile-succeed
+                 interpreted-eager-compile-fail))))
+      (testing "specialization fails, interpretation succeeds"
+        (is (= ::interpreted-eager-compile-succeed
+               (internal/compile-graph*
+                 {}
+                 eager-compile-too-large
+                 interpreted-eager-compile-succeed))))
+      (testing "specialization and interpretation fails, throws non-prismatic error"
+        (is (thrown-with-msg?
+              Exception
+              #"Interpreted compile failed"
+              (internal/compile-graph*
+                {}
+                eager-compile-too-large
+                interpreted-eager-compile-fail)))))))

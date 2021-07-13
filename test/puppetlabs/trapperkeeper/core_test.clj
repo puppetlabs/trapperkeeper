@@ -2,13 +2,14 @@
   (:require [clojure.test :refer :all]
             [slingshot.slingshot :refer [try+]]
             [puppetlabs.kitchensink.core :refer [without-ns]]
-            [puppetlabs.trapperkeeper.services :refer [service]]
-            [puppetlabs.trapperkeeper.app :refer [get-service]]
+            [puppetlabs.trapperkeeper.services :refer [defservice service]]
+            [puppetlabs.trapperkeeper.app :as app :refer [get-service]]
             [puppetlabs.trapperkeeper.internal :refer [parse-cli-args!]]
             [puppetlabs.trapperkeeper.core :as trapperkeeper]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.config :as config]
             [puppetlabs.trapperkeeper.testutils.logging :as logging]
+            [puppetlabs.trapperkeeper.logging :refer [root-logger-name]]
             [schema.test :as schema-test]
             [puppetlabs.kitchensink.core :as ks]))
 
@@ -130,3 +131,60 @@
                     {:config (str tk-config-file-with-restart)
                      :restart-file cli-restart-file})]
         (is (= cli-restart-file (get-in config [:global :restart-file])))))))
+
+;; related: https://github.com/plumatic/plumbing/issues/138
+(def number-of-test-services
+  "Should be higher than the number of defrecord fields
+  allowed in practice in order to hit plumatic graph specialization limits."
+  200)
+
+;; create a chain of services of length `number-of-test-services`
+(doseq [i (range number-of-test-services)
+        :let [->service-symbol (fn [i] (symbol (str "LargeServiceGraphTestService" i)))
+              ->method-symbol (fn [i] (symbol (str "large-service-graph-test-service-method" i)))
+              ->defservice-symbol (fn [i] (symbol (str "large-service-graph-test-service" i)))
+              service-symbol (->service-symbol i)
+              method-symbol (->method-symbol i)
+              defservice-symbol (->defservice-symbol i)
+              previous-service (when (pos? i)
+                                 (->service-symbol (dec i)))
+              previous-method (when (pos? i)
+                                (->method-symbol (dec i)))]]
+  (eval
+    `(defprotocol ~service-symbol
+       (~method-symbol [this# example-input#])))
+  (eval
+    `(defservice
+       ~defservice-symbol
+       ~service-symbol
+       ~(if previous-service
+          [[(keyword previous-service) previous-method]]
+          [])
+       (~method-symbol [this# example-input#]
+                       [~i example-input#
+                        ~(if previous-method
+                           ;; check service graph dependencies still work
+                           (list `first (list previous-method :dummy-arg))
+                           ;; makes writing tests easier
+                           -1)]))))
+
+(def this-ns (ns-name *ns*))
+
+(deftest large-service-graph-test
+  (testing "large service graphs compile correctly via interpretation"
+    (let [services (mapv (fn [i]
+                           @(ns-resolve this-ns (symbol (str "large-service-graph-test-service" i))))
+                         (range number-of-test-services))]
+      (logging/with-test-logging
+        (testutils/with-app-with-config app services {}
+          (is (logged? #"Error while compiling specialized service graph.*" :debug))
+          (let [sg (app/service-graph app)]
+            (testing "right number of services"
+              (is (= (+ 2 number-of-test-services) (count (app/service-graph app)))))
+            (doseq [i (range number-of-test-services)]
+              (let [g (gensym)]
+                (testing (str "service graph function for service " i)
+                  (is (= [i g (dec i)]
+                         ((get-in sg [(keyword (str "LargeServiceGraphTestService" i))
+                                      (keyword (str "large-service-graph-test-service-method" i))])
+                          g))))))))))))

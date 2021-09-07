@@ -1,3 +1,0 @@
-[submodule "ext/pl-clojure-style"]
-	path = ext/pl-clojure-style
-	url = git://github.com/puppetlabs/pl-clojure-style.git

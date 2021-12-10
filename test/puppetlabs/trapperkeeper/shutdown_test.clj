@@ -62,7 +62,8 @@
           app               (bootstrap-services-with-empty-config [test-service broken-service])]
       (is (false? @shutdown-called?))
       (logging/with-test-logging
-        (internal/shutdown! (app-context app))
+        (let [errors (internal/shutdown! (app-context app))]
+          (is (= '("dangit") (map #(.getMessage ^Throwable %) errors))))
         (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?)))))
 

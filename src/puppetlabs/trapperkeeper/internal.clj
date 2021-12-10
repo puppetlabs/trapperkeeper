@@ -616,8 +616,12 @@
         (inc-restart-counter! this)
         this)
       (a/stop [this]
-        (shutdown! app-context)
-        this)
+        (if-let [errors (not-empty (shutdown! app-context))]
+          (let [msg (i18n/trs "Error during app shutdown!")
+                e (ex-info msg {:errors errors})]
+            (log/error e msg)
+            (throw e))
+          this))
       (a/restart [this]
         (try
           (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))

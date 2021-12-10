@@ -455,18 +455,19 @@
   [app-context :- (schema/atom a/TrapperkeeperAppContext)]
   (log/info (i18n/trs "Beginning shutdown sequence"))
   (let [{:keys [ordered-services shutdown-channel lifecycle-worker]} @app-context
-        result-chan (async/promise-chan (map #(filter (partial not= :ok) %)))
+        errors-chan (async/promise-chan)
         shutdown-fn (fn [] (let [results
                                  (doall
-                                  (map (fn [[service-id s]]
-                                         (try
-                                           (run-lifecycle-fn! app-context s/stop "stop" service-id s)
-                                           :ok
-                                           (catch Exception e
-                                             (log/error e (i18n/trs "Encountered error during shutdown sequence"))
-                                             e)))
-                                       (reverse ordered-services)))]
-                             (async/put! result-chan results)))]
+                                  (keep
+                                   (fn [[service-id s]]
+                                     (try
+                                       (run-lifecycle-fn! app-context s/stop "stop" service-id s)
+                                       nil
+                                       (catch Exception e
+                                         (log/error e (i18n/trs "Encountered error during shutdown sequence"))
+                                         e)))
+                                   (reverse ordered-services)))]
+                             (async/put! errors-chan results)))]
     (log/trace (i18n/trs "Putting shutdown message on shutdown channel."))
     (async/>!! shutdown-channel {:type :shutdown
                                  :task-function shutdown-fn})
@@ -475,7 +476,8 @@
     (if (not (nil? (async/<!! lifecycle-worker)))
       (do
         (log/info (i18n/trs "Finished shutdown sequence"))
-        (async/<!! result-chan))
+        ;; deliver errors from stopped services if any
+        (async/<!! errors-chan))
       ;; else, the read from the channel returned a nil because it was closed,
       ;; indicating that there was already a shutdown in progress, and thus the
       ;; redundant shutdown request was ignored
@@ -618,13 +620,13 @@
       (a/stop [this]
         (a/stop this false))
       (a/stop [this throw?]
-        (if-let [errors (not-empty (shutdown! app-context))]
-          (let [msg (i18n/trs "Error during app shutdown!")
-                e (ex-info msg {:errors errors})]
-            (log/error e msg)
-            (when throw?
-              (throw e)))
-          this))
+        (let [errors (shutdown! app-context)]
+          (if (and throw? (seq errors))
+            (let [msg (i18n/trs "Error during app shutdown!")
+                  e (ex-info msg {:errors errors})]
+              (log/error e msg)
+              (throw e))
+            this)))
       (a/restart [this]
         (try
           (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))

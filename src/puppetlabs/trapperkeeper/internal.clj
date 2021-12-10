@@ -616,11 +616,14 @@
         (inc-restart-counter! this)
         this)
       (a/stop [this]
+        (a/stop this false))
+      (a/stop [this throw?]
         (if-let [errors (not-empty (shutdown! app-context))]
           (let [msg (i18n/trs "Error during app shutdown!")
                 e (ex-info msg {:errors errors})]
             (log/error e msg)
-            (throw e))
+            (when throw?
+              (throw e)))
           this))
       (a/restart [this]
         (try

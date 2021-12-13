@@ -622,10 +622,9 @@
       (a/stop [this throw?]
         (let [errors (shutdown! app-context)]
           (if (and throw? (seq errors))
-            (let [msg (i18n/trs "Error during app shutdown!")
-                  e (ex-info msg {:errors errors})]
-              (log/error e msg)
-              (throw e))
+            (let [msg (i18n/trs "Error during app shutdown!")]
+              (log/error msg)
+              (throw (ex-info msg {:errors errors})))
             this)))
       (a/restart [this]
         (try

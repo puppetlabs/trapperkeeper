@@ -22,7 +22,7 @@
        (try
          ~@body
          (finally
-           (tk-app/stop ~app))))))
+           (tk-app/stop ~app true))))))
 
 (defn bootstrap-services-with-cli-data
   [services cli-data]
@@ -37,7 +37,7 @@
        (try
          ~@body
          (finally
-           (tk-app/stop ~app))))))
+           (tk-app/stop ~app true))))))
 
 (defn bootstrap-services-with-cli-args
   [services cli-args]
@@ -51,7 +51,7 @@
        (try
          ~@body
          (finally
-           (tk-app/stop ~app))))))
+           (tk-app/stop ~app true))))))
 
 (defn bootstrap-services-with-empty-config
   [services]
@@ -64,7 +64,7 @@
        (try
          ~@body
          (finally
-           (tk-app/stop ~app))))))
+           (tk-app/stop ~app true))))))
 
 (defn bootstrap-with-empty-config
   ([]

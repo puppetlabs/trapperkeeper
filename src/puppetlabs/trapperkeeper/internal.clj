@@ -448,24 +448,36 @@
     (shutdown-on-error [this svc-id f] (shutdown-on-error* shutdown-reason-promise app-context svc-id f))
     (shutdown-on-error [this svc-id f on-error] (shutdown-on-error* shutdown-reason-promise app-context svc-id f on-error))))
 
-(schema/defn ^:always-validate shutdown!
+(schema/defn ^:always-validate shutdown! :- [Throwable]
   "Perform shutdown calling the `stop` lifecycle function on each service,
-   in reverse order (to account for dependency relationships)."
+   in reverse order (to account for dependency relationships).
+   Returns collection of exceptions thrown during shutdown sequence execution."
   [app-context :- (schema/atom a/TrapperkeeperAppContext)]
   (log/info (i18n/trs "Beginning shutdown sequence"))
   (let [{:keys [ordered-services shutdown-channel lifecycle-worker]} @app-context
-        shutdown-fn (fn [] (doseq [[service-id s] (reverse ordered-services)]
-                             (try
-                               (run-lifecycle-fn! app-context s/stop "stop" service-id s)
-                               (catch Exception e
-                                 (log/error e (i18n/trs "Encountered error during shutdown sequence"))))))]
+        errors-chan (async/promise-chan)
+        shutdown-fn (fn [] (let [results
+                                 (doall
+                                  (keep
+                                   (fn [[service-id s]]
+                                     (try
+                                       (run-lifecycle-fn! app-context s/stop "stop" service-id s)
+                                       nil
+                                       (catch Exception e
+                                         (log/error e (i18n/trs "Encountered error during shutdown sequence"))
+                                         e)))
+                                   (reverse ordered-services)))]
+                             (async/put! errors-chan results)))]
     (log/trace (i18n/trs "Putting shutdown message on shutdown channel."))
     (async/>!! shutdown-channel {:type :shutdown
                                  :task-function shutdown-fn})
     ;; wait for the channel to send us the return value so we know it's done
     (log/trace (i18n/trs "Waiting for response to shutdown message from lifecycle worker."))
     (if (not (nil? (async/<!! lifecycle-worker)))
-      (log/info (i18n/trs "Finished shutdown sequence"))
+      (do
+        (log/info (i18n/trs "Finished shutdown sequence"))
+        ;; deliver errors from stopped services if any
+        (async/<!! errors-chan))
       ;; else, the read from the channel returned a nil because it was closed,
       ;; indicating that there was already a shutdown in progress, and thus the
       ;; redundant shutdown request was ignored
@@ -606,8 +618,14 @@
         (inc-restart-counter! this)
         this)
       (a/stop [this]
-        (shutdown! app-context)
-        this)
+        (a/stop this false))
+      (a/stop [this throw?]
+        (let [errors (shutdown! app-context)]
+          (if (and throw? (seq errors))
+            (let [msg (i18n/trs "Error during app shutdown!")]
+              (log/error msg)
+              (throw (ex-info msg {:errors errors})))
+            this)))
       (a/restart [this]
         (try
           (run-lifecycle-fns app-context s/stop "stop" (reverse ordered-services))

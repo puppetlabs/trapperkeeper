@@ -1,3 +1,30 @@
+## 3.2.0-SNAPSHOT
+
+This is a minor feature release
+
+* Backward compatible changes to the signature of `puppetlabs.trapperkeeper.internal/shutdown!` function. Returns collection of exceptions caught during execution of shutdown sequence instead of nil.
+* Extend `stop` method of `puppetlabs.trapperkeeper.app/TrapperkeeperApp` protocol with an argument `throw?` to handle cases where exceptions in shutdown sequence should be rethrown.
+* Change default behavior of `puppetlabs.trapperkeeper.testutils.bootstrap` helper macroses to throw exception when shutdown finished abruptly.
+
+## 3.1.1
+
+This is a maintenance release
+
+* Updates to current clj-parent
+
+## 3.1.0
+
+This is a minor feature release
+
+* [PDB-4636](https://github.com/puppetlabs/trapperkeeper/pull/287) - support custom exit status/messages
+
+## 3.0.0
+
+This is a maintenance release
+
+* Updates to current clj-parent to clean up project.clj and update dependencies
+* Tests changes for readability and compatibility with Java11
+
 ## 2.0.1
 
 This is a maintenance release

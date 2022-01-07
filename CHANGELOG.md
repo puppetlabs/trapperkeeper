@@ -1,4 +1,4 @@
-## 3.2.0-SNAPSHOT
+## 3.2.0
 
 This is a minor feature release
 

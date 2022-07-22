@@ -7,6 +7,10 @@ jobs:
  snyk_clojure:
    runs-on: ubuntu-latest
    steps:
+    - name: Connect to Twingate
+      uses: twingate/github-action@v1
+      with:
+        service-key: ${{ secrets.TWINGATE_PUBLIC_REPO_KEY }}
     - name: checkout the current HEAD
       uses: actions/checkout@v2
       with:
@@ -14,11 +18,9 @@ jobs:
         persist-credentials: false
     - name: Run Clojure Snyk Scan
       id: scan
-      uses: puppetlabs/security-snyk-clojure-action@v1
+      uses: puppetlabs/security-snyk-clojure-action@v2
       with:
         snykToken: ${{ secrets.SNYK_PE_TOKEN }}
-        rproxyKey: ${{ secrets.SEC_PUBLIC_RPROXY_KEY }}
-        rproxyUser: ${{ secrets.SEC_PUBLIC_RPROXY_USER }}
         snykOrg: 'puppet-enterprise'
         snykProject: 'trapperkeeper'
         snykPolicy: '.snyk'

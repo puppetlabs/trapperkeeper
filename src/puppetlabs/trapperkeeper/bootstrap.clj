@@ -133,7 +133,7 @@
   the config. Throws an exception if there is a problem reading the file or
   the URI can't be loaded"
   [config-path :- schema/Str]
-  (if (fs/file? config-path)
+  (if (fs/readable? config-path)
     (line-seq (io/reader (fs/file config-path)))
     (try
       ; If it's not a file, attempt to read it as a URI

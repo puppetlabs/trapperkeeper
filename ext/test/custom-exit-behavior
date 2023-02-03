@@ -13,7 +13,7 @@ tmpdir="$(cd "$tmpdir" && pwd)"
 trap "$(printf 'rm -rf %q' "$tmpdir")" EXIT
 
 rc=0
-tk -d -b ext/test/lib/custom-exit-behavior/bootstrap.cfg \
+tk -d -b <(echo puppetlabs.trapperkeeper.custom-exit-behavior-test/custom-exit-behavior-test-service) \
    1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
 cat "$tmpdir/out" "$tmpdir/err"
 test "$rc" -eq 7

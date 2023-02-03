@@ -1,0 +1,52 @@
+name: mend_scan
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: connect_twingate
+      uses: twingate/github-action@v1
+      with:
+        service-key: ${{ secrets.TWINGATE_PUBLIC_REPO_KEY }}
+    - name: checkout repo content
+      uses: actions/checkout@v2 # checkout the repository content to github runner.
+      with:
+        fetch-depth: 1
+    # install java which is required for mend and clojure
+    - name: setup java
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 17
+    # install clojure tools
+    - name: Install Clojure tools
+      uses: DeLaGuardo/setup-clojure@10.1
+      with:
+        # Install just one or all simultaneously
+        # The value must indicate a particular version of the tool, or use 'latest'
+        # to always provision the latest version
+        cli: latest              # Clojure CLI based on tools.deps
+        lein: latest                  # Leiningen
+        boot: latest                  # Boot.clj
+        bb: latest                    # Babashka
+        clj-kondo: latest        # Clj-kondo
+        cljstyle: latest             # cljstyle
+        zprint: latest                # zprint
+    # run lein gen
+    - name: create pom.xml
+      run: lein pom
+    # download mend
+    - name: download_mend
+      run: curl -o wss-unified-agent.jar https://unified-agent.s3.amazonaws.com/wss-unified-agent.jar
+    - name: run mend
+      run: env WS_INCLUDES=pom.xml java -jar wss-unified-agent.jar
+      env:
+        WS_APIKEY: ${{ secrets.MEND_API_KEY }}
+        WS_WSS_URL: https://saas-eu.whitesourcesoftware.com/agent
+        WS_USERKEY: ${{ secrets.MEND_TOKEN }}
+        WS_PRODUCTNAME: ‘Puppet Enterprise’
+        WS_PROJECTNAME: ${{ github.event.repository.name }}

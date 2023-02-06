@@ -8,7 +8,7 @@ tk() { lein trampoline run "$@"; }
 
 test $# -eq 0 || misuse
 
-tmpdir="$(mktemp -d "test-top-level-cli-XXXXXX")"
+tmpdir="$(mktemp -d "test-custom-exit-behavior-XXXXXX")"
 tmpdir="$(cd "$tmpdir" && pwd)"
 trap "$(printf 'rm -rf %q' "$tmpdir")" EXIT
 

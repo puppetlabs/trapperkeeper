@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -uexo pipefail
+
+usage() { echo "Usage: $(basename "$0")"; }
+misuse() { usage 1>&2; exit 2; }
+
+await-file()
+(
+    local target="$1"
+    set +x
+    while ! test -e "$target"; do sleep 0.1; done
+)
+
+tk_pid=''
+tmpdir=''
+on-exit()
+{
+    if test "$tk_pid"; then
+        kill "$tk_pid"
+        status=0
+        wait "$tk_pid" || status=$?
+        set +x
+        echo tk exited with status "$status (143 is likely)" 1>&2
+        set -x
+    fi
+    rm -rf "$tmpdir"
+}
+trap on-exit EXIT
+
+test $# -eq 0 || misuse
+
+tmpdir="$(mktemp -d "test-signal-handling-XXXXXX")"
+tmpdir="$(cd "$tmpdir" && pwd)"
+
+# Start the test server, which repeatedly writes to the configured
+# target file, and make sure the target changes after a config file
+# change and signal.
+
+target_1="$tmpdir/target-1"
+target_2="$tmpdir/target-2"
+
+cat > "$tmpdir/config.json" <<EOS
+{"signal-test-target": "$target_1"}
+EOS
+
+./tk -cp "$(pwd)/test" -- \
+     --config "$tmpdir/config.json" \
+     -b <(echo puppetlabs.trapperkeeper.signal-handling-test/signal-handling-test-service) &
+tk_pid=$!
+
+await-file "$target_1"
+test exciting = "$(< "$target_1")"
+
+test ! -e "$target_2"
+cat > "$tmpdir/config.json" <<EOS
+{"signal-test-target": "$target_2"}
+EOS
+
+kill -HUP "$tk_pid"
+await-file "$target_2"
+test exciting = "$(< "$target_2")"

@@ -9,3 +9,4 @@ test $# -eq 0 || misuse
 
 ext/test/top-level-cli
 ext/test/custom-exit-behavior
+ext/test/signal-handling

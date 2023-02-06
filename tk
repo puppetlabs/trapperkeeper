@@ -1,8 +1,39 @@
 #!/usr/bin/env bash
 
-set -e
+set -ueo pipefail
+
+usage() { echo "Usage: tk JVM_ARG ... -- TK_ARG ..."; }
+misuse() { usage 1>&2; exit 2; }
 
 jar_glob='trapperkeeper-*-SNAPSHOT-standalone.jar'
+
+# Believe last -cp wins for java, and here, any final -cp path will be
+# placed in front of the jar.
+
+cp=''
+jvm_args=()
+while test $# -gt 0; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -cp)
+            shift
+            test $# -gt 0 || misuse
+            cp="$1"
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            shift
+            jvm_args+=("$1")
+            ;;
+    esac
+done
 
 if test "${TRAPPERKEEPER_JAR:-}"; then
     jar="$TRAPPERKEEPER_JAR"
@@ -28,4 +59,11 @@ if ! test -e "$jar"; then
     exit 2
 fi
 
-exec java -jar "$jar" "$@"
+set -x
+if test "$cp"; then
+    cp="$cp:$jar"
+else
+    cp="$jar"
+fi
+
+exec java -cp "$cp" clojure.main -m puppetlabs.trapperkeeper.main "$@"

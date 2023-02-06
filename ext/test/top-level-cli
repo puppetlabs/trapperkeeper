@@ -14,7 +14,7 @@ trap "$(printf 'rm -rf %q' "$tmpdir")" EXIT
 
 ## Test handling an unknown option
 rc=0
-./tk --invalid-option 1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
+./tk -- --invalid-option 1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
 cat "$tmpdir/out" "$tmpdir/err"
 test "$rc" -eq 1
 grep -F 'Unknown option: "--invalid-option"' "$tmpdir/err"
@@ -22,7 +22,7 @@ grep -F 'Unknown option: "--invalid-option"' "$tmpdir/err"
 
 ## Test --help
 rc=0
-./tk --help  1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
+./tk -- --help  1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
 cat "$tmpdir/out" "$tmpdir/err"
 test "$rc" -eq 0
 grep -F 'Path to bootstrap config file' "$tmpdir/out"
@@ -32,7 +32,7 @@ test $(wc -c < "$tmpdir/out") -eq 650
 
 ## Test handling a missing bootstrap file
 rc=0
-./tk frobnicate ... 1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
+./tk -- frobnicate ... 1>"$tmpdir/out" 2>"$tmpdir/err" || rc=$?
 cat "$tmpdir/out" "$tmpdir/err"
 test "$rc" -eq 1
 grep -F 'Unable to find bootstrap.cfg file via --bootstrap-config' "$tmpdir/err"

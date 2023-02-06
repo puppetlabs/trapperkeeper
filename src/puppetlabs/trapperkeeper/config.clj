@@ -58,7 +58,11 @@
     (edn/read (PushbackReader. (io/reader file)))
 
     #{".yaml" ".yml"}
-    (yaml/parse-string (slurp file))))
+    (yaml/parse-string (slurp file))
+
+    (throw (IllegalArgumentException.
+            (i18n/trs "Config file {0} must end in .conf or other recognized extension"
+                      (-> file str pr-str))))))
 
 (defn override-restart-file-from-cli-data
   [config-data cli-data]

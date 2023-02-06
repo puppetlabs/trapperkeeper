@@ -93,11 +93,18 @@
         (log/debug (i18n/trs "Loading bootstrap config from current working directory: ''{0}''" config-file-path))
         [config-file-path]))))
 
+(defn- resource [name]
+  ;; Fixes io/resource crashes when context class loader is nil.
+  ;; https://clojure.atlassian.net/browse/CLJ-2431
+  (.getResource (or (.getContextClassLoader (Thread/currentThread))
+                    (ClassLoader/getSystemClassLoader))
+                name))
+
 (schema/defn config-from-classpath :- [(schema/maybe schema/Str)]
   "Check to see if there is a bootstrap config file available on the classpath;
   if so, return it."
   []
-  (when-let [classpath-config (io/resource bootstrap-config-file-name)]
+  (when-let [classpath-config (resource bootstrap-config-file-name)]
     (log/debug (i18n/trs "Loading bootstrap config from classpath: ''{0}''" classpath-config))
     [(str classpath-config)]))
 

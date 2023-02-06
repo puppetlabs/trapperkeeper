@@ -210,7 +210,7 @@
 (defn main
   "Launches the trapperkeeper framework. This function blocks until
   trapperkeeper is shut down. This may be called directly, but is also
-  called by `puppetlabs.trapperkeeper.core/-main` if you use
+  called by `puppetlabs.trapperkeeper.main/-main` if you use
   `puppetlabs.trapperkeeper.core` as the `:main` namespace in your
   leinengen project.  Never returns (calls System/exit) after argument
   processing errors, `--help` requests, or calls to `request-shutdown`

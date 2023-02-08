@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: puppetlabs.trapperkeeper \n"
-"X-Git-Ref: 87802764a33be83d8ed7d02e60ed4ff791bdfc66\n"
+"X-Git-Ref: 0debf327ca7e955e6db6e8c8e153cd47a80c6320\n"
 "Report-Msgid-Bugs-To: docs@puppet.com\n"
 "POT-Creation-Date: \n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -74,6 +74,10 @@ msgstr ""
 
 #: src/puppetlabs/trapperkeeper/bootstrap.clj
 msgid "No entries found in any supplied bootstrap file(s):n{0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/config.clj
+msgid "Config file {0} must end in .conf or other recognized extension"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/config.clj

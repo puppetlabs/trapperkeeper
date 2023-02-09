@@ -1,3 +1,11 @@
+## 3.2.1
+
+This is a maintenance release
+
+* Avoid crashing when trying to load bootstrap.cfg in some cases.  See
+  also [PDB-5215](https://tickets.puppetlabs.com/browse/PDB-5215) and
+  [CLJ-2431](https://clojure.atlassian.net/browse/CLJ-2431)).
+
 ## 3.2.0
 
 This is a minor feature release

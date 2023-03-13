@@ -1,3 +1,10 @@
+## 3.3.0
+
+This is a potentially breaking dependency version update release
+
+* Upgrades logback version to 1.3.5 from 1.2.9, which is now in maintenance mode
+* Adds slf4j-api dependency and pins other relevant dependencies to 2.0.6
+
 ## 3.2.1
 
 This is a maintenance release

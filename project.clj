@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper "3.2.2-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "3.3.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :license {:name "Apache License, Version 2.0"
@@ -6,7 +6,7 @@
 
   :min-lein-version "2.9.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "4.6.17"]
+  :parent-project {:coords [puppetlabs/clj-parent "5.3.1"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -18,14 +18,15 @@
                  [org.clojure/tools.macro]
                  [org.clojure/core.async]
 
-                 [org.slf4j/log4j-over-slf4j]
-                 [ch.qos.logback/logback-classic]
+                 [org.slf4j/slf4j-api "2.0.6"]
+                 [org.slf4j/log4j-over-slf4j "2.0.6"]
+                 [ch.qos.logback/logback-classic "1.3.5"]
                  ;; even though we don't strictly have a dependency on the following two
                  ;; logback artifacts, specifying the dependency version here ensures
                  ;; that downstream projects don't pick up different versions that would
                  ;; conflict with our version of logback-classic
-                 [ch.qos.logback/logback-core]
-                 [ch.qos.logback/logback-access]
+                 [ch.qos.logback/logback-core "1.3.5"]
+                 [ch.qos.logback/logback-access "1.3.5"]
                  ;; Janino can be used for some advanced logback configurations
                  [org.codehaus.janino/janino]
 
@@ -39,10 +40,11 @@
                  [beckon]
 
                  [puppetlabs/typesafe-config]
-                 [puppetlabs/kitchensink]
+                 ;; exclusion added due to dependency conflict over asm and jackson-dataformat-cbor
+                 ;; see https://github.com/puppetlabs/trapperkeeper/pull/306#issuecomment-1467059264
+                 [puppetlabs/kitchensink nil :exclusions [cheshire]]
                  [puppetlabs/i18n]
-                 [nrepl/nrepl]
-                 ]
+                 [nrepl/nrepl]]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username
@@ -61,7 +63,7 @@
   :profiles {:dev {:source-paths ["examples/shutdown_app/src"
                                   "examples/java_service/src/clj"]
                    :java-source-paths ["examples/java_service/src/java"]
-                   :dependencies [[puppetlabs/kitchensink :classifier "test"]]}
+                   :dependencies [[puppetlabs/kitchensink nil :classifier "test" :exclusions [cheshire]]]}
 
              :testutils {:source-paths ^:replace ["test"]}
              :uberjar {:aot [puppetlabs.trapperkeeper.main]

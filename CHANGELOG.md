@@ -1,3 +1,9 @@
+## 3.3.1
+
+This is a maintenance release
+
+ * Unpin logback and logback dependencies versions, bump clj-parent to defer to its versioning
+
 ## 3.3.0
 
 This is a potentially breaking dependency version update release

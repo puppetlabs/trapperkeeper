@@ -6,7 +6,7 @@
 
   :min-lein-version "2.9.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "5.3.1"]
+  :parent-project {:coords [puppetlabs/clj-parent "5.3.2"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -18,15 +18,15 @@
                  [org.clojure/tools.macro]
                  [org.clojure/core.async]
 
-                 [org.slf4j/slf4j-api "2.0.6"]
-                 [org.slf4j/log4j-over-slf4j "2.0.6"]
-                 [ch.qos.logback/logback-classic "1.3.5"]
+                 [org.slf4j/slf4j-api]
+                 [org.slf4j/log4j-over-slf4j]
+                 [ch.qos.logback/logback-classic]
                  ;; even though we don't strictly have a dependency on the following two
                  ;; logback artifacts, specifying the dependency version here ensures
                  ;; that downstream projects don't pick up different versions that would
                  ;; conflict with our version of logback-classic
-                 [ch.qos.logback/logback-core "1.3.5"]
-                 [ch.qos.logback/logback-access "1.3.5"]
+                 [ch.qos.logback/logback-core]
+                 [ch.qos.logback/logback-access]
                  ;; Janino can be used for some advanced logback configurations
                  [org.codehaus.janino/janino]
 

@@ -48,5 +48,5 @@ jobs:
         WS_APIKEY: ${{ secrets.MEND_API_KEY }}
         WS_WSS_URL: https://saas-eu.whitesourcesoftware.com/agent
         WS_USERKEY: ${{ secrets.MEND_TOKEN }}
-        WS_PRODUCTNAME: 'Puppet Enterprise'
+        WS_PRODUCTNAME: Puppet Enterprise
         WS_PROJECTNAME: ${{ github.event.repository.name }}

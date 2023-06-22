@@ -1,7 +1,5 @@
 (ns puppetlabs.trapperkeeper.services
-  (:require [clojure.set :refer [difference]]
-            [plumbing.core :refer [fnk]]
-            [puppetlabs.kitchensink.core :refer [select-values keyset]]
+  (:require [plumbing.core :refer [fnk]]
             [puppetlabs.trapperkeeper.services-internal :as si]
             [schema.core :as schema]
             [puppetlabs.i18n.core :as i18n]))
@@ -114,7 +112,7 @@
                          Lifecycle
                          ~@(si/fn-defs fns-map lifecycle-fn-names)
 
-                         ~@(if service-protocol-sym
+                         ~@(when service-protocol-sym
                              `(~service-protocol-sym
                                 ~@(si/fn-defs fns-map (vals service-fn-map)))))]
               (swap! ~'tk-service-refs assoc ~service-id svc#)

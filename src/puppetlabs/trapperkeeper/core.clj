@@ -166,8 +166,9 @@
         (throw (ex-info (i18n/trs "Process exit requested")
                         (assoc (::exit result) :kind ::exit)))))))
 
-(defn- parse-args [args]
+(defn- parse-args
   "Returns valid CLIData or throws an ::exit."
+  [args]
   (letfn [(quit [status msg stream ex-msg]
             (throw (ex-info ex-msg
                             ;; :status and :messages match exit-request-schema
@@ -177,7 +178,7 @@
     (try
       (internal/parse-cli-args! (or args ()))
       (catch ExceptionInfo ex
-        (let [{:keys [kind msg] :as data} (ex-data ex)]
+        (let [{:keys [kind msg]} (ex-data ex)]
           (case (some-> kind without-ns)
             :cli-error (quit 1 msg *err* (i18n/trs "Invalid program arguments"))
             :cli-help (quit 0 msg *out* (i18n/trs "Command line --help requested"))

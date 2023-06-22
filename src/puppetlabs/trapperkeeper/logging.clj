@@ -71,8 +71,8 @@
    {:pre [(instance? Level level)]}
    (let [root (root-logger)]
      (.addAppender root (create-console-appender level))
-     (if (> (.toInt (.getLevel root))
-            (.toInt level))
+     (when (> (.toInt (.getLevel root))
+              (.toInt level))
        (.setLevel root level)))))
 
 (defn configure-logger!

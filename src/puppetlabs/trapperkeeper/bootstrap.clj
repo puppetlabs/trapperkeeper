@@ -37,9 +37,9 @@
   a 2-item vector containing the namespace and the service name.  Throws
   an IllegalArgumentException if the line is not valid."
   [line :- schema/Str]
-  (if-let [[match namespace service-name] (re-matches
-                                           #"^([a-zA-Z0-9\.\-]+)/([a-zA-Z0-9\.\-]+)$"
-                                           line)]
+  (if-let [[_match namespace service-name] (re-matches
+                                            #"^([a-zA-Z0-9\.\-]+)/([a-zA-Z0-9\.\-]+)$"
+                                            line)]
     {:namespace namespace :service-name service-name}
     (throw+ {:type ::bootstrap-parse-error
              :message (i18n/trs "Invalid line in bootstrap config file:\n\n\t{0}\n\nAll lines must be of the form: ''<namespace>/<service-fn-name>''." line)})))
@@ -162,7 +162,7 @@
   [configs :- [schema/Str]]
   (for [config configs
         [line-number line-text] (indexed (map remove-comments (read-config config)))
-        :when (not (empty? line-text))]
+        :when (seq line-text)]
     {:bootstrap-file config
      :line-number (inc line-number)
      :entry line-text}))
@@ -186,12 +186,12 @@
    service->entry-map :- {(schema/protocol services/ServiceDefinition) AnnotatedBootstrapEntry}]
   (let [make-error-message (fn [service]
                              (let [entry (get service->entry-map service)]
-                               (i18n/trs "{0}:{1}\n{2}" (:bootstrap-file entry) (:line-number entry) (:entry entry))))]
-    (let [error-messages (for [[protocol-id services] duplicate-services]
-                           (i18n/trs "Duplicate implementations found for service protocol ''{0}'':\n{1}"
-                                     protocol-id
-                                     (string/join "\n" (map make-error-message services))))]
-      (IllegalArgumentException. (string/join "\n" error-messages)))))
+                               (i18n/trs "{0}:{1}\n{2}" (:bootstrap-file entry) (:line-number entry) (:entry entry))))
+        error-messages (for [[protocol-id services] duplicate-services]
+                         (i18n/trs "Duplicate implementations found for service protocol ''{0}'':\n{1}"
+                                   protocol-id
+                                   (string/join "\n" (map make-error-message services))))]
+      (IllegalArgumentException. (string/join "\n" error-messages))))
 
 (schema/defn check-duplicate-service-implementations!
   "Throws an exception if two services implement the same service protocol"
@@ -200,12 +200,12 @@
 
   ; Zip up the services and bootstrap entries and construct a map out of them
   ; to use as a lookup table below
-  (let [service->entry-map (zipmap services bootstrap-entries)]
-    ; Find duplicates base on the service id returned by calling service-def-id
-    ; on each service
-    (let [duplicates (find-duplicates services services/service-def-id)]
-      (when (not (empty? duplicates))
-        (throw (duplicate-protocol-error duplicates service->entry-map))))))
+  (let [service->entry-map (zipmap services bootstrap-entries)
+       ; Find duplicates base on the service id returned by calling service-def-id
+       ; on each service
+        duplicates (find-duplicates services services/service-def-id)]
+      (when (seq duplicates)
+        (throw (duplicate-protocol-error duplicates service->entry-map)))))
 
 (schema/defn ^:private resolve-service! :- (schema/protocol services/ServiceDefinition)
   "Given the namespace and name of a service, loads the namespace,
@@ -242,11 +242,11 @@
 
   Throws an IllegalArgumentException if there is a problem parsing the bootstrap
   entry, or if the service is found but it has an invalid service graph."
-  [{:keys [bootstrap-file line-number entry] :as bootstrap-entry} :- AnnotatedBootstrapEntry]
+  [{:keys [bootstrap-file line-number entry]} :- AnnotatedBootstrapEntry]
   (try+
     (let [{:keys [namespace service-name]} (parse-bootstrap-line! entry)]
       (resolve-service! namespace service-name))
-    (catch [:type ::missing-service] {:keys [message]}
+    (catch [:type ::missing-service] {:keys [_message]}
       (log/warn (i18n/trs "Unable to load service ''{0}'' from {1}:{2}" entry bootstrap-file line-number)))
     ; Catch and re-throw as java exception
     (catch [:type ::internal/invalid-service-graph] {:keys [message]}

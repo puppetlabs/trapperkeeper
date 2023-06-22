@@ -64,7 +64,7 @@
   [config-data cli-data]
   (if-let [cli-restart-file (:restart-file cli-data)]
     (do
-      (if (get-in config-data [:global :restart-file])
+      (when (get-in config-data [:global :restart-file])
         (log/warnf (i18n/trs "restart-file setting specified both on command-line and in config file, using command-line value: ''{0}''"
                              cli-restart-file)))
       (assoc-in config-data [:global :restart-file] cli-restart-file))

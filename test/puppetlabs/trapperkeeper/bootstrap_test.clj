@@ -1,20 +1,19 @@
 (ns puppetlabs.trapperkeeper.bootstrap-test
-  (:import (java.io StringReader))
-  (:require [clojure.test :refer :all]
-            [clojure.java.io :refer [file] :as io]
-            [slingshot.slingshot :refer [try+]]
-            [puppetlabs.kitchensink.core :refer [without-ns]]
-            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
-            [puppetlabs.trapperkeeper.services :refer [service-map]]
-            [puppetlabs.trapperkeeper.app :refer [get-service]]
-            [puppetlabs.trapperkeeper.bootstrap :refer :all]
-            [puppetlabs.trapperkeeper.logging :refer [reset-logging]]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]
-            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [test-fn test-fn-two test-fn-three hello-world]]
-            [schema.test :as schema-test]
+  (:require [clojure.java.io :as io]
+            [clojure.string :as string]
+            [clojure.test :refer :all]
             [me.raynes.fs :as fs]
-            [clojure.string :as string]))
+            [puppetlabs.kitchensink.classpath :refer [with-additional-classpath-entries]]
+            [puppetlabs.kitchensink.core :refer [without-ns]]
+            [puppetlabs.trapperkeeper.app :refer [get-service]]
+            [puppetlabs.trapperkeeper.bootstrap :as bootstrap]
+            [puppetlabs.trapperkeeper.examples.bootstrapping.test-services :refer [hello-world test-fn test-fn-three test-fn-two]]
+            [puppetlabs.trapperkeeper.logging :refer [reset-logging]]
+            [puppetlabs.trapperkeeper.services :refer [service-map]]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-with-empty-config parse-and-bootstrap]]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
+            [schema.test :as schema-test]
+            [slingshot.slingshot :refer [try+]]))
 
 (use-fixtures
  :once
@@ -121,7 +120,7 @@
   (testing "comments allowed in bootstrap config file"
     (let [bootstrap-config "./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"
           service-maps (->> bootstrap-config
-                            parse-bootstrap-config!
+                            bootstrap/parse-bootstrap-config!
                             (map service-map))]
       (is (= (count service-maps) 2))
       (is (contains? (first service-maps) :HelloWorldService))
@@ -135,7 +134,7 @@
              Exception
              (re-pattern (str "No entries found in any supplied bootstrap file\\(s\\):\n"
                               "./dev-resources/bootstrapping/cli/empty_bootstrap.cfg"))
-             (parse-bootstrap-config! bootstrap-config)))))
+             (bootstrap/parse-bootstrap-config! bootstrap-config)))))
 
     (testing "multiple bootstrap files"
       (let [bootstraps ["./dev-resources/bootstrapping/cli/split_bootstraps/empty/empty1.cfg"
@@ -144,7 +143,7 @@
              Exception
              (re-pattern (str "No entries found in any supplied bootstrap file\\(s\\):\n"
                               (string/join "\n" bootstraps)))
-             (parse-bootstrap-configs! bootstraps)))))))
+             (bootstrap/parse-bootstrap-configs! bootstraps)))))))
 
 (deftest multiple-bootstrap-files
   (testing "Multiple bootstrap files can be specified directly on the command line"
@@ -261,7 +260,7 @@
                             ".*test-service-two\n"
                             ".*/duplicates.cfg:6\n"
                             ".*test-service-two-duplicate"))
-           (parse-bootstrap-configs! bootstraps))))
+           (bootstrap/parse-bootstrap-configs! bootstraps))))
     (testing "Duplicate service definitions between two files throws error"
       (let [bootstraps ["./dev-resources/bootstrapping/cli/duplicate_services/split_one.cfg"
                         "./dev-resources/bootstrapping/cli/duplicate_services/split_two.cfg"]]
@@ -277,11 +276,11 @@
                               ".*test-service-two-duplicate\n"
                               ".*/split_two.cfg:4\n"
                               ".*test-service-two"))
-             (parse-bootstrap-configs! bootstraps)))))))
+             (bootstrap/parse-bootstrap-configs! bootstraps)))))))
 
 (deftest config-file-in-jar
   (testing "Bootstrapping via a config file contained in a .jar as command line option"
-    (let [jar (file "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar")
+    (let [jar (io/file "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar")
           bootstrap-url (str "jar:file:///" (.getAbsolutePath jar) "!/bootstrap.cfg")]
       ;; just test that this bootstrap config file can be read successfully
       ;; (ie, this does not throw an exception)
@@ -290,20 +289,20 @@
 (deftest config-from-classpath-test
   (testing "can locate bootstrap file on the classpath"
     (let [bootstrap-file "./dev-resources/bootstrapping/classpath/bootstrap.cfg"
-          bootstrap-uri (str "file:" (.getCanonicalPath (file bootstrap-file)))]
+          bootstrap-uri (str "file:" (.getCanonicalPath (io/file bootstrap-file)))]
       (with-additional-classpath-entries
        ["./dev-resources/bootstrapping/classpath/"]
-       (let [found-bootstraps (config-from-classpath)]
+       (let [found-bootstraps (bootstrap/config-from-classpath)]
          (is (= 1 (count found-bootstraps)))
          (is (= bootstrap-uri (first found-bootstraps)))))))
 
   (testing "can locate bootstrap file contained in a .jar on the classpath"
     (let [jar "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar"
-          jar-uri (str "file:" (.getAbsolutePath (file jar)))
+          jar-uri (str "file:" (.getAbsolutePath (io/file jar)))
           expected-resource-uri (format "jar:%s!/bootstrap.cfg" jar-uri)]
       (with-additional-classpath-entries
        ["./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar"]
-       (let [found-bootstraps (config-from-classpath)]
+       (let [found-bootstraps (bootstrap/config-from-classpath)]
          (is (= 1 (count found-bootstraps)))
          (is (= expected-resource-uri (first found-bootstraps))))))))
 
@@ -311,7 +310,7 @@
   (testing "Missing service namespace logs warning"
     (with-test-logging
       (let [bootstrap-config "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg"]
-        (parse-bootstrap-config! bootstrap-config)
+        (bootstrap/parse-bootstrap-config! bootstrap-config)
         (is (logged?
              (str "Unable to load service 'non-existent-service/test-service' from "
                   "./dev-resources/bootstrapping/cli/fake_namespace_bootstrap.cfg:3")
@@ -320,7 +319,7 @@
   (testing "Missing service definition logs warning"
     (with-test-logging
       (let [bootstrap-config "./dev-resources/bootstrapping/cli/missing_definition_bootstrap.cfg"]
-        (parse-bootstrap-config! bootstrap-config)
+        (bootstrap/parse-bootstrap-config! bootstrap-config)
         (is (logged?
              (str "Unable to load service "
                   "'puppetlabs.trapperkeeper.examples.bootstrapping.test-services/non-existent-service' "
@@ -336,23 +335,23 @@
                             "'puppetlabs.trapperkeeper.examples.bootstrapping.test-services/invalid-service-graph-service' "
                             "from ./dev-resources/bootstrapping/cli/invalid_service_graph_bootstrap.cfg:1:\n"
                             "Invalid service definition"))
-           (parse-bootstrap-config! bootstrap))))))
+           (bootstrap/parse-bootstrap-config! bootstrap))))))
 
 (deftest get-annotated-bootstrap-entries-test
   (testing "file with comments"
-    (let [bootstraps ["./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"]]
-      (let [entries (get-annotated-bootstrap-entries bootstraps)]
+    (let [bootstraps ["./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"]
+          entries (bootstrap/get-annotated-bootstrap-entries bootstraps)]
         (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"
                  :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
                  :line-number 2}
                 {:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap_with_comments.cfg"
                  :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/foo-test-service"
                  :line-number 5}]
-               entries)))))
+               entries))))
   (testing "multiple bootstrap files"
     (let [bootstraps ["./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_one.cfg"
-                      "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_two.cfg"]]
-      (let [entries (get-annotated-bootstrap-entries bootstraps)]
+                      "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_two.cfg"]
+          entries (bootstrap/get-annotated-bootstrap-entries bootstraps)]
         (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_one.cfg"
                  :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service"
                  :line-number 1}
@@ -365,7 +364,7 @@
                 {:bootstrap-file "./dev-resources/bootstrapping/cli/split_bootstraps/both/bootstrap_two.cfg"
                  :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/test-service-three"
                  :line-number 2}]
-               entries))))))
+               entries)))))
 
 (deftest find-duplicates-test
   (testing "correct duplicates found"
@@ -382,22 +381,22 @@
                      :other-key 2}
                     {:important-key :one
                      :other-key 3}]}
-             (find-duplicates items :important-key))))))
+             (bootstrap/find-duplicates items :important-key))))))
 
 (deftest check-duplicate-service-implementations!-test
   (testing "no duplicate service implementations does not throw error"
     (let [configs ["./dev-resources/bootstrapping/cli/bootstrap.cfg"]
-          bootstrap-entries (get-annotated-bootstrap-entries configs)
-          resolved-services (resolve-services! bootstrap-entries)]
-      (check-duplicate-service-implementations! resolved-services bootstrap-entries)))
+          bootstrap-entries (bootstrap/get-annotated-bootstrap-entries configs)
+          resolved-services (bootstrap/resolve-services! bootstrap-entries)]
+      (bootstrap/check-duplicate-service-implementations! resolved-services bootstrap-entries)))
   (testing "duplicate service implementations throws error"
     (let [configs ["./dev-resources/bootstrapping/cli/duplicate_services/duplicates.cfg"]
-          bootstrap-entries (get-annotated-bootstrap-entries configs)
-          resolved-services (resolve-services! bootstrap-entries)]
+          bootstrap-entries (bootstrap/get-annotated-bootstrap-entries configs)
+          resolved-services (bootstrap/resolve-services! bootstrap-entries)]
       (is (thrown-with-msg?
            IllegalArgumentException
            #"Duplicate implementations found for service protocol ':TestService'"
-           (check-duplicate-service-implementations!
+           (bootstrap/check-duplicate-service-implementations!
             resolved-services
             bootstrap-entries))))))
 
@@ -405,42 +404,42 @@
   (testing "single bootstrap with all duplicates"
     (testing "only the first duplicate found is kept"
       (let [configs ["./dev-resources/bootstrapping/cli/duplicate_entries.cfg"]
-            bootstrap-entries (get-annotated-bootstrap-entries configs)]
+            bootstrap-entries (bootstrap/get-annotated-bootstrap-entries configs)]
         (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/duplicate_entries.cfg"
                  :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
                  :line-number 1}]
-               (remove-duplicate-entries bootstrap-entries))))))
+               (bootstrap/remove-duplicate-entries bootstrap-entries))))))
   (testing "two copies of the same set of services"
     (let [configs ["./dev-resources/bootstrapping/cli/bootstrap.cfg"
                    "./dev-resources/bootstrapping/cli/bootstrap.cfg"]
-          bootstrap-entries (get-annotated-bootstrap-entries configs)]
+          bootstrap-entries (bootstrap/get-annotated-bootstrap-entries configs)]
       (is (= [{:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap.cfg"
                :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service"
                :line-number 1}
               {:bootstrap-file "./dev-resources/bootstrapping/cli/bootstrap.cfg"
                :entry "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
                :line-number 2}]
-             (remove-duplicate-entries bootstrap-entries))))))
+             (bootstrap/remove-duplicate-entries bootstrap-entries))))))
 
 (deftest read-config-test
   (testing "basic config"
     (let [config "./dev-resources/bootstrapping/cli/bootstrap.cfg"]
       (is (= ["puppetlabs.trapperkeeper.examples.bootstrapping.test-services/cli-test-service"
               "puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"]
-             (read-config config)))))
+             (bootstrap/read-config config)))))
   (testing "jar uri"
     (let [jar "./dev-resources/bootstrapping/jar/this-jar-contains-a-bootstrap-config-file.jar"
-          config (str "jar:file:///" (.getAbsolutePath (file jar)) "!/bootstrap.cfg")]
+          config (str "jar:file:///" (.getAbsolutePath (io/file jar)) "!/bootstrap.cfg")]
       ; The bootstrap in the jar contains an empty line at the end
       (is (= ["puppetlabs.trapperkeeper.examples.bootstrapping.test-services/hello-world-service"
               ""]
-             (read-config config)))))
+             (bootstrap/read-config config)))))
   (testing "malformed uri is wrapped in our exception"
     (let [config "\n"]
       (is (thrown-with-msg?
            IllegalArgumentException
            #"Specified bootstrap config file does not exist"
-           (read-config config)))))
+           (bootstrap/read-config config)))))
   (testing "Non-absolute uri is wrapped in our exception"
     ; TODO This path is currently interpreted as a URI because TK checks
     ; if it's a file, and if not, attemps to load as a URI
@@ -448,10 +447,10 @@
       (is (thrown-with-msg?
            IllegalArgumentException
            #"Specified bootstrap config file does not exist"
-           (println (read-config config))))))
+           (println (bootstrap/read-config config))))))
   (testing "Non-existent file in URI is wrapped in our exception"
     (let [config "file:///not-a-file"]
       (is (thrown-with-msg?
            IllegalArgumentException
            #"Specified bootstrap config file does not exist"
-           (read-config config))))))
+           (bootstrap/read-config config))))))

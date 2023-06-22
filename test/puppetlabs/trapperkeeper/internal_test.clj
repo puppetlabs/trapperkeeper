@@ -30,11 +30,11 @@
       (is (= [:init] @lifecycle-events))
       (is (not (realized? main-thread)))
       (let [restart1-scheduled (promise)
-            restart1-thread (future (do (internal/restart-tk-apps [app])
-                                        (deliver restart1-scheduled true)))
+            restart1-thread (future (internal/restart-tk-apps [app])
+                                    (deliver restart1-scheduled true))
             restart2-scheduled (promise)
-            restart2-thread (future (do (internal/restart-tk-apps [app])
-                                        (deliver restart2-scheduled true)))]
+            restart2-thread (future (internal/restart-tk-apps [app])
+                                    (deliver restart2-scheduled true))]
         @restart1-scheduled
         (is (= [:init] @lifecycle-events))
         @restart1-thread
@@ -77,12 +77,12 @@
     (internal/restart-tk-apps [app])
 
     ;; now we issue how ever many restarts we need to to fill up the queue
-    (dotimes [i internal/max-pending-lifecycle-events]
+    (dotimes [_i internal/max-pending-lifecycle-events]
       (internal/restart-tk-apps [app]))
 
     ;; now we choose some arbitrary number of additional restarts to request,
     ;; and confirm that we get a log message indicating that they were rejected
-    (dotimes [i 3]
+    (dotimes [_i 3]
       (logging/with-test-logging
         (internal/restart-tk-apps [app])
 

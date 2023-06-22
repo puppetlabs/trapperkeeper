@@ -70,6 +70,8 @@
                   :exception nil}]
     (call-with-started
      [new-appender]
+     ;; ignore deprecation
+     #_:clj-kondo/ignore
      #(tgt/with-log-appenders root-logger-name
         [new-appender]
         (is (= [new-appender] (get-appenders logger)))
@@ -138,8 +140,8 @@
   (testing "captures parameterized slf4j messages"
     (tgt/with-test-logging
       (let [test-logger (LoggerFactory/getLogger "tk-test")]
-      (.info test-logger "Log message: {}" "odelay")
-      (is (tgt/logged? #"odelay"))))))
+        (.info test-logger "Log message: {}" "odelay")
+        (is (tgt/logged? #"odelay"))))))
 
 (deftest with-test-logging-debug
   (testing "basic matching"

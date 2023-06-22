@@ -58,10 +58,10 @@
           (let [dir-path (fs/parent restart-file-path)]
             (fs/mkdirs dir-path)
             (spit restart-file-path "1")))
-        (catch ArithmeticException e
+        (catch ArithmeticException _e
           (spit restart-file-path "1")
           (log/debug (i18n/trs "Number of restarts has exceeded Long/MAX_VALUE, resetting file to 1")))
-        (catch NumberFormatException e
+        (catch NumberFormatException _e
           (spit restart-file-path "1")
           (log/error (i18n/trs "Restart file is unparseable, resetting file to 1"))))))
 
@@ -71,7 +71,7 @@
   if the graph is invalid."
   [service-def]
   {:post [(satisfies? s/ServiceDefinition %)]}
-  (if-not (satisfies? s/ServiceDefinition service-def)
+  (when-not (satisfies? s/ServiceDefinition service-def)
     (throw+ {:type ::invalid-service-graph
              :message (i18n/trs "Invalid service definition; expected a service definition (created via `service` or `defservice`); found: {0}" (pr-str service-def))}))
   (if (service-graph? (s/service-map service-def))
@@ -194,7 +194,7 @@
   (let [;; call the lifecycle function on the service, and keep a reference
         ;; to the updated context map that it returns
         updated-ctxt  (lifecycle-fn s (get-in @app-context [:service-contexts service-id] {}))]
-    (if-not (map? updated-ctxt)
+    (when-not (map? updated-ctxt)
       (throw (IllegalStateException.
                (i18n/trs "Lifecycle function ''{0}'' for service ''{1}'' must return a context map (got: {2})"
                          lifecycle-fn-name
@@ -247,9 +247,9 @@
    shutdown-reason-promise :- IDeref]
   (log/debug (i18n/trs "Initializing lifecycle worker loop."))
   (async/go-loop []
-    (let [[task chan] (async/alts!
-                       [shutdown-channel lifecycle-channel]
-                       :priority true)]
+    (let [[task _chan] (async/alts!
+                         [shutdown-channel lifecycle-channel]
+                         :priority true)]
       (schema/validate LifeCycleTask task)
       (let [{:keys [type task-function]} task]
         (condp #(contains? %1 %2) type
@@ -518,7 +518,7 @@
   {:pre [(satisfies? a/TrapperkeeperApp app)]
    :post [(identical? app %)]}
   (when-let [shutdown-reason (get-app-shutdown-reason app)]
-    (if-let [shutdown-error (:error shutdown-reason)]
+    (when-let [shutdown-error (:error shutdown-reason)]
       (throw shutdown-error)))
   app)
 
@@ -605,9 +605,9 @@
     ;; finally, create the app instance
     (reify
       a/TrapperkeeperApp
-      (a/get-service [this protocol] (services-by-id (keyword protocol)))
-      (a/service-graph [this] graph-instance)
-      (a/app-context [this] app-context)
+      (a/get-service [_this protocol] (services-by-id (keyword protocol)))
+      (a/service-graph [_this] graph-instance)
+      (a/app-context [_this] app-context)
       (a/check-for-errors! [this] (throw-app-error-if-exists!
                                    this))
       (a/init [this]

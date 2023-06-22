@@ -1,16 +1,14 @@
 (ns puppetlabs.trapperkeeper.core-test
   (:require [clojure.test :refer :all]
-            [slingshot.slingshot :refer [try+]]
-            [puppetlabs.kitchensink.core :refer [without-ns]]
-            [puppetlabs.trapperkeeper.services :refer [service]]
+            [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.app :refer [get-service]]
-            [puppetlabs.trapperkeeper.internal :refer [parse-cli-args!]]
-            [puppetlabs.trapperkeeper.core :as trapperkeeper]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.config :as config]
+            [puppetlabs.trapperkeeper.internal :refer [parse-cli-args!]]
+            [puppetlabs.trapperkeeper.services :refer [service]]
+            [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as logging]
             [schema.test :as schema-test]
-            [puppetlabs.kitchensink.core :as ks]))
+            [slingshot.slingshot :refer [try+]]))
 
 (use-fixtures :each schema-test/validate-schemas logging/reset-logging-config-after-test)
 
@@ -74,7 +72,7 @@
         (parse-cli-args! ["--invalid-argument"])
         (catch map? m
           (is (contains? m :kind))
-          (is (= :cli-error (without-ns (:kind m))))
+          (is (= :cli-error (ks/without-ns (:kind m))))
           (is (= :puppetlabs.kitchensink.core/cli-error (:kind m)))
           (is (contains? m :msg))
           (is (re-find

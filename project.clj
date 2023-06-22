@@ -32,7 +32,6 @@
 
                  [clj-time]
                  [clj-commons/fs]
-                 [clj-commons/clj-yaml]
 
                  [prismatic/plumbing]
                  [prismatic/schema]
@@ -72,5 +71,5 @@
   :plugins [[lein-parent "0.3.7"]
             [puppetlabs/i18n "0.8.0"]]
 
-  :main puppetlabs.trapperkeeper.main
-  )
+  :main puppetlabs.trapperkeeper.main)
+

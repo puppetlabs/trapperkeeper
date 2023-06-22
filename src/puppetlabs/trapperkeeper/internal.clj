@@ -108,7 +108,7 @@
   compilation / instantiation, and inspects it to see if the error data map
   represents a missing trapperkeeper service or function.  If so, throws a
   more meaningful exception.  If not, re-throws the original exception."
-  [e]
+  [^ExceptionInfo e]
   {:pre [(instance? ExceptionInfo e)]}
   (let [data (ex-data e)]
     (condp = (:error data)

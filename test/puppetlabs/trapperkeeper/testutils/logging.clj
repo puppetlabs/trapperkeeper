@@ -337,13 +337,13 @@
           (one-element?)))))
 
 (defmethod clojure.test/assert-expr 'logged? [is-msg form]
-  "Asserts that exactly one event in *test-log-events* has a message
-  that matches msg-or-pred.  The match is performed via = if
-  msg-or-pred is a string, via re-find if msg-or-pred is a pattern, or
-  via (msg-or-pred event-map) if msg-or-pred is a function.  If level
-  is specified, the message's keyword level (:info, :error, etc.) must
-  also match.  For example:
-    (with-test-logging (log/info \"123\") (is (logged? #\"2\")))."
+  ;"Asserts that exactly one event in *test-log-events* has a message
+  ;that matches msg-or-pred.  The match is performed via = if
+  ;msg-or-pred is a string, via re-find if msg-or-pred is a pattern, or
+  ;via (msg-or-pred event-map) if msg-or-pred is a function.  If level
+  ;is specified, the message's keyword level (:info, :error, etc.) must
+  ;also match.  For example:
+  ;  (with-test-logging (log/info \"123\") (is (logged? #\"2\")))."
   (assert (#{2 3} (count form)))
   (let [[_ msg-or-pred level] form]
     `(let [events# @@#'puppetlabs.trapperkeeper.testutils.logging/*test-log-events*]

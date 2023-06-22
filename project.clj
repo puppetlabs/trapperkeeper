@@ -43,7 +43,8 @@
                  ;; see https://github.com/puppetlabs/trapperkeeper/pull/306#issuecomment-1467059264
                  [puppetlabs/kitchensink nil :exclusions [cheshire]]
                  [puppetlabs/i18n]
-                 [nrepl/nrepl]]
+                 [nrepl/nrepl]
+                 [io.github.clj-kondo/config-slingshot-slingshot "1.0.0"]]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username
@@ -71,6 +72,23 @@
   :plugins [[lein-parent "0.3.7"]
             [jonase/eastwood "1.2.2" :exclusions [org.clojure/clojure]]
             [puppetlabs/i18n "0.9.2"]]
+
+  :eastwood {:ignored-faults {:reflection {puppetlabs.trapperkeeper.logging [{:line 92}]
+                                           puppetlabs.trapperkeeper.internal [{:line 128}]
+                                           puppetlabs.trapperkeeper.testutils.logging true
+                                           puppetlabs.trapperkeeper.testutils.logging-test true
+                                           puppetlabs.trapperkeeper.services.nrepl.nrepl-service-test true
+                                           puppetlabs.trapperkeeper.plugins-test true}
+                              :local-shadows-var {puppetlabs.trapperkeeper.config-test true
+                                                  puppetlabs.trapperkeeper.services-test true
+                                                  java-service-example.java-service true
+                                                  puppetlabs.trapperkeeper.optional-deps-test true}
+                              :deprecations {puppetlabs.trapperkeeper.testutils.logging true
+                                             puppetlabs.trapperkeeper.testutils.logging-test true
+                                             puppetlabs.trapperkeeper.logging-test true}
+                              :def-in-def {puppetlabs.trapperkeeper.optional-deps-test true}}
+
+             :continue-on-exception true}
 
   :main puppetlabs.trapperkeeper.main)
 

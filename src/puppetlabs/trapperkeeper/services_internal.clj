@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.services-internal
-  (:import (clojure.lang IFn))
+  (:import (clojure.lang IFn Namespace))
   (:require [clojure.set :refer [difference union intersection]]
             [schema.core :as schema]
             [puppetlabs.kitchensink.core :as ks]
@@ -79,8 +79,9 @@
 (schema/defn ^:always-validate var->symbol :- Symbol
   "Returns a symbol for the var, including its namespace"
   [fn-var :- Var]
-  (symbol (str (-> fn-var meta :ns .name))
-          (str (-> fn-var meta :name))))
+  (let [m (meta fn-var)]
+    (symbol (str (.name ^Namespace (:ns m)))
+            (str (:name m)))))
 
 (schema/defn ^:always-validate transform-deps-map :- (schema/pred vector?)
   "Given a map of required and optional dependencies, return a vector that

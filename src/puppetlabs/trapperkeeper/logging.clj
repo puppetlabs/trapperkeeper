@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.logging
-  (:import [ch.qos.logback.classic Level PatternLayout]
+  (:import [ch.qos.logback.classic Level LoggerContext PatternLayout]
            (ch.qos.logback.core ConsoleAppender)
            (org.slf4j Logger LoggerFactory)
            (ch.qos.logback.classic.joran JoranConfigurator))
@@ -8,7 +8,9 @@
             [puppetlabs.i18n.core :as i18n]))
 
 (defn logging-context
-  []
+  ^LoggerContext []
+  ;; in practice, this returns ch.qos.logback.classic.LoggerContext
+  ;; which the other functions below assume
   (LoggerFactory/getILoggerFactory))
 
 (defn reset-logging
@@ -18,8 +20,8 @@
 (def root-logger-name Logger/ROOT_LOGGER_NAME)
 
 (defn root-logger
-  []
-  (LoggerFactory/getLogger root-logger-name))
+  ^ch.qos.logback.classic.Logger []
+  (LoggerFactory/getLogger ^String root-logger-name))
 
 (defn catch-all-logger
   "A logging function useful for catch-all purposes, that is, to
@@ -72,7 +74,7 @@
    (let [root (root-logger)]
      (.addAppender root (create-console-appender level))
      (when (> (.toInt (.getLevel root))
-              (.toInt level))
+              (.toInt ^Level level))
        (.setLevel root level)))))
 
 (defn configure-logger!
@@ -84,8 +86,8 @@
   ch.qos.logback.core.classic.joran.JoranConfigurator."
   [logging-conf]
   (let [configurator (JoranConfigurator.)
-        context      (LoggerFactory/getILoggerFactory)]
-    (.setContext configurator (LoggerFactory/getILoggerFactory))
+        context      (logging-context)]
+    (.setContext configurator context)
     (.reset context)
     (.doConfigure configurator logging-conf)))
 

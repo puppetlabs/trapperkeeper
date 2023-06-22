@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['11', '17']
+        version: ['8', '11', '17']
     runs-on: ubuntu-latest
     steps:
       - name: checkout repo

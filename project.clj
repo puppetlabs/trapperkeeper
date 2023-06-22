@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper "3.3.1-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "4.0.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :license {:name "Apache License, Version 2.0"
@@ -6,7 +6,7 @@
 
   :min-lein-version "2.9.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "5.3.2"]
+  :parent-project {:coords [puppetlabs/clj-parent "6.0.1"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in

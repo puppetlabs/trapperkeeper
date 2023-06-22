@@ -1,3 +1,10 @@
+## 4.0.0
+
+This is a major release with breaking changes.
+* remove support for yaml configuration files
+* add clj-kondo linting and fix issues found
+* add eastwood linting and fix issues found
+
 ## 3.3.1
 
 This is a maintenance release

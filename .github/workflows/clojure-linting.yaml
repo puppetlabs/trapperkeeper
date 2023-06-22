@@ -1,0 +1,30 @@
+name: Clojure Linting
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+    paths: ['src/**','test/**','.clj-kondo/config.edn','project.clj','.github/**']
+
+jobs:
+  clojure-linting:
+    name: Clojure Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: checkout repo
+        uses: actions/checkout@v2
+      - name: install clj-kondo (this is quite fast)
+        run: |
+          curl -sLO https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo
+          chmod +x install-clj-kondo
+          ./install-clj-kondo --dir .
+      - name: kondo lint
+        run: ./clj-kondo --lint src test
+      - name: eastwood lint
+        run: |
+          java -version
+          lein eastwood

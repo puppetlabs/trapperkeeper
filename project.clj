@@ -69,7 +69,8 @@
                        :classifiers ^:replace []}}
 
   :plugins [[lein-parent "0.3.7"]
-            [puppetlabs/i18n "0.8.0"]]
+            [jonase/eastwood "1.2.2" :exclusions [org.clojure/clojure]]
+            [puppetlabs/i18n "0.9.2"]]
 
   :main puppetlabs.trapperkeeper.main)
 

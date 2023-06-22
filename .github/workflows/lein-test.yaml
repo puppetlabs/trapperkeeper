@@ -1,0 +1,29 @@
+name: PR Testing
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+    paths: ['src/**','test/**','project.clj']
+
+jobs:
+  pr-testing:
+    name: PR Testing
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['11', '17']
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.version }}
+      - name: clojure tests
+        run: lein test
+        timeout-minutes: 30

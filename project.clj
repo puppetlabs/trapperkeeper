@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper "3.3.1-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "4.0.0-SNAPSHOT"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :license {:name "Apache License, Version 2.0"
@@ -6,7 +6,7 @@
 
   :min-lein-version "2.9.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "5.3.2"]
+  :parent-project {:coords [puppetlabs/clj-parent "6.0.1"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -32,7 +32,6 @@
 
                  [clj-time]
                  [clj-commons/fs]
-                 [clj-commons/clj-yaml]
 
                  [prismatic/plumbing]
                  [prismatic/schema]
@@ -44,7 +43,8 @@
                  ;; see https://github.com/puppetlabs/trapperkeeper/pull/306#issuecomment-1467059264
                  [puppetlabs/kitchensink nil :exclusions [cheshire]]
                  [puppetlabs/i18n]
-                 [nrepl/nrepl]]
+                 [nrepl/nrepl]
+                 [io.github.clj-kondo/config-slingshot-slingshot "1.0.0"]]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username
@@ -70,7 +70,25 @@
                        :classifiers ^:replace []}}
 
   :plugins [[lein-parent "0.3.7"]
-            [puppetlabs/i18n "0.8.0"]]
+            [jonase/eastwood "1.2.2" :exclusions [org.clojure/clojure]]
+            [puppetlabs/i18n "0.9.2"]]
 
-  :main puppetlabs.trapperkeeper.main
-  )
+  :eastwood {:ignored-faults {:reflection {puppetlabs.trapperkeeper.logging [{:line 92}]
+                                           puppetlabs.trapperkeeper.internal [{:line 128}]
+                                           puppetlabs.trapperkeeper.testutils.logging true
+                                           puppetlabs.trapperkeeper.testutils.logging-test true
+                                           puppetlabs.trapperkeeper.services.nrepl.nrepl-service-test true
+                                           puppetlabs.trapperkeeper.plugins-test true}
+                              :local-shadows-var {puppetlabs.trapperkeeper.config-test true
+                                                  puppetlabs.trapperkeeper.services-test true
+                                                  java-service-example.java-service true
+                                                  puppetlabs.trapperkeeper.optional-deps-test true}
+                              :deprecations {puppetlabs.trapperkeeper.testutils.logging true
+                                             puppetlabs.trapperkeeper.testutils.logging-test true
+                                             puppetlabs.trapperkeeper.logging-test true}
+                              :def-in-def {puppetlabs.trapperkeeper.optional-deps-test true}}
+
+             :continue-on-exception true}
+
+  :main puppetlabs.trapperkeeper.main)
+

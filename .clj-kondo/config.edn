@@ -1,0 +1,24 @@
+{:linters {:unresolved-symbol {:level :warning :exclude [(puppetlabs.trapperkeeper.services/service)
+                                                         (puppetlabs.trapperkeeper.core/defservice)
+                                                         (puppetlabs.trapperkeeper.core/service)
+                                                         (puppetlabs.trapperkeeper.services/defservice)
+                                                         (clojure.test/is [thrown+? thrown+-with-msg? logged?])
+                                                         (puppetlabs.trapperkeeper.testutils.bootstrap/with-app-with-cli-data)
+                                                         (puppetlabs.trapperkeeper.testutils.bootstrap/with-app-with-config)
+                                                         (puppetlabs.trapperkeeper.testutils.bootstrap/with-app-with-empty-config)
+                                                         (puppetlabs.trapperkeeper.testutils.bootstrap/with-app-with-cli-args)
+                                                         (puppetlabs.trapperkeeper.testutils.logging/with-started)
+                                                         (puppetlabs.trapperkeeper.testutils.logging/with-logger-event-maps)
+                                                         (puppetlabs.trapperkeeper.testutils.logging/with-logged-event-maps)]}
+           :invalid-arity {:skip-args [puppetlabs.trapperkeeper.services/service
+                                       puppetlabs.trapperkeeper.services/defservice
+                                       puppetlabs.trapperkeeper.core/defservice
+                                       puppetlabs.trapperkeeper.core/service]}
+           :refer-all {:level :off}
+           :inline-def {:level :off}
+           :deprecated-var {:level :off}}
+
+ :lint-as {puppetlabs.trapperkeeper.core/defservice clojure.core/def
+           puppetlabs.trapperkeeper.services/defservice clojure.core/def
+           slingshot.slingshot/try+ clojure.core/try
+           puppetlabs.kitchensink.core/while-let clojure.core/let}}

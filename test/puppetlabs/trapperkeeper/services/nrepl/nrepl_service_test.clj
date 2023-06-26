@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [nrepl.core :as repl]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [with-app-with-config]]
-            [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :refer :all]
+            [puppetlabs.trapperkeeper.services.nrepl.nrepl-service :as nrepl-service]
             [schema.test :as schema-test]))
 
 (use-fixtures :once schema-test/validate-schemas)
@@ -11,7 +11,7 @@
   (letfn [(process-config-fn [enabled]
             (->> {:nrepl {:enabled enabled}}
                  (partial get-in)
-                 process-config
+                 nrepl-service/process-config
                  :enabled?))]
     (testing "Should support string value for `enabled?`"
       (is (= true (process-config-fn "true")))
@@ -23,7 +23,7 @@
 (deftest test-nrepl-service
   (testing "An nREPL service has been started"
     (with-app-with-config app
-      [nrepl-service]
+      [nrepl-service/nrepl-service]
       {:nrepl {:port    7888
                :host    "0.0.0.0"
                :enabled "true"}}
@@ -32,10 +32,10 @@
                        (repl/message {:op "eval" :code "(+ 1 1)"})
                        (repl/response-values))))))))
 
-(deftest test-nrepl-service
+(deftest test-nrepl-service-2
   (testing "An nREPL service without middlewares has been started"
     (with-app-with-config app
-      [nrepl-service]
+      [nrepl-service/nrepl-service]
       {:nrepl {:port        7888
                :host        "0.0.0.0"
                :enabled     "true"
@@ -45,10 +45,10 @@
                        (repl/message {:op "eval" :code "(+ 1 1)"})
                        (repl/response-values))))))))
 
-(deftest test-nrepl-service
+(deftest test-nrepl-service-3
   (testing "An nREPL service with test middleware has been started"
     (with-app-with-config app
-      [nrepl-service]
+      [nrepl-service/nrepl-service]
       {:nrepl {:port        7888
                :host        "0.0.0.0"
                :enabled     "true"
@@ -57,7 +57,7 @@
                          (:test (first (-> (repl/client conn 1000)
                                            (repl/message {:op "middlewaretest"}))))))))
     (with-app-with-config app
-      [nrepl-service]
+      [nrepl-service/nrepl-service]
       {:nrepl {:port        7888
                :host        "0.0.0.0"
                :enabled     "true"

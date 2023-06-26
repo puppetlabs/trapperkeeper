@@ -1,22 +1,21 @@
 (ns puppetlabs.trapperkeeper.testutils.logging
-  (:import
-   [ch.qos.logback.classic Level]
-   [ch.qos.logback.classic.encoder PatternLayoutEncoder]
-   [ch.qos.logback.core Appender FileAppender]
-   [ch.qos.logback.core.spi LifeCycle]
-   (ch.qos.logback.core AppenderBase)
-   [org.slf4j LoggerFactory]
-   [java.util.regex Pattern])
   (:require
-   [clojure.set :as set]
-   [clojure.test]
-   [clojure.tools.logging.impl :as impl]
-   [clojure.tools.logging :refer [*logger-factory*]]
-   [me.raynes.fs :as fs]
-   [puppetlabs.kitchensink.core :as kitchensink]
-   [puppetlabs.trapperkeeper.logging :as pl-log
-    :refer [root-logger-name]]
-   [schema.core :as s]))
+    [clojure.set :as set]
+    [clojure.test]
+    [clojure.tools.logging.impl :as impl]
+    [me.raynes.fs :as fs]
+    [puppetlabs.kitchensink.core :as kitchensink]
+    [puppetlabs.trapperkeeper.logging :as pl-log
+     :refer [root-logger-name]]
+    [schema.core :as s])
+  (:import
+    (ch.qos.logback.classic Level)
+    (ch.qos.logback.classic.encoder PatternLayoutEncoder)
+    (ch.qos.logback.core Appender FileAppender)
+    (ch.qos.logback.core AppenderBase)
+    (ch.qos.logback.core.spi LifeCycle)
+    (java.util.regex Pattern)
+    (org.slf4j LoggerFactory)))
 
 ;; Note that the logging configuration is a global resource, so
 ;; simultaneous calls to reset-logging, configure-logging!, etc. may
@@ -33,10 +32,11 @@
 
 (def ^:private levels (set (keys keyword-levels)))
 
-(defn event->map [event]
+(defn event->map
   "Returns {:logger name :level lvl :exception throwable :message msg}
   for the given event.  Note that this does not convert any nil
   messages to \"\"."
+  [event]
   {:logger (.getLoggerName event)
    :level  (level-keywords (.getLevel event))
    :message (.getFormattedMessage event)
@@ -101,18 +101,19 @@
         started? (atom false)]
     (reify
       Appender
-      (doAppend [this event] (when @started? (listen event)))
-      (getName [this] @name)
-      (setName [this x] (reset! name x))
+      (doAppend [_this event] (when @started? (listen event)))
+      (getName [_this] @name)
+      (setName [_this x] (reset! name x))
       LifeCycle
-      (start [this] (reset! started? true))
-      (stop [this] (reset! started? false))
-      (isStarted [this] @started?))))
+      (start [_this] (reset! started? true))
+      (stop [_this] (reset! started? false))
+      (isStarted [_this] @started?))))
 
-(defn call-with-additional-log-appenders [logger-id appenders f]
+(defn call-with-additional-log-appenders
   "Adds the specified appenders to the logger specified by logger-id,
   calls f, and then removes them.  If logger-id is not a class, it
   will be converted via str."
+  [logger-id appenders f]
   (let [logger (find-logger logger-id)]
     (try
       (doseq [appender appenders]
@@ -129,11 +130,12 @@
   [logger-id appenders & body]
   `(call-with-additional-log-appenders ~logger-id ~appenders (fn [] ~@body)))
 
-(defn call-with-log-appenders [logger-id appenders f]
+(defn call-with-log-appenders
   "Replaces the appenders of the logger specified by logger-id with
   the specified appenders, calls f, and then restores the original
   appenders.  If logger-id is not a class, it will be converted via
   str."
+  [logger-id appenders f]
   (let [logger (find-logger logger-id)
         original-appenders (iterator-seq (.iteratorForAppenders logger))]
     (try
@@ -335,13 +337,13 @@
           (one-element?)))))
 
 (defmethod clojure.test/assert-expr 'logged? [is-msg form]
-  "Asserts that exactly one event in *test-log-events* has a message
-  that matches msg-or-pred.  The match is performed via = if
-  msg-or-pred is a string, via re-find if msg-or-pred is a pattern, or
-  via (msg-or-pred event-map) if msg-or-pred is a function.  If level
-  is specified, the message's keyword level (:info, :error, etc.) must
-  also match.  For example:
-    (with-test-logging (log/info \"123\") (is (logged? #\"2\")))."
+  ;"Asserts that exactly one event in *test-log-events* has a message
+  ;that matches msg-or-pred.  The match is performed via = if
+  ;msg-or-pred is a string, via re-find if msg-or-pred is a pattern, or
+  ;via (msg-or-pred event-map) if msg-or-pred is a function.  If level
+  ;is specified, the message's keyword level (:info, :error, etc.) must
+  ;also match.  For example:
+  ;  (with-test-logging (log/info \"123\") (is (logged? #\"2\")))."
   (assert (#{2 3} (count form)))
   (let [[_ msg-or-pred level] form]
     `(let [events# @@#'puppetlabs.trapperkeeper.testutils.logging/*test-log-events*]
@@ -399,6 +401,7 @@
   ([pattern logs level]
    {:pre  [(instance? java.util.regex.Pattern pattern)
            (coll? logs)
+           #_:clj-kondo/ignore
            (contains? legal-levels level)]}
    ;; the logs are formatted as sequences, where the keyword at index 1
    ;; contains the level and the string at index 3 contains the actual
@@ -406,6 +409,7 @@
    (let [matches-level? (fn [log-entry] (or (nil? level) (= level (get log-entry 1))))
          matches-msg? (fn [log-entry] (re-find pattern (get log-entry 3)))
          matches (filter #(and (matches-level? %) (matches-msg? %)) logs)]
+     #_:clj-kondo/ignore
      (map log-entry->map matches))))
 
 (defn ^{:deprecated "1.1.2"} log-to-console
@@ -427,9 +431,10 @@
      (name [_] "test factory")
      (get-logger [_ log-ns]
        (reify impl/Logger
-         (enabled? [_ level] true)
+         (enabled? [_ _level] true)
          (write! [_ lvl ex msg]
            (let [entry [(str log-ns) lvl ex msg]]
+             #_:clj-kondo/ignore
              (when debug? (log-to-console entry))
              (swap! destination conj entry)
              nil)))))))
@@ -444,11 +449,12 @@
    (let [appender (proxy [AppenderBase] []
                     (append [logging-event]
                       (let [throwable-info (.getThrowableInformation logging-event)
-                            ex (if throwable-info (.getThrowable throwable-info))
+                            ex (when throwable-info (.getThrowable throwable-info))
                             entry [(.getLoggerName logging-event)
                                    (.getLevel logging-event)
                                    ex
                                    (str (.getFormattedMessage logging-event))]]
+                        #_:clj-kondo/ignore
                         (when debug? (log-to-console entry))
                         (swap! destination conj entry)))
                     (close []))]
@@ -471,12 +477,14 @@
   `(let [root-logger#     (pl-log/root-logger)
          orig-appenders#  (vec (iterator-seq (.iteratorForAppenders root-logger#)))
          orig-started#    (into {} (map #(vector % (.isStarted %)) orig-appenders#))
-         temp-appender#   (atom-appender ~log-output-atom (~options :debug))]
+         temp-appender#  (atom-appender ~log-output-atom (~options :debug))]
      (.setName temp-appender# "testutils-temp-log-appender")
      (try
        (doseq [orig-appender# orig-appenders#]
+         #_:clj-kondo/ignore
          (.stop orig-appender#))
        (.addAppender root-logger# temp-appender#)
+
        (binding [clojure.tools.logging/*logger-factory*
                  (atom-logger
                   ~log-output-atom

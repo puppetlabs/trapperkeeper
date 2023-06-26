@@ -1,19 +1,18 @@
 (ns puppetlabs.trapperkeeper.services-test
   (:require [clojure.test :refer :all]
-            [puppetlabs.trapperkeeper.services :refer
-             [defservice service] :as svcs]
-            [puppetlabs.trapperkeeper.app :as app]
+            [me.raynes.fs :as fs]
             [puppetlabs.kitchensink.core :as kitchensink]
+            [puppetlabs.kitchensink.testutils :as ks-testutils]
+            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
+            [puppetlabs.trapperkeeper.app :as app]
+            [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.trapperkeeper.internal :as internal]
+            [puppetlabs.trapperkeeper.services :refer [defservice service] :as svcs]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer
              [bootstrap-services-with-empty-config
-              with-app-with-empty-config
-              with-app-with-config]]
-            [schema.test :as schema-test]
-            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
-            [puppetlabs.trapperkeeper.internal :as internal]
-            [puppetlabs.trapperkeeper.core :as tk]
-            [puppetlabs.kitchensink.testutils :as ks-testutils]
-            [me.raynes.fs :as fs])
+              with-app-with-config
+              with-app-with-empty-config]]
+            [schema.test :as schema-test])
   (:import (java.util.concurrent ExecutionException)))
 
 (use-fixtures :once schema-test/validate-schemas with-no-jvm-shutdown-hooks)
@@ -492,7 +491,7 @@
                      (start [this context] (reset! s2-context (svcs/service-context this)))
                      (service2-fn [this] "hi"))
 
-          app (bootstrap-services-with-empty-config [service1 service2])]
+          _app (bootstrap-services-with-empty-config [service1 service2])]
       (is (= {} @s2-context)))))
 
 (deftest service-symbol-test

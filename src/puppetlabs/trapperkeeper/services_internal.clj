@@ -1,7 +1,6 @@
 (ns puppetlabs.trapperkeeper.services-internal
-  (:import (clojure.lang IFn))
-  (:require [clojure.walk :refer [postwalk]]
-            [clojure.set :refer [difference union intersection]]
+  (:import (clojure.lang IFn Namespace))
+  (:require [clojure.set :refer [difference union intersection]]
             [schema.core :as schema]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.i18n.core :as i18n]))
@@ -80,8 +79,9 @@
 (schema/defn ^:always-validate var->symbol :- Symbol
   "Returns a symbol for the var, including its namespace"
   [fn-var :- Var]
-  (symbol (str (-> fn-var meta :ns .name))
-          (str (-> fn-var meta :name))))
+  (let [m (meta fn-var)]
+    (symbol (str (.name ^Namespace (:ns m)))
+            (str (:name m)))))
 
 (schema/defn ^:always-validate transform-deps-map :- (schema/pred vector?)
   "Given a map of required and optional dependencies, return a vector that
@@ -128,11 +128,11 @@
   is something other than a protocol.  Returns the protocol."
   [sym :- Symbol
    var :- (schema/maybe Var)]
-  (if-not var
+  (when-not var
     (throw (IllegalArgumentException.
             (i18n/trs "Unrecognized service protocol ''{0}''" sym))))
   (let [protocol (var-get var)]
-    (if-not (protocol? protocol)
+    (when-not (protocol? protocol)
       (throw (IllegalArgumentException.
                (i18n/trs "Specified service protocol ''{0}'' does not appear to be a protocol!"
                          sym))))
@@ -146,7 +146,7 @@
    lifecycle-fn-names :- [Symbol]]
   (let [collisions (intersection (set (map name service-fn-names))
                                  (set (map name lifecycle-fn-names)))]
-    (if-not (empty? collisions)
+    (when-not (empty? collisions)
       (throw (IllegalArgumentException.
                (i18n/trs "Service protocol ''{0}'' includes function named ''{1}'', which conflicts with lifecycle function by same name"
                          (name service-protocol-sym)
@@ -159,8 +159,8 @@
   [service-protocol-sym :- (schema/maybe Symbol)
    service-fns :- #{schema/Keyword}
    provided-fns :- #{schema/Keyword}]
-  (if (and (nil? service-protocol-sym)
-           (> (count provided-fns) 0))
+  (when (and (nil? service-protocol-sym)
+             (> (count provided-fns) 0))
     (throw (IllegalArgumentException.
              (i18n/trs "Service attempts to define function ''{0}'', but does not provide protocol"
                        (name (first provided-fns))))))
@@ -179,7 +179,7 @@
    fns-map :- FnsMap]
   (doseq [fn-name required-fn-names]
     (let [fn-name (ks/without-ns (keyword fn-name))]
-      (if-not (contains? fns-map fn-name)
+      (when-not (contains? fns-map fn-name)
         (throw (IllegalArgumentException.
                  (i18n/trs "Service does not define function ''{0}'', which is required by protocol ''{1}''"
                            (name fn-name) (name protocol-sym))))))))

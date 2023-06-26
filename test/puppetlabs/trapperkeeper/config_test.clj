@@ -1,5 +1,5 @@
 (ns puppetlabs.trapperkeeper.config-test
-  (:import (java.io StringReader FileNotFoundException))
+  (:import (java.io FileNotFoundException))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-cli-data with-app-with-cli-data]]
             [puppetlabs.trapperkeeper.app :refer [get-service]]
@@ -44,18 +44,6 @@
 
   (testing "Can read values from a single .edn file"
     (with-app-with-cli-data app [test-service] {:config "./dev-resources/config/file/config.edn"}
-      (let [test-svc  (get-service app :ConfigTestService)]
-        (testing "`get-config` function"
-          (is (= {:debug false
-                  :foo {:bar "barbar"
-                        :baz "bazbaz"
-                        :bam 42
-                        :bap {:boozle "boozleboozle"
-                              :bip [1 2 {:hi "there"} 3]}}}
-                 (test-fn2 test-svc)))))))
-
-  (testing "Can read values from a single .yaml file"
-    (with-app-with-cli-data app [test-service] {:config "./dev-resources/config/file/config.yaml"}
       (let [test-svc  (get-service app :ConfigTestService)]
         (testing "`get-config` function"
           (is (= {:debug false
@@ -120,9 +108,7 @@
                         :setting2        "baz2"}
                 :bar   {:nesty           {:mappy {:hi "there"
                                                   :stuff [1 2 {:how "areyou"} 3]}}
-                        :junk            "thingz"}
-                :qux   {:first           {:list [1 2]}
-                        :second          {:key "value"}}}
+                        :junk            "thingz"}}
                cfg)))))
 
   (testing "An error is thrown if duplicate settings exist"
@@ -144,7 +130,5 @@
                     :setting2        "baz2"}
             :bar   {:nesty           {:mappy {:hi "there"
                                               :stuff [1 2 {:how "areyou"} 3]}}
-                    :junk            "thingz"}
-            :qux   {:first           {:list [1 2]}
-                    :second          {:key "value"}}}
+                    :junk            "thingz"}}
            (load-config "./dev-resources/config/mixeddir")))))

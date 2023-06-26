@@ -23,7 +23,6 @@
             [me.raynes.fs :as fs]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.config.typesafe :as typesafe]
-            [clj-yaml.core :as yaml]
             [puppetlabs.trapperkeeper.services :refer [service service-context]]
             [puppetlabs.trapperkeeper.logging :refer [configure-logging!]]
             [clojure.tools.logging :as log]
@@ -57,9 +56,6 @@
     #{".edn"}
     (edn/read (PushbackReader. (io/reader file)))
 
-    #{".yaml" ".yml"}
-    (yaml/parse-string (slurp file))
-
     (throw (IllegalArgumentException.
             (i18n/trs "Config file {0} must end in .conf or other recognized extension"
                       (-> file str pr-str))))))
@@ -68,7 +64,7 @@
   [config-data cli-data]
   (if-let [cli-restart-file (:restart-file cli-data)]
     (do
-      (if (get-in config-data [:global :restart-file])
+      (when (get-in config-data [:global :restart-file])
         (log/warnf (i18n/trs "restart-file setting specified both on command-line and in config file, using command-line value: ''{0}''"
                              cli-restart-file)))
       (assoc-in config-data [:global :restart-file] cli-restart-file))
@@ -89,7 +85,7 @@
     [path]
     (mapcat
      #(fs/glob (fs/file path %))
-     ["*.ini" "*.conf" "*.json" "*.properties" "*.edn" "*.yaml" "*.yml"])))
+     ["*.ini" "*.conf" "*.json" "*.properties" "*.edn"])))
 
 (defn load-config
   "Given a path to a configuration file or directory of configuration files,

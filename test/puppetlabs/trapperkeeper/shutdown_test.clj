@@ -1,17 +1,13 @@
 (ns puppetlabs.trapperkeeper.shutdown-test
   (:require [clojure.test :refer :all]
-            [puppetlabs.trapperkeeper.app :refer [app-context
-                                                  check-for-errors!
-                                                  get-service]]
+            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
+            [puppetlabs.trapperkeeper.app :as tk-app]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.internal :as internal]
             [puppetlabs.trapperkeeper.services :refer [service service-id]]
-            [puppetlabs.trapperkeeper.testutils.bootstrap :refer [bootstrap-services-with-empty-config]]
-            [puppetlabs.trapperkeeper.testutils.logging :as logging]
-            [puppetlabs.kitchensink.testutils.fixtures :refer [with-no-jvm-shutdown-hooks]]
-            [schema.test :as schema-test]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
-            [puppetlabs.trapperkeeper.app :as tk-app]))
+            [puppetlabs.trapperkeeper.testutils.logging :as logging]
+            [schema.test :as schema-test]))
 
 (use-fixtures :once with-no-jvm-shutdown-hooks schema-test/validate-schemas)
 
@@ -27,9 +23,9 @@
                               (stop [this context]
                                 (reset! shutdown-called? true)
                                 context))
-          app               (bootstrap-services-with-empty-config [test-service])]
+          app               (testutils/bootstrap-services-with-empty-config [test-service])]
       (is (false? @shutdown-called?))
-      (internal/shutdown! (app-context app))
+      (internal/shutdown! (tk-app/app-context app))
       (is (true? @shutdown-called?)))))
 
 (deftest shutdown-dep-order-test
@@ -44,9 +40,9 @@
                         (stop [this context]
                           (swap! order conj 2)
                           context))
-          app         (bootstrap-services-with-empty-config [service1 service2])]
+          app         (testutils/bootstrap-services-with-empty-config [service1 service2])]
       (is (empty? @order))
-      (internal/shutdown! (app-context app))
+      (internal/shutdown! (tk-app/app-context app))
       (is (= @order [2 1])))))
 
 (deftest shutdown-continue-after-ex-test
@@ -59,10 +55,10 @@
           broken-service    (service []
                               (stop [this context]
                                 (throw (RuntimeException. "dangit"))))
-          app               (bootstrap-services-with-empty-config [test-service broken-service])]
+          app               (testutils/bootstrap-services-with-empty-config [test-service broken-service])]
       (is (false? @shutdown-called?))
       (logging/with-test-logging
-        (let [errors (internal/shutdown! (app-context app))]
+        (let [errors (internal/shutdown! (tk-app/app-context app))]
           (is (= '("dangit") (map #(.getMessage ^Throwable %) errors))))
         (is (logged? #"Encountered error during shutdown sequence" :error)))
       (is (true? @shutdown-called?)))))
@@ -74,8 +70,8 @@
                               (stop [this context]
                                 (reset! shutdown-called? true)
                                 context))
-          app               (bootstrap-services-with-empty-config [test-service])
-          shutdown-svc      (get-service app :ShutdownService)]
+          app               (testutils/bootstrap-services-with-empty-config [test-service])
+          shutdown-svc      (tk-app/get-service app :ShutdownService)]
       (is (false? @shutdown-called?))
       (internal/request-shutdown shutdown-svc)
       (tk/run-app app)
@@ -97,7 +93,7 @@
                                            (Throwable.
                                             "oops"))))))
           app               (tk/boot-services-with-config [test-service] {})
-          test-svc          (get-service app :ShutdownTestServiceWithFn)]
+          test-svc          (tk-app/get-service app :ShutdownTestServiceWithFn)]
       (is (false? @shutdown-called?))
       (test-fn test-svc)
       (is (thrown-with-msg?
@@ -263,9 +259,9 @@
                                 (test-fn [this]
                                   (shutdown-on-error (service-id this)
                                                      #(throw (RuntimeException. "uh oh"))
-                                                     (fn [ctxt] (reset! on-error-fn-called? true)))))
-          app                 (bootstrap-services-with-empty-config [broken-service])
-          test-svc            (get-service app :ShutdownTestServiceWithFn)]
+                                                     (fn [_ctxt] (reset! on-error-fn-called? true)))))
+          app                 (testutils/bootstrap-services-with-empty-config [broken-service])
+          test-svc            (tk-app/get-service app :ShutdownTestServiceWithFn)]
       (is (false? @shutdown-called?))
       (is (false? @on-error-fn-called?))
       (test-fn test-svc)
@@ -283,9 +279,9 @@
                             (test-fn [this]
                               (shutdown-on-error (service-id this)
                                                  #(throw (Throwable. "foo"))
-                                                 (fn [ctxt] (throw (Throwable. "busted on-error function"))))))
-          app             (bootstrap-services-with-empty-config [broken-service])
-          test-svc        (get-service app :ShutdownTestServiceWithFn)]
+                                                 (fn [_ctxt] (throw (Throwable. "busted on-error function"))))))
+          app             (testutils/bootstrap-services-with-empty-config [broken-service])
+          test-svc        (tk-app/get-service app :ShutdownTestServiceWithFn)]
       (logging/with-test-logging
         (test-fn test-svc)
         (is (thrown-with-msg?
@@ -325,7 +321,7 @@
       (is (thrown-with-msg?
            Throwable
            #"oops"
-           (check-for-errors! app))
+           (tk-app/check-for-errors! app))
           "Expected error not thrown for check-for-errors!")))
   (testing "check-for-errors! throws exception for error in init"
     (let [test-service     (service ShutdownTestService
@@ -337,7 +333,7 @@
       (is (thrown-with-msg?
            Throwable
            #"oops"
-           (check-for-errors! app))
+           (tk-app/check-for-errors! app))
           "Expected error not thrown for check-for-errors!")))
   (testing "check-for-errors! throws exception for shutdown-on-error in start"
     (let [test-service     (service ShutdownTestService
@@ -351,7 +347,7 @@
       (is (thrown-with-msg?
            Throwable
            #"oops"
-           (check-for-errors! app))
+           (tk-app/check-for-errors! app))
           "Expected error not thrown for check-for-errors!")))
   (testing "check-for-errors! throws exception for error in start"
     (let [test-service     (service ShutdownTestService
@@ -363,7 +359,7 @@
       (is (thrown-with-msg?
            Throwable
            #"oops"
-           (check-for-errors! app))
+           (tk-app/check-for-errors! app))
           "Expected error not thrown for check-for-errors!")))
   (testing "check-for-errors! returns app when no shutdown-on-error occurs"
     (let [test-service     (service ShutdownTestService
@@ -371,7 +367,7 @@
                              (init [this context]
                                context))
           app              (tk/boot-services-with-config [test-service] {})]
-      (is (identical? app (check-for-errors! app))
+      (is (identical? app (tk-app/check-for-errors! app))
           "app not returned for check-for-errors!"))))
 
 (deftest shutdown-during-restart-test

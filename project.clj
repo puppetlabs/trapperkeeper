@@ -32,7 +32,7 @@
 
                  [clj-time]
                  [clj-commons/fs]
-                 [clj-commons/clj-yaml]
+                 [org.yaml/snakeyaml "2.0"]
 
                  [prismatic/plumbing]
                  [prismatic/schema]

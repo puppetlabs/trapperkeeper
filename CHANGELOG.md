@@ -1,3 +1,9 @@
+## 3.3.1
+
+This is a minor dependency change release
+
+* Removes clj-yaml for yaml parsing and replaces it with snakeyaml 2.0.
+
 ## 3.3.0
 
 This is a potentially breaking dependency version update release

@@ -37,6 +37,23 @@
         (is (true? @done?))
         (is (logged? #"test thread" :info))))))
 
+(deftest with-test-logging-and-duplicate-log-lines
+  (testing "test-logging captures matches duplicate lines when specified"
+    (with-test-logging
+      (log/error "duplicate message")
+      (log/error "duplicate message")
+      (log/warn "duplicate message")
+      (log/warn "single message")
+      (testing "single line only match"
+        (is (not (logged? #"duplicate message"))) ;; original behavior of the fn, default behavior
+        (is (logged? #"duplicate message" :warn false)))
+      (testing "disabling single line match, enabling multiple line match"
+        (is (logged? #"duplicate message" :error true))
+        (is (logged? #"duplicate message" nil true))
+        (testing "still handles single matches"
+          (is (logged? #"single message" nil true))
+          (is (logged? #"single message" :warn true)))))))
+
 (deftest test-logging-configuration
   (testing "Calling `configure-logging!` with a logback.xml file"
     (tk-logging/configure-logging! "./dev-resources/logging/logback-debug.xml")

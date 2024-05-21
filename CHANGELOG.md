@@ -1,3 +1,6 @@
+## 4.0.1
+* adds a new arity to `logged?` that removes the restriction that only one log line must match the pattern, adds printing to the function and repo documentation to make users aware of this single line match restriction
+
 ## 4.0.0
 
 This is a major release with breaking changes.

@@ -4,7 +4,7 @@
    [clojure.tools.logging :as log]
    [puppetlabs.kitchensink.core :as kitchensink]
    [puppetlabs.trapperkeeper.logging :refer [reset-logging root-logger-name]]
-   [puppetlabs.trapperkeeper.testutils.logging :as tgt :refer [event->map]])
+   [puppetlabs.trapperkeeper.testutils.logging :as tgt :refer [event->map logged?]])
   (:import
     (org.slf4j LoggerFactory)))
 

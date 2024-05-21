@@ -44,10 +44,14 @@ since the beginning of the form.
 See the `logged?` docstring for a complete description, but as an
 example, if the first argument is a regex pattern (typically generated
 via Clojure's `#"pattern"`), then `logged?` will return true if the
-pattern matches the message of anything that has been logged since the
-beginning of the enclosing `with-test-logging` form.  An optional
+pattern matches a single message of anything that has been logged since the
+beginning of the enclosing `with-test-logging` form. An optional
 second parameter restricts the match to log events with the specified
 level: `:trace`, `:debug`, `:info`, `:warn`, `:error` or `:fatal`.
+
+Note: by default `logged?` returns true only if there is exactly one
+log line match. An optional third parameter can be specified to disable
+this restriction.
 
 ### `event->map`
 

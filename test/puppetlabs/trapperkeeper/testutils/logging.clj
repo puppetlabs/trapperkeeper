@@ -319,20 +319,24 @@
            ~@body)))))
 
 (s/defn ^{:always-validate true} logged?
-  ([msg-or-pred] (logged? msg-or-pred nil))
+  ([msg-or-pred] (logged? msg-or-pred nil nil))
+  ([msg-or-pred maybe-level] (logged? msg-or-pred maybe-level nil))
   ([msg-or-pred :- (s/conditional ifn? (s/pred ifn?)
                                   string? s/Str
                                   :else Pattern)
-    maybe-level :- (s/maybe (s/pred #(levels %)))]
+    maybe-level :- (s/maybe (s/pred #(levels %)))
+    disable-single-line-match-restriction :- (s/maybe s/Bool)]
    (let [match? (cond (ifn? msg-or-pred) msg-or-pred
                       (string? msg-or-pred) #(= msg-or-pred (:message %))
                       :else #(re-find msg-or-pred (:message %)))
-         one-element? #(and (seq %) (empty? (rest %)))
+         one-element-if-specified? #(if (and (seq %) (or disable-single-line-match-restriction (empty? (rest %))))
+                                      true
+                                      (println "\n`logged?` warning: multiple log line matches found, but this arity expects only one match, returning false. Found matches: " % "\n"))
          correct-level? #(or (nil? maybe-level) (= maybe-level (:level %)))]
      (->> (map event->map @*test-log-events*)
           (filter correct-level?)
           (filter match?)
-          (one-element?)))))
+          (one-element-if-specified?)))))
 
 (defmethod clojure.test/assert-expr 'logged? [is-msg form]
   "Asserts that exactly one event in *test-log-events* has a message
@@ -342,10 +346,10 @@
   is specified, the message's keyword level (:info, :error, etc.) must
   also match.  For example:
     (with-test-logging (log/info \"123\") (is (logged? #\"2\")))."
-  (assert (#{2 3} (count form)))
-  (let [[_ msg-or-pred level] form]
+  (assert (#{2 3 4} (count form)))
+  (let [[_ msg-or-pred level disable-single-line-restriction] form]
     `(let [events# @@#'puppetlabs.trapperkeeper.testutils.logging/*test-log-events*]
-       (if-not (logged? ~msg-or-pred ~level)
+       (if-not (logged? ~msg-or-pred ~level ~disable-single-line-restriction)
          (clojure.test/do-report
           {:type :fail
            :message ~is-msg

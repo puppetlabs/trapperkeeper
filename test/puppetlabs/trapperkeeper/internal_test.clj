@@ -109,3 +109,40 @@
       ;; and make sure that we got one last :stop
       (is (= (conj expected-lifecycle-events :stop)
              @lifecycle-events)))))
+
+(deftest test-immediate-shutdown-exceptions
+  (let [shutdown #(throw
+                   (ex-info "Shutting down"
+                            {:puppetlabs.trapperkeeper.core/exit
+                             {:status 42
+                              :messages [["Something on stdderr" *err*]]}}))
+        service-that-shuts-down-from
+        (fn [stage events]
+          (tk/service
+           []
+           (init [this context]
+                 (swap! events conj :init)
+                 (when (= :init stage) (shutdown))
+                 context)
+           (start [this context]
+                  (swap! events conj :start)
+                  (when (= :start stage) (shutdown))
+                  context)
+           (stop [this context]
+                 (swap! events conj :stop)
+                 context)))
+        config-fn (constantly {})
+        test-stage
+        (fn test-stage [stage expected-events]
+          (let [events (atom [])
+                svc (service-that-shuts-down-from stage events)
+                app (internal/build-app* [svc] config-fn)
+                main-thread (future (internal/boot-services-for-app* app))]
+            @main-thread
+            (is (= expected-events @events))
+            (let [{:keys [cause :puppetlabs.trapperkeeper.core/exit]}
+                  (internal/get-app-shutdown-reason app)]
+              (is (= cause :requested))
+              (is (= 42 (:status exit))))))]
+    (test-stage :init [:init])
+    (test-stage :start [:init :start])))

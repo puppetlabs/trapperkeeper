@@ -1,5 +1,8 @@
 name: mend_scan
 on:
+  schedule:
+    # run every day at 4:00am
+    - cron: 0 4 * * *
   workflow_dispatch:
   push:
     branches:
@@ -13,18 +16,18 @@ jobs:
       with:
         service-key: ${{ secrets.TWINGATE_PUBLIC_REPO_KEY }}
     - name: checkout repo content
-      uses: actions/checkout@v2 # checkout the repository content to github runner.
+      uses: actions/checkout@v4 # checkout the repository content to github runner.
       with:
         fetch-depth: 1
     # install java which is required for mend and clojure
     - name: setup java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
     # install clojure tools
     - name: Install Clojure tools
-      uses: DeLaGuardo/setup-clojure@10.1
+      uses: DeLaGuardo/setup-clojure@12.5
       with:
         # Install just one or all simultaneously
         # The value must indicate a particular version of the tool, or use 'latest'

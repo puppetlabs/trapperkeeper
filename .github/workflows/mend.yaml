@@ -1,9 +1,12 @@
 name: mend_scan
 on:
+  schedule:
+    # run every day at 4:00am
+    - cron: 0 4 * * *
   workflow_dispatch:
   push:
     branches:
-      - main
+      - 3.x
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,13 +21,13 @@ jobs:
         fetch-depth: 1
     # install java which is required for mend and clojure
     - name: setup java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
     # install clojure tools
     - name: Install Clojure tools
-      uses: DeLaGuardo/setup-clojure@10.1
+      uses: DeLaGuardo/setup-clojure@12.5
       with:
         # Install just one or all simultaneously
         # The value must indicate a particular version of the tool, or use 'latest'

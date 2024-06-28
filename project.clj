@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper "4.0.2-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper "4.0.2"
   :description "A framework for configuring, composing, and running Clojure services."
 
   :license {:name "Apache License, Version 2.0"

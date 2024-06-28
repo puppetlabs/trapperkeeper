@@ -318,6 +318,7 @@
               (swap! destination# conj event#))]
            ~@body)))))
 
+
 (s/defn ^{:always-validate true} logged?
   ([msg-or-pred] (logged? msg-or-pred nil nil))
   ([msg-or-pred maybe-level] (logged? msg-or-pred maybe-level nil))
@@ -329,9 +330,14 @@
    (let [match? (cond (ifn? msg-or-pred) msg-or-pred
                       (string? msg-or-pred) #(= msg-or-pred (:message %))
                       :else #(re-find msg-or-pred (:message %)))
-         one-element-if-specified? #(if (and (seq %) (or disable-single-line-match-restriction (empty? (rest %))))
-                                      true
-                                      (println "\n`logged?` warning: multiple log line matches found, but this arity expects only one match, returning false. Found matches: " % "\n"))
+         one-element-if-specified? (fn [items]
+                                     (if (seq items)
+                                       (if (or disable-single-line-match-restriction (empty? (rest items)))
+                                         true
+                                         (do
+                                           (println "\n`logged?` warning: multiple log line matches found, but this arity expects only one match, returning false. Found matches: \n" (pr-str (map :message items)) "\n")
+                                           false))
+                                       false))
          correct-level? #(or (nil? maybe-level) (= maybe-level (:level %)))]
      (->> (map event->map @*test-log-events*)
           (filter correct-level?)

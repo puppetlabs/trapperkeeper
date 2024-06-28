@@ -1,3 +1,6 @@
+## 3.3.3 
+* update `logged?` to not emit an incorrect message when there are no matches, and clean up the output from multiple unexpected matches. 
+
 ## 3.3.2
 * this is a minor release changing a test utility
 * adds a new arity to `logged?` that removes the restriction that only one log line must match the pattern, adds printing to the function and repo documentation to make users aware of this single line match restriction

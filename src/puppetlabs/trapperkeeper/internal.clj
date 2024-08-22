@@ -176,6 +176,29 @@
         required    []]
     (first (ks/cli! cli-args specs required))))
 
+(def exit-request-schema
+  "A process exit request like
+  {:status 7
+   :messages [[\"something for stderr\n\" *err*]]
+              [\"something for stdout\n\" *out*]]
+              [\"something else for stderr\n\" *err*]]"
+  {:status schema/Int
+   :messages [[(schema/one schema/Str "message")
+               (schema/one java.io.Writer "stream")]]})
+
+(defn exit-exception? [ex]
+  (and (instance? ExceptionInfo ex)
+       (not (schema/check {(schema/optional-key :puppetlabs.trapperkeeper.core/exit)
+                           exit-request-schema}
+                          (ex-data ex)))))
+
+(defn shutdown-reason-for-ex
+  [exception]
+  (if (exit-exception? exception)
+    (merge {:cause :requested}
+           (select-keys (ex-data exception) [:puppetlabs.trapperkeeper.core/exit]))
+    {:cause :service-error :error exception}))
+
 (schema/defn ^:always-validate run-lifecycle-fn!
   "Run a lifecycle function for a service.  Required arguments:
 
@@ -234,9 +257,15 @@
       (log/debug (i18n/trs "Finished running lifecycle function ''{0}'' for service ''{1}''"
                            lifecycle-fn-name
                            service-id)))
-    (catch Throwable t
-      (log/error t (i18n/trs "Error during service {0}!!!" lifecycle-fn-name))
-      (throw t))))
+    (catch ExceptionInfo ex
+      (if (exit-exception? ex)
+        (log/info (i18n/trs "Immediate shutdown requested during service {0}"
+                            lifecycle-fn-name))
+        (log/error ex (i18n/trs "Error during service {0}!!!" lifecycle-fn-name)))
+      (throw ex))
+    (catch Throwable ex
+      (log/error ex (i18n/trs "Error during service {0}!!!" lifecycle-fn-name))
+      (throw ex))))
 
 (schema/defn ^:always-validate initialize-lifecycle-worker :- (schema/protocol async-prot/Channel)
   "Initializes a 'worker' which will listen for lifecycle-related tasks and perform
@@ -286,9 +315,7 @@
               (log/debug (i18n/trs "Lifecycle worker completed {0} lifecycle task; awaiting next task." type))
               (catch Exception e
                 (log/debug e (i18n/trs "Exception caught in lifecycle worker loop"))
-                (deliver shutdown-reason-promise
-                         {:cause :service-error
-                          :error e})))
+                (deliver shutdown-reason-promise (shutdown-reason-for-ex e))))
             (recur))
 
           (do
@@ -344,16 +371,6 @@
 ;;;; delivered value returned. This value will contain contextual information
 ;;;; regarding the cause of the shutdown, and is intended to be passed back
 ;;;; in to the top-level functions that perform various shutdown steps.
-
-(def exit-request-schema
-  "A process exit request like
-  {:status 7
-   :messages [[\"something for stderr\n\" *err*]]
-              [\"something for stdout\n\" *out*]]
-              [\"something else for stderr\n\" *err*]]"
-  {:status schema/Int
-   :messages [[(schema/one schema/Str "message")
-               (schema/one java.io.Writer "stream")]]})
 
 (def ^{:private true
        :doc "The possible causes for shutdown to be initiated."}
@@ -635,8 +652,7 @@
           (inc-restart-counter! this)
           this
           (catch Throwable t
-            (deliver shutdown-reason-promise {:cause :service-error
-                                              :error t})))))))
+            (deliver shutdown-reason-promise (shutdown-reason-for-ex t))))))))
 
 (schema/defn ^:always-validate boot-services-for-app**
   "Boots services for a TK app.  WARNING:  This should only ever be called
@@ -648,8 +664,7 @@
       (a/init app)
       (a/start app)
       (catch Throwable t
-        (deliver shutdown-reason-promise {:cause :service-error
-                                          :error t})))
+        (deliver shutdown-reason-promise (shutdown-reason-for-ex t))))
     (deliver result-promise app)))
 
 (schema/defn ^:always-validate boot-services-for-app* :- (schema/protocol a/TrapperkeeperApp)

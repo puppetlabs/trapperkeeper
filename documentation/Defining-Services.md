@@ -31,6 +31,9 @@ The default implementation of the lifecycle functions is to simply return the se
 
 Trapperkeeper will call the lifecycle functions in order based on the dependency list of the services; in other words, if your service has a dependency on service `Foo`, you are guaranteed that `Foo`'s `init` function will be called prior to yours, and that your `stop` function will be called prior to `Foo`'s.
 
+If an exception is thrown by `init` or `start`, Trapperkeeper will
+[initiate an immediate shutdown](Error-Handling.md).
+
 ### Example Service
 
 Let's look at a concrete example:

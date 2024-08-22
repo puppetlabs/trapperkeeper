@@ -68,9 +68,14 @@ specifying a process exit status and final messages like this:
   :messages [["Unexpected filesystem error ..." *err*]]}}
 ```
 
-which will finally be thrown from `run` as an `ex-info` of `:kind`
-`:puppetlabs.trapperkepper.core/exit` like this:
+This map is exactly the same map that can be thrown from an `init` or
+`start` method via `ex-info` to initiate an immediate shutdown.
+(Calls to `request-shutdown` only trigger a shutdown later, currently
+after all of the services have been initialized and started.)
 
+Whether via `request-shutdown` or a throw from `init` or `start`, a
+shutdown request will eventually cause `run` to throw an `ex-info` of
+`:kind` `:puppetlabs.trapperkepper.core/exit` like this:
 
 ```clj
 {:kind :puppetlabs.trapperkepper.core/exit`
